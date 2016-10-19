@@ -263,6 +263,8 @@ CONFIG_LWTUNNEL=y
 CONFIG_DEVTMPFS=y
 CONFIG_DEVTMPFS_MOUNT=y
 # CONFIG_STANDALONE is not set
+CONFIG_EXTRA_FIRMWARE="i915/skl_dmc_ver1.bin i915/skl_guc_ver4.bin brcm/brcmfmac43602-pcie.bin brcm/BCM-0a5c-6410.hcd"
+CONFIG_EXTRA_FIRMWARE_DIR="/lib/firmware ../linux-firmware/"
 CONFIG_CONNECTOR=y
 CONFIG_PARPORT=y
 CONFIG_PARPORT_PC=y
