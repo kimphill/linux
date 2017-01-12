@@ -22,26 +22,41 @@
 #include "../../util/evlist.h"
 #include "../../util/pmu.h"
 #include "cs-etm.h"
+#include "arm-spe.h"
 
 struct auxtrace_record
 *auxtrace_record__init(struct perf_evlist *evlist, int *err)
 {
-	struct perf_pmu	*cs_etm_pmu;
+	struct perf_pmu	*cs_etm_pmu, *arm_spe_pmu;
 	struct perf_evsel *evsel;
-	bool found_etm = false;
+	bool found_etm = false, found_spe = false;
 
 	cs_etm_pmu = perf_pmu__find(CORESIGHT_ETM_PMU_NAME);
+	arm_spe_pmu = perf_pmu__find(ARM_SPE_PMU_NAME);
 
 	if (evlist) {
 		evlist__for_each_entry(evlist, evsel) {
 			if (cs_etm_pmu &&
 			    evsel->attr.type == cs_etm_pmu->type)
 				found_etm = true;
+			if (arm_spe_pmu &&
+			    evsel->attr.type == arm_spe_pmu->type)
+				found_spe = true;
 		}
+	}
+
+
+	if (found_etm && found_spe) {
+		pr_err("Concurrent ARM Coresight ETM and SPE usage isn't supported yet\n");
+		*err = -ENOTSUP;
+		return NULL;
 	}
 
 	if (found_etm)
 		return cs_etm_record_init(err);
+
+	if (found_spe)
+		return arm_spe_record__init(err);
 
 	/*
 	 * Clear 'err' even if we haven't found a cs_etm event - that way perf
