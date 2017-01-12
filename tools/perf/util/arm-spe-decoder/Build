@@ -1,0 +1,2 @@
+libperf-$(CONFIG_AUXTRACE) += arm-spe-pkt-decoder.o arm-spe-log.o arm-spe-decoder.o
+

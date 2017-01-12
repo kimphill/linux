@@ -58,6 +58,7 @@
 
 #include "intel-pt.h"
 #include "intel-bts.h"
+#include "arm-spe.h"
 
 int auxtrace_mmap__mmap(struct auxtrace_mmap *mm,
 			struct auxtrace_mmap_params *mp,
@@ -901,6 +902,8 @@ int perf_event__process_auxtrace_info(struct perf_tool *tool __maybe_unused,
 		return intel_pt_process_auxtrace_info(event, session);
 	case PERF_AUXTRACE_INTEL_BTS:
 		return intel_bts_process_auxtrace_info(event, session);
+	case PERF_AUXTRACE_ARM_SPE:
+		return arm_spe_process_auxtrace_info(event, session);
 	case PERF_AUXTRACE_CS_ETM:
 	case PERF_AUXTRACE_UNKNOWN:
 	default:
