@@ -255,12 +255,12 @@ static int arm_spe_info_fill(struct auxtrace_record *itr,
 
 	auxtrace_info->type = PERF_AUXTRACE_ARM_SPE;
 	auxtrace_info->priv[ARM_SPE_PMU_TYPE] = arm_spe_pmu->type;
-	auxtrace_info->priv[ARM_SPE_TS_ENABLE] = !!ts_enable;
-	auxtrace_info->priv[ARM_SPE_PA_ENABLE] = !!pa_enable;
-	auxtrace_info->priv[ARM_SPE_JITTER] = !!jitter;
-	auxtrace_info->priv[ARM_SPE_LOAD_FILTER] = !!load_filter;
-	auxtrace_info->priv[ARM_SPE_STORE_FILTER] = !!store_filter;
-	auxtrace_info->priv[ARM_SPE_BRANCH_FILTER] = !!branch_filter;
+	auxtrace_info->priv[ARM_SPE_TS_ENABLE] = ts_enable;
+	auxtrace_info->priv[ARM_SPE_PA_ENABLE] = pa_enable;
+	auxtrace_info->priv[ARM_SPE_JITTER] = jitter;
+	auxtrace_info->priv[ARM_SPE_LOAD_FILTER] = load_filter;
+	auxtrace_info->priv[ARM_SPE_STORE_FILTER] = store_filter;
+	auxtrace_info->priv[ARM_SPE_BRANCH_FILTER] = branch_filter;
 	auxtrace_info->priv[ARM_SPE_MIN_LATENCY] = min_latency;
 	auxtrace_info->priv[ARM_SPE_HAVE_SCHED_SWITCH] = ptr->have_sched_switch;
 	auxtrace_info->priv[ARM_SPE_SNAPSHOT_MODE] = ptr->snapshot_mode;
