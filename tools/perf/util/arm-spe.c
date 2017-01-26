@@ -429,7 +429,7 @@ static int arm_spe_walk_next_insn(struct arm_spe_insn *arm_spe_insn,
 	if (to_ip && *ip == to_ip)
 		goto out_no_cache;
 
-	bufsz = 8; //FIXME: was: arm_spe_insn_max_size();
+	bufsz = 4;
 
 	if (*ip >= speq->spe->kernel_start)
 		cpumode = PERF_RECORD_MISC_KERNEL;
@@ -1085,7 +1085,7 @@ static int arm_spe_sample(struct arm_spe_queue *speq)
 
 	if (spe->synth_opts.callchain || spe->synth_opts.thread_stack)
 		thread_stack__event(speq->thread, speq->flags, state->from_ip,
-				    state->to_ip, 8,
+				    state->to_ip, 4,
 				    state->trace_nr);
 	else
 		thread_stack__set_trace_nr(speq->thread, state->trace_nr);

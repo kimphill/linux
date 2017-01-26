@@ -113,8 +113,7 @@ void __arm_spe_log_packet(const struct arm_spe_pkt *packet, int pkt_len,
 
 void __arm_spe_log_insn(struct arm_spe_insn *arm_spe_insn, uint64_t ip)
 {
-	//char desc[ARM_SPE_INSN_DESC_MAX];
-	size_t len = arm_spe_insn->length;
+	size_t len = 4;
 
 	if (arm_spe_log_open())
 		return;
