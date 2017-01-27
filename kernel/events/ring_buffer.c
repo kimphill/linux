@@ -410,15 +410,11 @@ EXPORT_SYMBOL_GPL(perf_aux_output_begin);
  * transaction must be stopped and therefore drop the AUX reference count.
  */
 void perf_aux_output_end(struct perf_output_handle *handle, unsigned long size,
-			 bool truncated)
+			 u64 flags)
 {
 	struct ring_buffer *rb = handle->rb;
-	bool wakeup = truncated;
+	bool wakeup = !!flags;
 	unsigned long aux_head;
-	u64 flags = 0;
-
-	if (truncated)
-		flags |= PERF_AUX_FLAG_TRUNCATED;
 
 	/* in overwrite mode, driver provides aux_head via handle */
 	if (rb->aux_overwrite) {
@@ -427,6 +423,8 @@ void perf_aux_output_end(struct perf_output_handle *handle, unsigned long size,
 		aux_head = handle->head;
 		local_set(&rb->aux_head, aux_head);
 	} else {
+		flags &= ~PERF_AUX_FLAG_OVERWRITE;
+
 		aux_head = local_read(&rb->aux_head);
 		local_add(size, &rb->aux_head);
 	}
@@ -447,7 +445,7 @@ void perf_aux_output_end(struct perf_output_handle *handle, unsigned long size,
 	}
 
 	if (wakeup) {
-		if (truncated)
+		if (flags & PERF_AUX_FLAG_TRUNCATED)
 			handle->event->pending_disable = 1;
 		perf_output_wakeup(handle);
 	}

@@ -301,7 +301,7 @@ out:
 	return;
 
 fail_end_stop:
-	perf_aux_output_end(handle, 0, true);
+	perf_aux_output_end(handle, 0, PERF_AUX_FLAG_TRUNCATED);
 fail:
 	event->hw.state = PERF_HES_STOPPED;
 	goto out;
@@ -350,7 +350,8 @@ static void etm_event_stop(struct perf_event *event, int mode)
 						    event_data->snk_config,
 						    &lost);
 
-		perf_aux_output_end(handle, size, lost);
+		perf_aux_output_end(handle, size,
+				    lost ? PERF_AUX_FLAG_TRUNCATED : 0);
 	}
 
 	/* Disabling the path make its elements available to other sessions */

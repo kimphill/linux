@@ -1187,7 +1187,8 @@ void intel_pt_interrupt(void)
 	pt_update_head(pt);
 
 	perf_aux_output_end(&pt->handle, local_xchg(&buf->data_size, 0),
-			    local_xchg(&buf->lost, 0));
+			    local_xchg(&buf->lost, 0) ?
+			    PERF_AUX_FLAG_TRUNCATED : 0);
 
 	if (!event->hw.state) {
 		int ret;
@@ -1202,7 +1203,8 @@ void intel_pt_interrupt(void)
 		/* snapshot counters don't use PMI, so it's safe */
 		ret = pt_buffer_reset_markers(buf, &pt->handle);
 		if (ret) {
-			perf_aux_output_end(&pt->handle, 0, true);
+			perf_aux_output_end(&pt->handle, 0,
+					    PERF_AUX_FLAG_TRUNCATED);
 			return;
 		}
 
@@ -1274,7 +1276,7 @@ static void pt_event_start(struct perf_event *event, int mode)
 	return;
 
 fail_end_stop:
-	perf_aux_output_end(&pt->handle, 0, true);
+	perf_aux_output_end(&pt->handle, 0, PERF_AUX_FLAG_TRUNCATED);
 fail_stop:
 	hwc->state = PERF_HES_STOPPED;
 }
@@ -1316,7 +1318,8 @@ static void pt_event_stop(struct perf_event *event, int mode)
 				local_xchg(&buf->data_size,
 					   buf->nr_pages << PAGE_SHIFT);
 		perf_aux_output_end(&pt->handle, local_xchg(&buf->data_size, 0),
-				    local_xchg(&buf->lost, 0));
+				    local_xchg(&buf->lost, 0) ?
+				    PERF_AUX_FLAG_TRUNCATED : 0);
 	}
 }
 
