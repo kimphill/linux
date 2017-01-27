@@ -671,20 +671,27 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 	u64 reg;
 	struct perf_event_attr *attr = &event->attr;
 	struct arm_spe_pmu *spe_pmu = to_spe_pmu(event->pmu);
+	struct device *dev = &spe_pmu->pdev->dev;
 
 	/* This is, of course, deeply driver-specific */
 	if (attr->type != event->pmu->type)
 		return -ENOENT;
 
 	if (event->cpu >= 0 &&
-	    !cpumask_test_cpu(event->cpu, &spe_pmu->supported_cpus))
+	    !cpumask_test_cpu(event->cpu, &spe_pmu->supported_cpus)) {
+		dev_err_ratelimited(dev, "Target CPU list includes unsupported CPUs\n");
 		return -ENOENT;
+	}
 
-	if (arm_spe_event_to_pmsevfr(event) & SYS_PMSEVFR_EL1_RES0)
+	if (arm_spe_event_to_pmsevfr(event) & SYS_PMSEVFR_EL1_RES0) {
+		dev_err_ratelimited(dev, "Specified event filter is not supported\n");
 		return -EOPNOTSUPP;
+	}
 
-	if (attr->exclude_idle)
+	if (attr->exclude_idle) {
+		dev_err_ratelimited(dev, "Cannot exclude profiling when idle\n");
 		return -EOPNOTSUPP;
+	}
 
 	/*
 	 * Feedback-directed frequency throttling doesn't work when we
@@ -693,28 +700,38 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 	 * count to reflect that. Instead, just force the user to specify
 	 * a sample period.
 	 */
-	if (attr->freq)
+	if (attr->freq) {
+		dev_err_ratelimited(dev, "Sample period must be specified with --count\n");
 		return -EINVAL;
+	}
 
 	reg = arm_spe_event_to_pmsfcr(event);
 	if ((reg & BIT(SYS_PMSFCR_EL1_FE_SHIFT)) &&
-	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_EVT))
+	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_EVT)) {
+		dev_err_ratelimited(dev, "Unsupported EVT filter\n");
 		return -EOPNOTSUPP;
+	}
 
 	if ((reg & BIT(SYS_PMSFCR_EL1_FT_SHIFT)) &&
-	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_TYP))
+	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_TYP)) {
+		dev_err_ratelimited(dev, "Unsupported TYP filter\n");
 		return -EOPNOTSUPP;
+	}
 
 	if ((reg & BIT(SYS_PMSFCR_EL1_FL_SHIFT)) &&
-	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_LAT))
+	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_LAT)) {
+		dev_err_ratelimited(dev, "Unsupported LAT filter\n");
 		return -EOPNOTSUPP;
+	}
 
 	reg = arm_spe_event_to_pmscr(event);
 	if (!capable(CAP_SYS_ADMIN) &&
 	    (reg & (BIT(SYS_PMSCR_EL1_PA_SHIFT) |
 		    BIT(SYS_PMSCR_EL1_CX_SHIFT) |
-		    BIT(SYS_PMSCR_EL1_PCT_SHIFT))))
+		    BIT(SYS_PMSCR_EL1_PCT_SHIFT)))) {
+		dev_err_ratelimited(dev, "Admin privilege needed for physical addr, time and/or context capture\n");
 		return -EACCES;
+	}
 
 	return 0;
 }
