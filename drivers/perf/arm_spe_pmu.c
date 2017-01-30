@@ -665,18 +665,18 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 
 	if (event->cpu >= 0 &&
 	    !cpumask_test_cpu(event->cpu, &spe_pmu->supported_cpus)) {
-		dev_err_ratelimited(dev, "%s %d: return -ENOENT;\n", __func__, __LINE__);
+		dev_err_ratelimited(dev, "CPU not supported by SPE\n");
 		return -ENOENT;
 	}
 
 	if (arm_spe_event_to_pmsevfr(event) & PMSEVFR_EL1_RES0) {
-		dev_err_ratelimited(dev, "%s %d: return -EOPNOTSUPP\n", __func__, __LINE__);
+		dev_err_ratelimited(dev, "Unsupported event filter\n");
 		return -EOPNOTSUPP;
 	}
 
 	if (event->hw.sample_period < spe_pmu->min_period ||
 	    event->hw.sample_period & PMSIRR_EL1_IVAL_MASK) {
-		dev_err_ratelimited(dev, "Cannot set a sample period that is below the minimum interval\n");
+		dev_err_ratelimited(dev, "Cannot set sample period below the minimum interval\n");
 		return -EOPNOTSUPP;
 	}
 
@@ -693,13 +693,13 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 	 * sample period instead.
 	 */
 	if (attr->freq) {
-		dev_err_ratelimited(dev, "sample period must be specified\n");
+		dev_err_ratelimited(dev, "a sample period must be specified\n");
 		return -EINVAL;
 	}
 
 	if (is_kernel_in_hyp_mode()) {
 		if (attr->exclude_kernel != attr->exclude_hv) {
-			dev_err_ratelimited(dev, "VHE is enabled but exclude_kernel and exclude_hv have different values\n");
+			dev_err_ratelimited(dev, "VHE is enabled but exclude_kernel and exclude_hv do not match\n");
 			return -EOPNOTSUPP;
 		}
 	} else if (!attr->exclude_hv) {
@@ -710,19 +710,19 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 	reg = arm_spe_event_to_pmsfcr(event);
 	if ((reg & BIT(PMSFCR_EL1_FE_SHIFT)) &&
 	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_EVT)) {
-		dev_err_ratelimited(dev, "unsupported filter (EVT)\n");
+		dev_err_ratelimited(dev, "event filter feature not supported\n");
 		return -EOPNOTSUPP;
 	}
 
 	if ((reg & BIT(PMSFCR_EL1_FT_SHIFT)) &&
 	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_TYP)) {
-		dev_err_ratelimited(dev, "unsupported filter (TYP)\n");
+		dev_err_ratelimited(dev, "event type filter feature not supported\n");
 		return -EOPNOTSUPP;
 	}
 
 	if ((reg & BIT(PMSFCR_EL1_FL_SHIFT)) &&
 	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_LAT)) {
-		dev_err_ratelimited(dev, "unsupported filter (LAT)\n");
+		dev_err_ratelimited(dev, "latency filter feature not supported\n");
 		return -EOPNOTSUPP;
 	}
 
