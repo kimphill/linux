@@ -20,6 +20,7 @@
 #include <linux/perf_event.h>
 
 #include "cs-etm.h"
+#include "arm-spe.h"
 #include "../../util/pmu.h"
 
 struct perf_event_attr
@@ -31,6 +32,8 @@ struct perf_event_attr
 		pmu->selectable = true;
 		pmu->set_drv_config = cs_etm_set_drv_config;
 	}
+	if (!strcmp(pmu->name, ARM_SPE_PMU_NAME))
+		pmu->selectable = true;
 #endif
 	return NULL;
 }
