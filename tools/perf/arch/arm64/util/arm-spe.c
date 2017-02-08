@@ -1,6 +1,6 @@
 /*
- * intel-bts.c: Intel Processor Trace support
- * Copyright (c) 2013-2015, Intel Corporation.
+ * ARM Statistical Profiling Extensions (SPE) support
+ * Copyright (c) 2017, ARM Ltd.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -27,16 +27,16 @@
 #include "../../util/debug.h"
 #include "../../util/tsc.h"
 #include "../../util/auxtrace.h"
-#include "../../util/intel-bts.h"
+#include "../../util/arm-spe.h"
 
 #define KiB(x) ((x) * 1024)
 #define MiB(x) ((x) * 1024 * 1024)
 #define KiB_MASK(x) (KiB(x) - 1)
 #define MiB_MASK(x) (MiB(x) - 1)
 
-#define INTEL_BTS_DFLT_SAMPLE_SIZE	KiB(4)
+#define ARM_SPE_DFLT_SAMPLE_SIZE	KiB(4)
 
-#define INTEL_BTS_MAX_SAMPLE_SIZE	KiB(60)
+#define ARM_SPE_MAX_SAMPLE_SIZE		KiB(60)
 
 struct intel_bts_snapshot_ref {
 	void	*ref_buf;
@@ -64,7 +64,7 @@ static size_t
 intel_bts_info_priv_size(struct auxtrace_record *itr __maybe_unused,
 			 struct perf_evlist *evlist __maybe_unused)
 {
-	return INTEL_BTS_AUXTRACE_PRIV_SIZE;
+	return ARM_SPE_AUXTRACE_PRIV_SIZE;
 }
 
 static int intel_bts_info_fill(struct auxtrace_record *itr,
@@ -80,7 +80,7 @@ static int intel_bts_info_fill(struct auxtrace_record *itr,
 	bool cap_user_time_zero = false;
 	int err;
 
-	if (priv_size != INTEL_BTS_AUXTRACE_PRIV_SIZE)
+	if (priv_size != ARM_SPE_AUXTRACE_PRIV_SIZE)
 		return -EINVAL;
 
 	if (!session->evlist->nr_mmaps)
@@ -96,16 +96,16 @@ static int intel_bts_info_fill(struct auxtrace_record *itr,
 			cap_user_time_zero = tc.time_mult != 0;
 		}
 		if (!cap_user_time_zero)
-			ui__warning("Intel BTS: TSC not available\n");
+			ui__warning("ARM SPE: TSC not available\n");
 	}
 
-	auxtrace_info->type = PERF_AUXTRACE_INTEL_BTS;
-	auxtrace_info->priv[INTEL_BTS_PMU_TYPE] = intel_bts_pmu->type;
-	auxtrace_info->priv[INTEL_BTS_TIME_SHIFT] = tc.time_shift;
-	auxtrace_info->priv[INTEL_BTS_TIME_MULT] = tc.time_mult;
-	auxtrace_info->priv[INTEL_BTS_TIME_ZERO] = tc.time_zero;
-	auxtrace_info->priv[INTEL_BTS_CAP_USER_TIME_ZERO] = cap_user_time_zero;
-	auxtrace_info->priv[INTEL_BTS_SNAPSHOT_MODE] = btsr->snapshot_mode;
+	auxtrace_info->type = PERF_AUXTRACE_ARM_SPE;
+	auxtrace_info->priv[ARM_SPE_PMU_TYPE] = intel_bts_pmu->type;
+	auxtrace_info->priv[ARM_SPE_TIME_SHIFT] = tc.time_shift;
+	auxtrace_info->priv[ARM_SPE_TIME_MULT] = tc.time_mult;
+	auxtrace_info->priv[ARM_SPE_TIME_ZERO] = tc.time_zero;
+	auxtrace_info->priv[ARM_SPE_CAP_USER_TIME_ZERO] = cap_user_time_zero;
+	auxtrace_info->priv[ARM_SPE_SNAPSHOT_MODE] = btsr->snapshot_mode;
 
 	return 0;
 }
@@ -127,7 +127,7 @@ static int intel_bts_recording_options(struct auxtrace_record *itr,
 	evlist__for_each_entry(evlist, evsel) {
 		if (evsel->attr.type == intel_bts_pmu->type) {
 			if (intel_bts_evsel) {
-				pr_err("There may be only one " INTEL_BTS_PMU_NAME " event\n");
+				pr_err("There may be only one " ARM_SPE_PMU_NAME " event\n");
 				return -EINVAL;
 			}
 			evsel->attr.freq = 0;
@@ -138,7 +138,7 @@ static int intel_bts_recording_options(struct auxtrace_record *itr,
 	}
 
 	if (opts->auxtrace_snapshot_mode && !opts->full_auxtrace) {
-		pr_err("Snapshot mode (-S option) requires " INTEL_BTS_PMU_NAME " PMU event (-e " INTEL_BTS_PMU_NAME ")\n");
+		pr_err("Snapshot mode (-S option) requires " ARM_SPE_PMU_NAME " PMU event (-e " ARM_SPE_PMU_NAME ")\n");
 		return -EINVAL;
 	}
 
@@ -146,7 +146,7 @@ static int intel_bts_recording_options(struct auxtrace_record *itr,
 		return 0;
 
 	if (opts->full_auxtrace && !cpu_map__empty(cpus)) {
-		pr_err(INTEL_BTS_PMU_NAME " does not support per-cpu recording\n");
+		pr_err(ARM_SPE_PMU_NAME " does not support per-cpu recording\n");
 		return -EINVAL;
 	}
 
@@ -184,7 +184,7 @@ static int intel_bts_recording_options(struct auxtrace_record *itr,
 			pr_err("Failed to calculate default snapshot size and/or AUX area tracing mmap pages\n");
 			return -EINVAL;
 		}
-		pr_debug2("Intel BTS snapshot size: %zu\n",
+		pr_debug2("ARM SPE snapshot size: %zu\n",
 			  opts->auxtrace_snapshot_size);
 	}
 
@@ -210,7 +210,7 @@ static int intel_bts_recording_options(struct auxtrace_record *itr,
 			min_sz = KiB(8);
 
 		if (sz < min_sz || !is_power_of_2(sz)) {
-			pr_err("Invalid mmap size for Intel BTS: must be at least %zuKiB and a power of 2\n",
+			pr_err("Invalid mmap size for ARM SPE: must be at least %zuKiB and a power of 2\n",
 			       min_sz / 1024);
 			return -EINVAL;
 		}
@@ -432,7 +432,7 @@ static int intel_bts_read_finish(struct auxtrace_record *itr, int idx)
 
 struct auxtrace_record *intel_bts_recording_init(int *err)
 {
-	struct perf_pmu *intel_bts_pmu = perf_pmu__find(INTEL_BTS_PMU_NAME);
+	struct perf_pmu *intel_bts_pmu = perf_pmu__find(ARM_SPE_PMU_NAME);
 	struct intel_bts_recording *btsr;
 
 	if (!intel_bts_pmu)
