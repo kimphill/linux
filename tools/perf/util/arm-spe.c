@@ -319,7 +319,7 @@ static int arm_spe_get_next_insn(struct arm_spe_queue *speq, u64 ip)
 	struct machine *machine = speq->spe->machine;
 	struct thread *thread;
 	struct addr_location al;
-	ssize_t len;
+	size_t len;
 	uint8_t cpumode;
 	int err = -1;
 
@@ -369,12 +369,12 @@ static int arm_spe_synth_error(struct arm_spe *spe, int cpu, pid_t pid,
 }
 
 
+#if 0
 /* FIXME: really need, or garner from raw SPE data? */
-int arm_insn_type(/*enum intel_pt_insn_op op*/)
+int arm_insn_type(void /*enum intel_pt_insn_op op*/)
 {
 	return PERF_IP_FLAG_BRANCH;
 
-#if 0
 	PERF_IP_FLAG_BRANCH		= 1ULL << 0,
 	PERF_IP_FLAG_CALL		= 1ULL << 1,
 	PERF_IP_FLAG_RETURN		= 1ULL << 2,
@@ -392,8 +392,8 @@ int arm_insn_type(/*enum intel_pt_insn_op op*/)
 223         case INTEL_PT_OP_CALL:
 224                 return PERF_IP_FLAG_BRANCH | PERF_IP_FLAG_CALL;
 ...
-#endif
 }
+#endif
 
 static int arm_spe_get_branch_type(struct arm_spe_queue *speq,
 				     struct branch *branch)
@@ -406,16 +406,19 @@ static int arm_spe_get_branch_type(struct arm_spe_queue *speq,
 					     PERF_IP_FLAG_TRACE_BEGIN;
 		else
 			speq->sample_flags = 0;
-		speq->arm_insn = 0; /* N.B. was length = 0 */
+		/* FIXME was length = 0 */
+		memset(speq->arm_insn, 0, sizeof(speq->arm_insn));
 	} else if (!branch->to) {
 		speq->sample_flags = PERF_IP_FLAG_BRANCH |
 				     PERF_IP_FLAG_TRACE_END;
-		speq->arm_insn = 0;
+		/* FIXME was length = 0 */
+		memset(speq->arm_insn, 0, sizeof(speq->arm_insn));
 	} else {
 		err = arm_spe_get_next_insn(speq, branch->from);
 		if (err) {
 			speq->sample_flags = 0;
-			speq->arm_insn = 0;
+			/* FIXME was length = 0 */
+			memset(speq->arm_insn, 0, sizeof(speq->arm_insn));
 			if (!speq->spe->synth_opts.errors)
 				return 0;
 			err = arm_spe_synth_error(speq->spe, speq->cpu,
@@ -423,7 +426,8 @@ static int arm_spe_get_branch_type(struct arm_spe_queue *speq,
 						    branch->from);
 			return err;
 		}
-		speq->sample_flags = arm_insn_type(/*speq->intel_pt_insn.op*/);
+		//FIXME: was: arm_insn_type(/*speq->intel_pt_insn.op*/);
+		speq->sample_flags = PERF_IP_FLAG_BRANCH;
 		/* Check for an async branch into the kernel */
 		if (!machine__kernel_ip(speq->spe->machine, branch->from) &&
 		    machine__kernel_ip(speq->spe->machine, branch->to) &&
@@ -925,7 +929,7 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 	if (session->itrace_synth_opts && session->itrace_synth_opts->set) {
 		spe->synth_opts = *session->itrace_synth_opts;
 	} else {
-		itrace_synth_op__set_default(&spe->synth_opts);
+		itrace_synth_opts__set_default(&spe->synth_opts);
 		if (session->itrace_synth_opts)
 			spe->synth_opts.thread_stack =
 				session->itrace_synth_opts->thread_stack;
