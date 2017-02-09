@@ -845,10 +845,6 @@ static int arm_spe_synth_events(struct arm_spets *spe,
 
 static const char * const arm_spe_info_fmts[] = {
 	[ARM_SPE_PMU_TYPE]		= "  PMU Type           %"PRId64"\n",
-	[ARM_SPE_TIME_SHIFT]		= "  Time Shift         %"PRIu64"\n",
-	[ARM_SPE_TIME_MULT]		= "  Time Muliplier     %"PRIu64"\n",
-	[ARM_SPE_TIME_ZERO]		= "  Time Zero          %"PRIu64"\n",
-	[ARM_SPE_CAP_USER_TIME_ZERO]	= "  Cap Time Zero      %"PRId64"\n",
 	[ARM_SPE_SNAPSHOT_MODE]		= "  Snapshot mode      %"PRId64"\n",
 };
 
@@ -889,11 +885,6 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 	spe->machine = &session->machines.host; /* No kvm support */
 	spe->auxtrace_type = auxtrace_info->type;
 	spe->pmu_type = auxtrace_info->priv[ARM_SPE_PMU_TYPE];
-	spe->tc.time_shift = auxtrace_info->priv[ARM_SPE_TIME_SHIFT];
-	spe->tc.time_mult = auxtrace_info->priv[ARM_SPE_TIME_MULT];
-	spe->tc.time_zero = auxtrace_info->priv[ARM_SPE_TIME_ZERO];
-	spe->cap_user_time_zero =
-			auxtrace_info->priv[ARM_SPE_CAP_USER_TIME_ZERO];
 	spe->snapshot_mode = auxtrace_info->priv[ARM_SPE_SNAPSHOT_MODE];
 
 	spe->sampling_mode = false;

@@ -101,10 +101,6 @@ static int arm_spe_info_fill(struct auxtrace_record *itr,
 
 	auxtrace_info->type = PERF_AUXTRACE_ARM_SPE;
 	auxtrace_info->priv[ARM_SPE_PMU_TYPE] = arm_spe_pmu->type;
-	auxtrace_info->priv[ARM_SPE_TIME_SHIFT] = tc.time_shift;
-	auxtrace_info->priv[ARM_SPE_TIME_MULT] = tc.time_mult;
-	auxtrace_info->priv[ARM_SPE_TIME_ZERO] = tc.time_zero;
-	auxtrace_info->priv[ARM_SPE_CAP_USER_TIME_ZERO] = cap_user_time_zero;
 	auxtrace_info->priv[ARM_SPE_SNAPSHOT_MODE] = btsr->snapshot_mode;
 
 	return 0;

@@ -1,3 +1,2 @@
 libperf-y += util/
 libperf-$(CONFIG_DWARF_UNWIND) += tests/
-libperf-$(CONFIG_AUXTRACE) += arm-spe.o
