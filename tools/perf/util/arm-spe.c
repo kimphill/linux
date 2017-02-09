@@ -36,8 +36,8 @@
 
 #define MAX_TIMESTAMP (~0ULL)
 
-#define INTEL_BTS_ERR_NOINSN  5
-#define INTEL_BTS_ERR_LOST    9
+#define ARM_SPE_ERR_NOINSN  5
+#define ARM_SPE_ERR_LOST    9
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 #define le64_to_cpu bswap_64
@@ -139,7 +139,7 @@ static int arm_spe_lost(struct arm_spe *spe, struct perf_sample *sample)
 	int err;
 
 	auxtrace_synth_error(&event.auxtrace_error, PERF_AUXTRACE_ERROR_ITRACE,
-			     INTEL_BTS_ERR_LOST, sample->cpu, sample->pid,
+			     ARM_SPE_ERR_LOST, sample->cpu, sample->pid,
 			     sample->tid, 0, "Lost trace data");
 
 	err = perf_session__deliver_synth_event(spe->session, &event, NULL);
@@ -364,7 +364,7 @@ static int arm_spe_synth_error(struct arm_spets *spe, int cpu, pid_t pid,
 	int err;
 
 	auxtrace_synth_error(&event.auxtrace_error, PERF_AUXTRACE_ERROR_ITRACE,
-			     INTEL_BTS_ERR_NOINSN, cpu, pid, tid, ip,
+			     ARM_SPE_ERR_NOINSN, cpu, pid, tid, ip,
 			     "Failed to get instruction");
 
 	err = perf_session__deliver_synth_event(spe->session, &event, NULL);
@@ -844,12 +844,12 @@ static int arm_spe_synth_events(struct arm_spets *spe,
 }
 
 static const char * const arm_spe_info_fmts[] = {
-	[INTEL_BTS_PMU_TYPE]		= "  PMU Type           %"PRId64"\n",
-	[INTEL_BTS_TIME_SHIFT]		= "  Time Shift         %"PRIu64"\n",
-	[INTEL_BTS_TIME_MULT]		= "  Time Muliplier     %"PRIu64"\n",
-	[INTEL_BTS_TIME_ZERO]		= "  Time Zero          %"PRIu64"\n",
-	[INTEL_BTS_CAP_USER_TIME_ZERO]	= "  Cap Time Zero      %"PRId64"\n",
-	[INTEL_BTS_SNAPSHOT_MODE]	= "  Snapshot mode      %"PRId64"\n",
+	[ARM_SPE_PMU_TYPE]		= "  PMU Type           %"PRId64"\n",
+	[ARM_SPE_TIME_SHIFT]		= "  Time Shift         %"PRIu64"\n",
+	[ARM_SPE_TIME_MULT]		= "  Time Muliplier     %"PRIu64"\n",
+	[ARM_SPE_TIME_ZERO]		= "  Time Zero          %"PRIu64"\n",
+	[ARM_SPE_CAP_USER_TIME_ZERO]	= "  Cap Time Zero      %"PRId64"\n",
+	[ARM_SPE_SNAPSHOT_MODE]		= "  Snapshot mode      %"PRId64"\n",
 };
 
 static void arm_spe_print_info(u64 *arr, int start, int finish)
@@ -863,13 +863,13 @@ static void arm_spe_print_info(u64 *arr, int start, int finish)
 		fprintf(stdout, arm_spe_info_fmts[i], arr[i]);
 }
 
-u64 arm_spe_auxtrace_info_priv[INTEL_BTS_AUXTRACE_PRIV_SIZE];
+u64 arm_spe_auxtrace_info_priv[ARM_SPE_AUXTRACE_PRIV_SIZE];
 
 int arm_spe_process_auxtrace_info(union perf_event *event,
 				    struct perf_session *session)
 {
 	struct auxtrace_info_event *auxtrace_info = &event->auxtrace_info;
-	size_t min_sz = sizeof(u64) * INTEL_BTS_SNAPSHOT_MODE;
+	size_t min_sz = sizeof(u64) * ARM_SPE_SNAPSHOT_MODE;
 	struct arm_spets *spe;
 	int err;
 
@@ -888,13 +888,13 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 	spe->session = session;
 	spe->machine = &session->machines.host; /* No kvm support */
 	spe->auxtrace_type = auxtrace_info->type;
-	spe->pmu_type = auxtrace_info->priv[INTEL_BTS_PMU_TYPE];
-	spe->tc.time_shift = auxtrace_info->priv[INTEL_BTS_TIME_SHIFT];
-	spe->tc.time_mult = auxtrace_info->priv[INTEL_BTS_TIME_MULT];
-	spe->tc.time_zero = auxtrace_info->priv[INTEL_BTS_TIME_ZERO];
+	spe->pmu_type = auxtrace_info->priv[ARM_SPE_PMU_TYPE];
+	spe->tc.time_shift = auxtrace_info->priv[ARM_SPE_TIME_SHIFT];
+	spe->tc.time_mult = auxtrace_info->priv[ARM_SPE_TIME_MULT];
+	spe->tc.time_zero = auxtrace_info->priv[ARM_SPE_TIME_ZERO];
 	spe->cap_user_time_zero =
-			auxtrace_info->priv[INTEL_BTS_CAP_USER_TIME_ZERO];
-	spe->snapshot_mode = auxtrace_info->priv[INTEL_BTS_SNAPSHOT_MODE];
+			auxtrace_info->priv[ARM_SPE_CAP_USER_TIME_ZERO];
+	spe->snapshot_mode = auxtrace_info->priv[ARM_SPE_SNAPSHOT_MODE];
 
 	spe->sampling_mode = false;
 
@@ -905,8 +905,8 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 	spe->auxtrace.free = arm_spe_free;
 	session->auxtrace = &spe->auxtrace;
 
-	arm_spe_print_info(&auxtrace_info->priv[0], INTEL_BTS_PMU_TYPE,
-			     INTEL_BTS_SNAPSHOT_MODE);
+	arm_spe_print_info(&auxtrace_info->priv[0], ARM_SPE_PMU_TYPE,
+			     ARM_SPE_SNAPSHOT_MODE);
 
 	if (dump_trace)
 		return 0;
