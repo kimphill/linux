@@ -96,7 +96,7 @@ static void arm_spe_dump(struct arm_spe *spe __maybe_unused,
 	const char *color = PERF_COLOR_BLUE;
 
 	color_fprintf(stdout, color,
-		      ". ... Intel BTS data: size %zu bytes\n",
+		      ". ... ARM SPE data: size %zu bytes\n",
 		      len);
 
 	while (len) {
@@ -144,7 +144,7 @@ static int arm_spe_lost(struct arm_spe *spe, struct perf_sample *sample)
 
 	err = perf_session__deliver_synth_event(spe->session, &event, NULL);
 	if (err)
-		pr_err("Intel BTS: failed to deliver error event, error %d\n",
+		pr_err("ARM SPE: failed to deliver error event, error %d\n",
 		       err);
 
 	return err;
@@ -308,7 +308,7 @@ static int arm_spe_synth_branch_sample(struct arm_spe_queue *speq,
 
 	ret = perf_session__deliver_synth_event(spe->session, &event, &sample);
 	if (ret)
-		pr_err("Intel BTS: failed to deliver branch event, error %d\n",
+		pr_err("ARM SPE: failed to deliver branch event, error %d\n",
 		       ret);
 
 	return ret;
@@ -369,7 +369,7 @@ static int arm_spe_synth_error(struct arm_spets *spe, int cpu, pid_t pid,
 
 	err = perf_session__deliver_synth_event(spe->session, &event, NULL);
 	if (err)
-		pr_err("Intel BTS: failed to deliver error event, error %d\n",
+		pr_err("ARM SPE: failed to deliver error event, error %d\n",
 		       err);
 
 	return err;
@@ -791,7 +791,7 @@ static int arm_spe_synth_events(struct arm_spets *spe,
 	}
 
 	if (!found) {
-		pr_debug("There are no selected events with Intel BTS data\n");
+		pr_debug("There are no selected events with ARM SPE data\n");
 		return 0;
 	}
 
@@ -906,7 +906,7 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 	session->auxtrace = &spe->auxtrace;
 
 	arm_spe_print_info(&auxtrace_info->priv[0], ARM_SPE_PMU_TYPE,
-			     ARM_SPE_SNAPSHOT_MODE);
+			   ARM_SPE_SNAPSHOT_MODE);
 
 	if (dump_trace)
 		return 0;
