@@ -69,7 +69,7 @@ struct arm_spe {
 };
 
 struct arm_spe_queue {
-	struct arm_spets	*spe;
+	struct arm_spe		*spe;
 	unsigned int		queue_nr;
 	struct auxtrace_buffer	*buffer;
 	bool			on_heap;
@@ -78,7 +78,7 @@ struct arm_spe_queue {
 	pid_t			tid;
 	int			cpu;
 	u64			time;
-	struct intel_pt_insn	intel_pt_insn;
+	u8			arm_insn[4];
 	u32			sample_flags;
 };
 
@@ -222,7 +222,7 @@ static int arm_spe_setup_queues(struct arm_spe *spe)
 	return 0;
 }
 
-static inline int arm_spe_update_queues(struct arm_spets *spe)
+static inline int arm_spe_update_queues(struct arm_spe *spe)
 {
 	if (spe->queues.new_data) {
 		spe->queues.new_data = false;
@@ -271,7 +271,7 @@ static int arm_spe_synth_branch_sample(struct arm_spe_queue *speq,
 					 struct branch *branch)
 {
 	int ret;
-	struct arm_spets *spe = speq->spe;
+	struct arm_spe *spe = speq->spe;
 	union perf_event event;
 	struct perf_sample sample = { .ip = 0, };
 
@@ -293,8 +293,8 @@ static int arm_spe_synth_branch_sample(struct arm_spe_queue *speq,
 	sample.period = 1;
 	sample.cpu = speq->cpu;
 	sample.flags = speq->sample_flags;
-	sample.insn_len = speq->intel_pt_insn.length;
-	memcpy(sample.insn, speq->intel_pt_insn.buf, INTEL_PT_INSN_BUF_SZ);
+	sample.insn_len = sizeof(speq->arm_insn);
+	memcpy(sample.insn, &speq->arm_insn, sizeof(speq->arm_insn));
 
 	if (spe->synth_opts.inject) {
 		event.sample.header.size = spe->branches_event_size;
@@ -319,9 +319,7 @@ static int arm_spe_get_next_insn(struct arm_spe_queue *speq, u64 ip)
 	struct machine *machine = speq->spe->machine;
 	struct thread *thread;
 	struct addr_location al;
-	unsigned char buf[INTEL_PT_INSN_BUF_SZ];
 	ssize_t len;
-	int x86_64;
 	uint8_t cpumode;
 	int err = -1;
 
@@ -338,18 +336,13 @@ static int arm_spe_get_next_insn(struct arm_spe_queue *speq, u64 ip)
 	if (!al.map || !al.map->dso)
 		goto out_put;
 
-	len = dso__data_read_addr(al.map->dso, al.map, machine, ip, buf,
-				  INTEL_PT_INSN_BUF_SZ);
-	if (len <= 0)
+	len = dso__data_read_addr(al.map->dso, al.map, machine, ip,
+				  speq->arm_insn, sizeof(speq->arm_insn));
+	if (len < sizeof(speq->arm_insn))
 		goto out_put;
 
 	/* Load maps to ensure dso->is_64_bit has been updated */
-	map__load(al.map);
-
-	x86_64 = al.map->dso->is_64_bit;
-
-	if (intel_pt_get_insn(buf, len, x86_64, &speq->intel_pt_insn))
-		goto out_put;
+	//FIXME: verify if needed: map__load(al.map);
 
 	err = 0;
 out_put:
@@ -357,7 +350,7 @@ out_put:
 	return err;
 }
 
-static int arm_spe_synth_error(struct arm_spets *spe, int cpu, pid_t pid,
+static int arm_spe_synth_error(struct arm_spe *spe, int cpu, pid_t pid,
 				 pid_t tid, u64 ip)
 {
 	union perf_event event;
@@ -375,6 +368,33 @@ static int arm_spe_synth_error(struct arm_spets *spe, int cpu, pid_t pid,
 	return err;
 }
 
+
+/* FIXME: really need, or garner from raw SPE data? */
+int arm_insn_type(/*enum intel_pt_insn_op op*/)
+{
+	return PERF_IP_FLAG_BRANCH;
+
+#if 0
+	PERF_IP_FLAG_BRANCH		= 1ULL << 0,
+	PERF_IP_FLAG_CALL		= 1ULL << 1,
+	PERF_IP_FLAG_RETURN		= 1ULL << 2,
+	PERF_IP_FLAG_CONDITIONAL	= 1ULL << 3,
+	PERF_IP_FLAG_SYSCALLRET		= 1ULL << 4,
+	PERF_IP_FLAG_ASYNC		= 1ULL << 5,
+	PERF_IP_FLAG_INTERRUPT		= 1ULL << 6,
+	PERF_IP_FLAG_TX_ABORT		= 1ULL << 7,
+	PERF_IP_FLAG_TRACE_BEGIN	= 1ULL << 8,
+	PERF_IP_FLAG_TRACE_END		= 1ULL << 9,
+	PERF_IP_FLAG_IN_TX		= 1ULL << 10,
+
+221         case INTEL_PT_OP_OTHER:
+222                 return 0;
+223         case INTEL_PT_OP_CALL:
+224                 return PERF_IP_FLAG_BRANCH | PERF_IP_FLAG_CALL;
+...
+#endif
+}
+
 static int arm_spe_get_branch_type(struct arm_spe_queue *speq,
 				     struct branch *branch)
 {
@@ -386,16 +406,16 @@ static int arm_spe_get_branch_type(struct arm_spe_queue *speq,
 					     PERF_IP_FLAG_TRACE_BEGIN;
 		else
 			speq->sample_flags = 0;
-		speq->intel_pt_insn.length = 0;
+		speq->arm_insn = 0; /* N.B. was length = 0 */
 	} else if (!branch->to) {
 		speq->sample_flags = PERF_IP_FLAG_BRANCH |
 				     PERF_IP_FLAG_TRACE_END;
-		speq->intel_pt_insn.length = 0;
+		speq->arm_insn = 0;
 	} else {
 		err = arm_spe_get_next_insn(speq, branch->from);
 		if (err) {
 			speq->sample_flags = 0;
-			speq->intel_pt_insn.length = 0;
+			speq->arm_insn = 0;
 			if (!speq->spe->synth_opts.errors)
 				return 0;
 			err = arm_spe_synth_error(speq->spe, speq->cpu,
@@ -403,7 +423,7 @@ static int arm_spe_get_branch_type(struct arm_spe_queue *speq,
 						    branch->from);
 			return err;
 		}
-		speq->sample_flags = intel_pt_insn_type(speq->intel_pt_insn.op);
+		speq->sample_flags = arm_insn_type(/*speq->intel_pt_insn.op*/);
 		/* Check for an async branch into the kernel */
 		if (!machine__kernel_ip(speq->spe->machine, branch->from) &&
 		    machine__kernel_ip(speq->spe->machine, branch->to) &&
@@ -447,7 +467,7 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 			thread_stack__event(thread, speq->sample_flags,
 					    le64_to_cpu(branch->from),
 					    le64_to_cpu(branch->to),
-					    speq->intel_pt_insn.length,
+					    4 /*speq->intel_pt_insn.length */,
 					    buffer->buffer_nr + 1);
 		if (filter && !(filter & speq->sample_flags))
 			continue;
@@ -550,7 +570,7 @@ static int arm_spe_flush_queue(struct arm_spe_queue *speq)
 	return 0;
 }
 
-static int arm_spe_process_tid_exit(struct arm_spets *spe, pid_t tid)
+static int arm_spe_process_tid_exit(struct arm_spe *spe, pid_t tid)
 {
 	struct auxtrace_queues *queues = &spe->queues;
 	unsigned int i;
@@ -565,7 +585,7 @@ static int arm_spe_process_tid_exit(struct arm_spets *spe, pid_t tid)
 	return 0;
 }
 
-static int arm_spe_process_queues(struct arm_spets *spe, u64 timestamp)
+static int arm_spe_process_queues(struct arm_spe *spe, u64 timestamp)
 {
 	while (1) {
 		unsigned int queue_nr;
@@ -609,7 +629,7 @@ static int arm_spe_process_event(struct perf_session *session,
 				   struct perf_sample *sample,
 				   struct perf_tool *tool)
 {
-	struct arm_spets *spe = container_of(session->auxtrace, struct arm_spets,
+	struct arm_spe *spe = container_of(session->auxtrace, struct arm_spe,
 					     auxtrace);
 	u64 timestamp;
 	int err;
@@ -652,7 +672,7 @@ static int arm_spe_process_auxtrace_event(struct perf_session *session,
 					    union perf_event *event,
 					    struct perf_tool *tool __maybe_unused)
 {
-	struct arm_spets *spe = container_of(session->auxtrace, struct arm_spets,
+	struct arm_spe *spe = container_of(session->auxtrace, struct arm_spe,
 					     auxtrace);
 
 	if (spe->sampling_mode)
@@ -693,7 +713,7 @@ static int arm_spe_process_auxtrace_event(struct perf_session *session,
 static int arm_spe_flush(struct perf_session *session,
 			   struct perf_tool *tool __maybe_unused)
 {
-	struct arm_spets *spe = container_of(session->auxtrace, struct arm_spets,
+	struct arm_spe *spe = container_of(session->auxtrace, struct arm_spe,
 					     auxtrace);
 	int ret;
 
@@ -721,7 +741,7 @@ static void arm_spe_free_queue(void *priv)
 
 static void arm_spe_free_events(struct perf_session *session)
 {
-	struct arm_spets *spe = container_of(session->auxtrace, struct arm_spets,
+	struct arm_spe *spe = container_of(session->auxtrace, struct arm_spe,
 					     auxtrace);
 	struct auxtrace_queues *queues = &spe->queues;
 	unsigned int i;
@@ -735,7 +755,7 @@ static void arm_spe_free_events(struct perf_session *session)
 
 static void arm_spe_free(struct perf_session *session)
 {
-	struct arm_spets *spe = container_of(session->auxtrace, struct arm_spets,
+	struct arm_spe *spe = container_of(session->auxtrace, struct arm_spe,
 					     auxtrace);
 
 	auxtrace_heap__free(&spe->heap);
@@ -773,7 +793,7 @@ static int arm_spe_synth_event(struct perf_session *session,
 					   &id, arm_spe_event_synth);
 }
 
-static int arm_spe_synth_events(struct arm_spets *spe,
+static int arm_spe_synth_events(struct arm_spe *spe,
 				  struct perf_session *session)
 {
 	struct perf_evlist *evlist = session->evlist;
@@ -866,14 +886,14 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 {
 	struct auxtrace_info_event *auxtrace_info = &event->auxtrace_info;
 	size_t min_sz = sizeof(u64) * ARM_SPE_SNAPSHOT_MODE;
-	struct arm_spets *spe;
+	struct arm_spe *spe;
 	int err;
 
 	if (auxtrace_info->header.size < sizeof(struct auxtrace_info_event) +
 					min_sz)
 		return -EINVAL;
 
-	spe = zalloc(sizeof(struct arm_spets));
+	spe = zalloc(sizeof(struct arm_spe));
 	if (!spe)
 		return -ENOMEM;
 
