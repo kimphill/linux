@@ -1,6 +1,6 @@
 /*
- * intel-bts.c: Intel Processor Trace support
- * Copyright (c) 2013-2015, Intel Corporation.
+ * ARM Statistical Profiling Extensions (SPE) support
+ * Copyright (c) 2017, ARM Ltd.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -32,8 +32,7 @@
 #include "debug.h"
 #include "tsc.h"
 #include "auxtrace.h"
-#include "intel-pt-decoder/intel-pt-insn-decoder.h"
-#include "intel-bts.h"
+#include "arm-spe.h"
 
 #define MAX_TIMESTAMP (~0ULL)
 
@@ -46,7 +45,7 @@
 #define le64_to_cpu
 #endif
 
-struct intel_bts {
+struct arm_spe {
 	struct auxtrace			auxtrace;
 	struct auxtrace_queues		queues;
 	struct auxtrace_heap		heap;
@@ -69,8 +68,8 @@ struct intel_bts {
 	unsigned long			num_events;
 };
 
-struct intel_bts_queue {
-	struct intel_bts	*bts;
+struct arm_spe_queue {
+	struct arm_spets	*spe;
 	unsigned int		queue_nr;
 	struct auxtrace_buffer	*buffer;
 	bool			on_heap;
@@ -89,7 +88,7 @@ struct branch {
 	u64 misc;
 };
 
-static void intel_bts_dump(struct intel_bts *bts __maybe_unused,
+static void arm_spe_dump(struct arm_spe *spe __maybe_unused,
 			   unsigned char *buf, size_t len)
 {
 	struct branch *branch;
@@ -127,14 +126,14 @@ static void intel_bts_dump(struct intel_bts *bts __maybe_unused,
 	}
 }
 
-static void intel_bts_dump_event(struct intel_bts *bts, unsigned char *buf,
+static void arm_spe_dump_event(struct arm_spe *spe, unsigned char *buf,
 				 size_t len)
 {
 	printf(".\n");
-	intel_bts_dump(bts, buf, len);
+	arm_spe_dump(spe, buf, len);
 }
 
-static int intel_bts_lost(struct intel_bts *bts, struct perf_sample *sample)
+static int arm_spe_lost(struct arm_spe *spe, struct perf_sample *sample)
 {
 	union perf_event event;
 	int err;
@@ -143,7 +142,7 @@ static int intel_bts_lost(struct intel_bts *bts, struct perf_sample *sample)
 			     INTEL_BTS_ERR_LOST, sample->cpu, sample->pid,
 			     sample->tid, 0, "Lost trace data");
 
-	err = perf_session__deliver_synth_event(bts->session, &event, NULL);
+	err = perf_session__deliver_synth_event(spe->session, &event, NULL);
 	if (err)
 		pr_err("Intel BTS: failed to deliver error event, error %d\n",
 		       err);
@@ -151,71 +150,71 @@ static int intel_bts_lost(struct intel_bts *bts, struct perf_sample *sample)
 	return err;
 }
 
-static struct intel_bts_queue *intel_bts_alloc_queue(struct intel_bts *bts,
+static struct arm_spe_queue *arm_spe_alloc_queue(struct arm_spe *spe,
 						     unsigned int queue_nr)
 {
-	struct intel_bts_queue *btsq;
+	struct arm_spe_queue *speq;
 
-	btsq = zalloc(sizeof(struct intel_bts_queue));
-	if (!btsq)
+	speq = zalloc(sizeof(struct arm_spe_queue));
+	if (!speq)
 		return NULL;
 
-	btsq->bts = bts;
-	btsq->queue_nr = queue_nr;
-	btsq->pid = -1;
-	btsq->tid = -1;
-	btsq->cpu = -1;
+	speq->spe = spe;
+	speq->queue_nr = queue_nr;
+	speq->pid = -1;
+	speq->tid = -1;
+	speq->cpu = -1;
 
-	return btsq;
+	return speq;
 }
 
-static int intel_bts_setup_queue(struct intel_bts *bts,
+static int arm_spe_setup_queue(struct arm_spe *spe,
 				 struct auxtrace_queue *queue,
 				 unsigned int queue_nr)
 {
-	struct intel_bts_queue *btsq = queue->priv;
+	struct arm_spe_queue *speq = queue->priv;
 
 	if (list_empty(&queue->head))
 		return 0;
 
-	if (!btsq) {
-		btsq = intel_bts_alloc_queue(bts, queue_nr);
-		if (!btsq)
+	if (!speq) {
+		speq = arm_spe_alloc_queue(spe, queue_nr);
+		if (!speq)
 			return -ENOMEM;
-		queue->priv = btsq;
+		queue->priv = speq;
 
 		if (queue->cpu != -1)
-			btsq->cpu = queue->cpu;
-		btsq->tid = queue->tid;
+			speq->cpu = queue->cpu;
+		speq->tid = queue->tid;
 	}
 
-	if (bts->sampling_mode)
+	if (spe->sampling_mode)
 		return 0;
 
-	if (!btsq->on_heap && !btsq->buffer) {
+	if (!speq->on_heap && !speq->buffer) {
 		int ret;
 
-		btsq->buffer = auxtrace_buffer__next(queue, NULL);
-		if (!btsq->buffer)
+		speq->buffer = auxtrace_buffer__next(queue, NULL);
+		if (!speq->buffer)
 			return 0;
 
-		ret = auxtrace_heap__add(&bts->heap, queue_nr,
-					 btsq->buffer->reference);
+		ret = auxtrace_heap__add(&spe->heap, queue_nr,
+					 speq->buffer->reference);
 		if (ret)
 			return ret;
-		btsq->on_heap = true;
+		speq->on_heap = true;
 	}
 
 	return 0;
 }
 
-static int intel_bts_setup_queues(struct intel_bts *bts)
+static int arm_spe_setup_queues(struct arm_spe *spe)
 {
 	unsigned int i;
 	int ret;
 
-	for (i = 0; i < bts->queues.nr_queues; i++) {
-		ret = intel_bts_setup_queue(bts, &bts->queues.queue_array[i],
+	for (i = 0; i < spe->queues.nr_queues; i++) {
+		ret = arm_spe_setup_queue(spe, &spe->queues.queue_array[i],
 					    i);
 		if (ret)
 			return ret;
@@ -223,16 +222,16 @@ static int intel_bts_setup_queues(struct intel_bts *bts)
 	return 0;
 }
 
-static inline int intel_bts_update_queues(struct intel_bts *bts)
+static inline int arm_spe_update_queues(struct arm_spets *spe)
 {
-	if (bts->queues.new_data) {
-		bts->queues.new_data = false;
-		return intel_bts_setup_queues(bts);
+	if (spe->queues.new_data) {
+		spe->queues.new_data = false;
+		return arm_spe_setup_queues(spe);
 	}
 	return 0;
 }
 
-static unsigned char *intel_bts_find_overlap(unsigned char *buf_a, size_t len_a,
+static unsigned char *arm_spe_find_overlap(unsigned char *buf_a, size_t len_a,
 					     unsigned char *buf_b, size_t len_b)
 {
 	size_t offs, len;
@@ -251,7 +250,7 @@ static unsigned char *intel_bts_find_overlap(unsigned char *buf_a, size_t len_a,
 	return buf_b;
 }
 
-static int intel_bts_do_fix_overlap(struct auxtrace_queue *queue,
+static int arm_spe_do_fix_overlap(struct auxtrace_queue *queue,
 				    struct auxtrace_buffer *b)
 {
 	struct auxtrace_buffer *a;
@@ -260,7 +259,7 @@ static int intel_bts_do_fix_overlap(struct auxtrace_queue *queue,
 	if (b->list.prev == &queue->head)
 		return 0;
 	a = list_entry(b->list.prev, struct auxtrace_buffer, list);
-	start = intel_bts_find_overlap(a->data, a->size, b->data, b->size);
+	start = arm_spe_find_overlap(a->data, a->size, b->data, b->size);
 	if (!start)
 		return -EINVAL;
 	b->use_size = b->data + b->size - start;
@@ -268,16 +267,16 @@ static int intel_bts_do_fix_overlap(struct auxtrace_queue *queue,
 	return 0;
 }
 
-static int intel_bts_synth_branch_sample(struct intel_bts_queue *btsq,
+static int arm_spe_synth_branch_sample(struct arm_spe_queue *speq,
 					 struct branch *branch)
 {
 	int ret;
-	struct intel_bts *bts = btsq->bts;
+	struct arm_spets *spe = speq->spe;
 	union perf_event event;
 	struct perf_sample sample = { .ip = 0, };
 
-	if (bts->synth_opts.initial_skip &&
-	    bts->num_events++ <= bts->synth_opts.initial_skip)
+	if (spe->synth_opts.initial_skip &&
+	    spe->num_events++ <= spe->synth_opts.initial_skip)
 		return 0;
 
 	event.sample.header.type = PERF_RECORD_SAMPLE;
@@ -286,28 +285,28 @@ static int intel_bts_synth_branch_sample(struct intel_bts_queue *btsq,
 
 	sample.cpumode = PERF_RECORD_MISC_USER;
 	sample.ip = le64_to_cpu(branch->from);
-	sample.pid = btsq->pid;
-	sample.tid = btsq->tid;
+	sample.pid = speq->pid;
+	sample.tid = speq->tid;
 	sample.addr = le64_to_cpu(branch->to);
-	sample.id = btsq->bts->branches_id;
-	sample.stream_id = btsq->bts->branches_id;
+	sample.id = speq->spe->branches_id;
+	sample.stream_id = speq->spe->branches_id;
 	sample.period = 1;
-	sample.cpu = btsq->cpu;
-	sample.flags = btsq->sample_flags;
-	sample.insn_len = btsq->intel_pt_insn.length;
-	memcpy(sample.insn, btsq->intel_pt_insn.buf, INTEL_PT_INSN_BUF_SZ);
+	sample.cpu = speq->cpu;
+	sample.flags = speq->sample_flags;
+	sample.insn_len = speq->intel_pt_insn.length;
+	memcpy(sample.insn, speq->intel_pt_insn.buf, INTEL_PT_INSN_BUF_SZ);
 
-	if (bts->synth_opts.inject) {
-		event.sample.header.size = bts->branches_event_size;
+	if (spe->synth_opts.inject) {
+		event.sample.header.size = spe->branches_event_size;
 		ret = perf_event__synthesize_sample(&event,
-						    bts->branches_sample_type,
+						    spe->branches_sample_type,
 						    0, &sample,
-						    bts->synth_needs_swap);
+						    spe->synth_needs_swap);
 		if (ret)
 			return ret;
 	}
 
-	ret = perf_session__deliver_synth_event(bts->session, &event, &sample);
+	ret = perf_session__deliver_synth_event(spe->session, &event, &sample);
 	if (ret)
 		pr_err("Intel BTS: failed to deliver branch event, error %d\n",
 		       ret);
@@ -315,9 +314,9 @@ static int intel_bts_synth_branch_sample(struct intel_bts_queue *btsq,
 	return ret;
 }
 
-static int intel_bts_get_next_insn(struct intel_bts_queue *btsq, u64 ip)
+static int arm_spe_get_next_insn(struct arm_spe_queue *speq, u64 ip)
 {
-	struct machine *machine = btsq->bts->machine;
+	struct machine *machine = speq->spe->machine;
 	struct thread *thread;
 	struct addr_location al;
 	unsigned char buf[INTEL_PT_INSN_BUF_SZ];
@@ -331,7 +330,7 @@ static int intel_bts_get_next_insn(struct intel_bts_queue *btsq, u64 ip)
 	else
 		cpumode = PERF_RECORD_MISC_USER;
 
-	thread = machine__find_thread(machine, -1, btsq->tid);
+	thread = machine__find_thread(machine, -1, speq->tid);
 	if (!thread)
 		return -1;
 
@@ -349,7 +348,7 @@ static int intel_bts_get_next_insn(struct intel_bts_queue *btsq, u64 ip)
 
 	x86_64 = al.map->dso->is_64_bit;
 
-	if (intel_pt_get_insn(buf, len, x86_64, &btsq->intel_pt_insn))
+	if (intel_pt_get_insn(buf, len, x86_64, &speq->intel_pt_insn))
 		goto out_put;
 
 	err = 0;
@@ -358,7 +357,7 @@ out_put:
 	return err;
 }
 
-static int intel_bts_synth_error(struct intel_bts *bts, int cpu, pid_t pid,
+static int arm_spe_synth_error(struct arm_spets *spe, int cpu, pid_t pid,
 				 pid_t tid, u64 ip)
 {
 	union perf_event event;
@@ -368,7 +367,7 @@ static int intel_bts_synth_error(struct intel_bts *bts, int cpu, pid_t pid,
 			     INTEL_BTS_ERR_NOINSN, cpu, pid, tid, ip,
 			     "Failed to get instruction");
 
-	err = perf_session__deliver_synth_event(bts->session, &event, NULL);
+	err = perf_session__deliver_synth_event(spe->session, &event, NULL);
 	if (err)
 		pr_err("Intel BTS: failed to deliver error event, error %d\n",
 		       err);
@@ -376,42 +375,42 @@ static int intel_bts_synth_error(struct intel_bts *bts, int cpu, pid_t pid,
 	return err;
 }
 
-static int intel_bts_get_branch_type(struct intel_bts_queue *btsq,
+static int arm_spe_get_branch_type(struct arm_spe_queue *speq,
 				     struct branch *branch)
 {
 	int err;
 
 	if (!branch->from) {
 		if (branch->to)
-			btsq->sample_flags = PERF_IP_FLAG_BRANCH |
+			speq->sample_flags = PERF_IP_FLAG_BRANCH |
 					     PERF_IP_FLAG_TRACE_BEGIN;
 		else
-			btsq->sample_flags = 0;
-		btsq->intel_pt_insn.length = 0;
+			speq->sample_flags = 0;
+		speq->intel_pt_insn.length = 0;
 	} else if (!branch->to) {
-		btsq->sample_flags = PERF_IP_FLAG_BRANCH |
+		speq->sample_flags = PERF_IP_FLAG_BRANCH |
 				     PERF_IP_FLAG_TRACE_END;
-		btsq->intel_pt_insn.length = 0;
+		speq->intel_pt_insn.length = 0;
 	} else {
-		err = intel_bts_get_next_insn(btsq, branch->from);
+		err = arm_spe_get_next_insn(speq, branch->from);
 		if (err) {
-			btsq->sample_flags = 0;
-			btsq->intel_pt_insn.length = 0;
-			if (!btsq->bts->synth_opts.errors)
+			speq->sample_flags = 0;
+			speq->intel_pt_insn.length = 0;
+			if (!speq->spe->synth_opts.errors)
 				return 0;
-			err = intel_bts_synth_error(btsq->bts, btsq->cpu,
-						    btsq->pid, btsq->tid,
+			err = arm_spe_synth_error(speq->spe, speq->cpu,
+						    speq->pid, speq->tid,
 						    branch->from);
 			return err;
 		}
-		btsq->sample_flags = intel_pt_insn_type(btsq->intel_pt_insn.op);
+		speq->sample_flags = intel_pt_insn_type(speq->intel_pt_insn.op);
 		/* Check for an async branch into the kernel */
-		if (!machine__kernel_ip(btsq->bts->machine, branch->from) &&
-		    machine__kernel_ip(btsq->bts->machine, branch->to) &&
-		    btsq->sample_flags != (PERF_IP_FLAG_BRANCH |
+		if (!machine__kernel_ip(speq->spe->machine, branch->from) &&
+		    machine__kernel_ip(speq->spe->machine, branch->to) &&
+		    speq->sample_flags != (PERF_IP_FLAG_BRANCH |
 					   PERF_IP_FLAG_CALL |
 					   PERF_IP_FLAG_SYSCALLRET))
-			btsq->sample_flags = PERF_IP_FLAG_BRANCH |
+			speq->sample_flags = PERF_IP_FLAG_BRANCH |
 					     PERF_IP_FLAG_CALL |
 					     PERF_IP_FLAG_ASYNC |
 					     PERF_IP_FLAG_INTERRUPT;
@@ -420,13 +419,13 @@ static int intel_bts_get_branch_type(struct intel_bts_queue *btsq,
 	return 0;
 }
 
-static int intel_bts_process_buffer(struct intel_bts_queue *btsq,
+static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 				    struct auxtrace_buffer *buffer,
 				    struct thread *thread)
 {
 	struct branch *branch;
 	size_t sz, bsz = sizeof(struct branch);
-	u32 filter = btsq->bts->branches_filter;
+	u32 filter = speq->spe->branches_filter;
 	int err = 0;
 
 	if (buffer->use_data) {
@@ -437,56 +436,56 @@ static int intel_bts_process_buffer(struct intel_bts_queue *btsq,
 		branch = buffer->data;
 	}
 
-	if (!btsq->bts->sample_branches)
+	if (!speq->spe->sample_branches)
 		return 0;
 
 	for (; sz > bsz; branch += 1, sz -= bsz) {
 		if (!branch->from && !branch->to)
 			continue;
-		intel_bts_get_branch_type(btsq, branch);
-		if (btsq->bts->synth_opts.thread_stack)
-			thread_stack__event(thread, btsq->sample_flags,
+		arm_spe_get_branch_type(speq, branch);
+		if (speq->spe->synth_opts.thread_stack)
+			thread_stack__event(thread, speq->sample_flags,
 					    le64_to_cpu(branch->from),
 					    le64_to_cpu(branch->to),
-					    btsq->intel_pt_insn.length,
+					    speq->intel_pt_insn.length,
 					    buffer->buffer_nr + 1);
-		if (filter && !(filter & btsq->sample_flags))
+		if (filter && !(filter & speq->sample_flags))
 			continue;
-		err = intel_bts_synth_branch_sample(btsq, branch);
+		err = arm_spe_synth_branch_sample(speq, branch);
 		if (err)
 			break;
 	}
 	return err;
 }
 
-static int intel_bts_process_queue(struct intel_bts_queue *btsq, u64 *timestamp)
+static int arm_spe_process_queue(struct arm_spe_queue *speq, u64 *timestamp)
 {
-	struct auxtrace_buffer *buffer = btsq->buffer, *old_buffer = buffer;
+	struct auxtrace_buffer *buffer = speq->buffer, *old_buffer = buffer;
 	struct auxtrace_queue *queue;
 	struct thread *thread;
 	int err;
 
-	if (btsq->done)
+	if (speq->done)
 		return 1;
 
-	if (btsq->pid == -1) {
-		thread = machine__find_thread(btsq->bts->machine, -1,
-					      btsq->tid);
+	if (speq->pid == -1) {
+		thread = machine__find_thread(speq->spe->machine, -1,
+					      speq->tid);
 		if (thread)
-			btsq->pid = thread->pid_;
+			speq->pid = thread->pid_;
 	} else {
-		thread = machine__findnew_thread(btsq->bts->machine, btsq->pid,
-						 btsq->tid);
+		thread = machine__findnew_thread(speq->spe->machine, speq->pid,
+						 speq->tid);
 	}
 
-	queue = &btsq->bts->queues.queue_array[btsq->queue_nr];
+	queue = &speq->spe->queues.queue_array[speq->queue_nr];
 
 	if (!buffer)
 		buffer = auxtrace_buffer__next(queue, NULL);
 
 	if (!buffer) {
-		if (!btsq->bts->sampling_mode)
-			btsq->done = 1;
+		if (!speq->spe->sampling_mode)
+			speq->done = 1;
 		err = 1;
 		goto out_put;
 	}
@@ -498,7 +497,7 @@ static int intel_bts_process_queue(struct intel_bts_queue *btsq, u64 *timestamp)
 	}
 
 	if (!buffer->data) {
-		int fd = perf_data_file__fd(btsq->bts->session->file);
+		int fd = perf_data_file__fd(speq->spe->session->file);
 
 		buffer->data = auxtrace_buffer__get_data(buffer, fd);
 		if (!buffer->data) {
@@ -507,42 +506,42 @@ static int intel_bts_process_queue(struct intel_bts_queue *btsq, u64 *timestamp)
 		}
 	}
 
-	if (btsq->bts->snapshot_mode && !buffer->consecutive &&
-	    intel_bts_do_fix_overlap(queue, buffer)) {
+	if (speq->spe->snapshot_mode && !buffer->consecutive &&
+	    arm_spe_do_fix_overlap(queue, buffer)) {
 		err = -ENOMEM;
 		goto out_put;
 	}
 
-	if (!btsq->bts->synth_opts.callchain &&
-	    !btsq->bts->synth_opts.thread_stack && thread &&
-	    (!old_buffer || btsq->bts->sampling_mode ||
-	     (btsq->bts->snapshot_mode && !buffer->consecutive)))
+	if (!speq->spe->synth_opts.callchain &&
+	    !speq->spe->synth_opts.thread_stack && thread &&
+	    (!old_buffer || speq->spe->sampling_mode ||
+	     (speq->spe->snapshot_mode && !buffer->consecutive)))
 		thread_stack__set_trace_nr(thread, buffer->buffer_nr + 1);
 
-	err = intel_bts_process_buffer(btsq, buffer, thread);
+	err = arm_spe_process_buffer(speq, buffer, thread);
 
 	auxtrace_buffer__drop_data(buffer);
 
-	btsq->buffer = auxtrace_buffer__next(queue, buffer);
-	if (btsq->buffer) {
+	speq->buffer = auxtrace_buffer__next(queue, buffer);
+	if (speq->buffer) {
 		if (timestamp)
-			*timestamp = btsq->buffer->reference;
+			*timestamp = speq->buffer->reference;
 	} else {
-		if (!btsq->bts->sampling_mode)
-			btsq->done = 1;
+		if (!speq->spe->sampling_mode)
+			speq->done = 1;
 	}
 out_put:
 	thread__put(thread);
 	return err;
 }
 
-static int intel_bts_flush_queue(struct intel_bts_queue *btsq)
+static int arm_spe_flush_queue(struct arm_spe_queue *speq)
 {
 	u64 ts = 0;
 	int ret;
 
 	while (1) {
-		ret = intel_bts_process_queue(btsq, &ts);
+		ret = arm_spe_process_queue(speq, &ts);
 		if (ret < 0)
 			return ret;
 		if (ret)
@@ -551,66 +550,66 @@ static int intel_bts_flush_queue(struct intel_bts_queue *btsq)
 	return 0;
 }
 
-static int intel_bts_process_tid_exit(struct intel_bts *bts, pid_t tid)
+static int arm_spe_process_tid_exit(struct arm_spets *spe, pid_t tid)
 {
-	struct auxtrace_queues *queues = &bts->queues;
+	struct auxtrace_queues *queues = &spe->queues;
 	unsigned int i;
 
 	for (i = 0; i < queues->nr_queues; i++) {
-		struct auxtrace_queue *queue = &bts->queues.queue_array[i];
-		struct intel_bts_queue *btsq = queue->priv;
+		struct auxtrace_queue *queue = &spe->queues.queue_array[i];
+		struct arm_spe_queue *speq = queue->priv;
 
-		if (btsq && btsq->tid == tid)
-			return intel_bts_flush_queue(btsq);
+		if (speq && speq->tid == tid)
+			return arm_spe_flush_queue(speq);
 	}
 	return 0;
 }
 
-static int intel_bts_process_queues(struct intel_bts *bts, u64 timestamp)
+static int arm_spe_process_queues(struct arm_spets *spe, u64 timestamp)
 {
 	while (1) {
 		unsigned int queue_nr;
 		struct auxtrace_queue *queue;
-		struct intel_bts_queue *btsq;
+		struct arm_spe_queue *speq;
 		u64 ts = 0;
 		int ret;
 
-		if (!bts->heap.heap_cnt)
+		if (!spe->heap.heap_cnt)
 			return 0;
 
-		if (bts->heap.heap_array[0].ordinal > timestamp)
+		if (spe->heap.heap_array[0].ordinal > timestamp)
 			return 0;
 
-		queue_nr = bts->heap.heap_array[0].queue_nr;
-		queue = &bts->queues.queue_array[queue_nr];
-		btsq = queue->priv;
+		queue_nr = spe->heap.heap_array[0].queue_nr;
+		queue = &spe->queues.queue_array[queue_nr];
+		speq = queue->priv;
 
-		auxtrace_heap__pop(&bts->heap);
+		auxtrace_heap__pop(&spe->heap);
 
-		ret = intel_bts_process_queue(btsq, &ts);
+		ret = arm_spe_process_queue(speq, &ts);
 		if (ret < 0) {
-			auxtrace_heap__add(&bts->heap, queue_nr, ts);
+			auxtrace_heap__add(&spe->heap, queue_nr, ts);
 			return ret;
 		}
 
 		if (!ret) {
-			ret = auxtrace_heap__add(&bts->heap, queue_nr, ts);
+			ret = auxtrace_heap__add(&spe->heap, queue_nr, ts);
 			if (ret < 0)
 				return ret;
 		} else {
-			btsq->on_heap = false;
+			speq->on_heap = false;
 		}
 	}
 
 	return 0;
 }
 
-static int intel_bts_process_event(struct perf_session *session,
+static int arm_spe_process_event(struct perf_session *session,
 				   union perf_event *event,
 				   struct perf_sample *sample,
 				   struct perf_tool *tool)
 {
-	struct intel_bts *bts = container_of(session->auxtrace, struct intel_bts,
+	struct arm_spets *spe = container_of(session->auxtrace, struct arm_spets,
 					     auxtrace);
 	u64 timestamp;
 	int err;
@@ -619,47 +618,47 @@ static int intel_bts_process_event(struct perf_session *session,
 		return 0;
 
 	if (!tool->ordered_events) {
-		pr_err("Intel BTS requires ordered events\n");
+		pr_err("ARM SPE requires ordered events\n");
 		return -EINVAL;
 	}
 
 	if (sample->time && sample->time != (u64)-1)
-		timestamp = perf_time_to_tsc(sample->time, &bts->tc);
+		timestamp = perf_time_to_tsc(sample->time, &spe->tc);
 	else
 		timestamp = 0;
 
-	err = intel_bts_update_queues(bts);
+	err = arm_spe_update_queues(spe);
 	if (err)
 		return err;
 
-	err = intel_bts_process_queues(bts, timestamp);
+	err = arm_spe_process_queues(spe, timestamp);
 	if (err)
 		return err;
 	if (event->header.type == PERF_RECORD_EXIT) {
-		err = intel_bts_process_tid_exit(bts, event->fork.tid);
+		err = arm_spe_process_tid_exit(spe, event->fork.tid);
 		if (err)
 			return err;
 	}
 
 	if (event->header.type == PERF_RECORD_AUX &&
 	    (event->aux.flags & PERF_AUX_FLAG_TRUNCATED) &&
-	    bts->synth_opts.errors)
-		err = intel_bts_lost(bts, sample);
+	    spe->synth_opts.errors)
+		err = arm_spe_lost(spe, sample);
 
 	return err;
 }
 
-static int intel_bts_process_auxtrace_event(struct perf_session *session,
+static int arm_spe_process_auxtrace_event(struct perf_session *session,
 					    union perf_event *event,
 					    struct perf_tool *tool __maybe_unused)
 {
-	struct intel_bts *bts = container_of(session->auxtrace, struct intel_bts,
+	struct arm_spets *spe = container_of(session->auxtrace, struct arm_spets,
 					     auxtrace);
 
-	if (bts->sampling_mode)
+	if (spe->sampling_mode)
 		return 0;
 
-	if (!bts->data_queued) {
+	if (!spe->data_queued) {
 		struct auxtrace_buffer *buffer;
 		off_t data_offset;
 		int fd = perf_data_file__fd(session->file);
@@ -673,7 +672,7 @@ static int intel_bts_process_auxtrace_event(struct perf_session *session,
 				return -errno;
 		}
 
-		err = auxtrace_queues__add_event(&bts->queues, session, event,
+		err = auxtrace_queues__add_event(&spe->queues, session, event,
 						 data_offset, &buffer);
 		if (err)
 			return err;
@@ -681,7 +680,7 @@ static int intel_bts_process_auxtrace_event(struct perf_session *session,
 		/* Dump here now we have copied a piped trace out of the pipe */
 		if (dump_trace) {
 			if (auxtrace_buffer__get_data(buffer, fd)) {
-				intel_bts_dump_event(bts, buffer->data,
+				arm_spe_dump_event(spe, buffer->data,
 						     buffer->size);
 				auxtrace_buffer__put_data(buffer);
 			}
@@ -691,90 +690,90 @@ static int intel_bts_process_auxtrace_event(struct perf_session *session,
 	return 0;
 }
 
-static int intel_bts_flush(struct perf_session *session,
+static int arm_spe_flush(struct perf_session *session,
 			   struct perf_tool *tool __maybe_unused)
 {
-	struct intel_bts *bts = container_of(session->auxtrace, struct intel_bts,
+	struct arm_spets *spe = container_of(session->auxtrace, struct arm_spets,
 					     auxtrace);
 	int ret;
 
-	if (dump_trace || bts->sampling_mode)
+	if (dump_trace || spe->sampling_mode)
 		return 0;
 
 	if (!tool->ordered_events)
 		return -EINVAL;
 
-	ret = intel_bts_update_queues(bts);
+	ret = arm_spe_update_queues(spe);
 	if (ret < 0)
 		return ret;
 
-	return intel_bts_process_queues(bts, MAX_TIMESTAMP);
+	return arm_spe_process_queues(spe, MAX_TIMESTAMP);
 }
 
-static void intel_bts_free_queue(void *priv)
+static void arm_spe_free_queue(void *priv)
 {
-	struct intel_bts_queue *btsq = priv;
+	struct arm_spe_queue *speq = priv;
 
-	if (!btsq)
+	if (!speq)
 		return;
-	free(btsq);
+	free(speq);
 }
 
-static void intel_bts_free_events(struct perf_session *session)
+static void arm_spe_free_events(struct perf_session *session)
 {
-	struct intel_bts *bts = container_of(session->auxtrace, struct intel_bts,
+	struct arm_spets *spe = container_of(session->auxtrace, struct arm_spets,
 					     auxtrace);
-	struct auxtrace_queues *queues = &bts->queues;
+	struct auxtrace_queues *queues = &spe->queues;
 	unsigned int i;
 
 	for (i = 0; i < queues->nr_queues; i++) {
-		intel_bts_free_queue(queues->queue_array[i].priv);
+		arm_spe_free_queue(queues->queue_array[i].priv);
 		queues->queue_array[i].priv = NULL;
 	}
 	auxtrace_queues__free(queues);
 }
 
-static void intel_bts_free(struct perf_session *session)
+static void arm_spe_free(struct perf_session *session)
 {
-	struct intel_bts *bts = container_of(session->auxtrace, struct intel_bts,
+	struct arm_spets *spe = container_of(session->auxtrace, struct arm_spets,
 					     auxtrace);
 
-	auxtrace_heap__free(&bts->heap);
-	intel_bts_free_events(session);
+	auxtrace_heap__free(&spe->heap);
+	arm_spe_free_events(session);
 	session->auxtrace = NULL;
-	free(bts);
+	free(spe);
 }
 
-struct intel_bts_synth {
+struct arm_spe_synth {
 	struct perf_tool dummy_tool;
 	struct perf_session *session;
 };
 
-static int intel_bts_event_synth(struct perf_tool *tool,
+static int arm_spe_event_synth(struct perf_tool *tool,
 				 union perf_event *event,
 				 struct perf_sample *sample __maybe_unused,
 				 struct machine *machine __maybe_unused)
 {
-	struct intel_bts_synth *intel_bts_synth =
-			container_of(tool, struct intel_bts_synth, dummy_tool);
+	struct arm_spe_synth *arm_spe_synth =
+			container_of(tool, struct arm_spe_synth, dummy_tool);
 
-	return perf_session__deliver_synth_event(intel_bts_synth->session,
+	return perf_session__deliver_synth_event(arm_spe_synth->session,
 						 event, NULL);
 }
 
-static int intel_bts_synth_event(struct perf_session *session,
+static int arm_spe_synth_event(struct perf_session *session,
 				 struct perf_event_attr *attr, u64 id)
 {
-	struct intel_bts_synth intel_bts_synth;
+	struct arm_spe_synth arm_spe_synth;
 
-	memset(&intel_bts_synth, 0, sizeof(struct intel_bts_synth));
-	intel_bts_synth.session = session;
+	memset(&arm_spe_synth, 0, sizeof(struct arm_spe_synth));
+	arm_spe_synth.session = session;
 
-	return perf_event__synthesize_attr(&intel_bts_synth.dummy_tool, attr, 1,
-					   &id, intel_bts_event_synth);
+	return perf_event__synthesize_attr(&arm_spe_synth.dummy_tool, attr, 1,
+					   &id, arm_spe_event_synth);
 }
 
-static int intel_bts_synth_events(struct intel_bts *bts,
+static int arm_spe_synth_events(struct arm_spets *spe,
 				  struct perf_session *session)
 {
 	struct perf_evlist *evlist = session->evlist;
@@ -785,7 +784,7 @@ static int intel_bts_synth_events(struct intel_bts *bts,
 	int err;
 
 	evlist__for_each_entry(evlist, evsel) {
-		if (evsel->attr.type == bts->pmu_type && evsel->ids) {
+		if (evsel->attr.type == spe->pmu_type && evsel->ids) {
 			found = true;
 			break;
 		}
@@ -816,35 +815,35 @@ static int intel_bts_synth_events(struct intel_bts *bts,
 	if (!id)
 		id = 1;
 
-	if (bts->synth_opts.branches) {
+	if (spe->synth_opts.branches) {
 		attr.config = PERF_COUNT_HW_BRANCH_INSTRUCTIONS;
 		attr.sample_period = 1;
 		attr.sample_type |= PERF_SAMPLE_ADDR;
 		pr_debug("Synthesizing 'branches' event with id %" PRIu64 " sample type %#" PRIx64 "\n",
 			 id, (u64)attr.sample_type);
-		err = intel_bts_synth_event(session, &attr, id);
+		err = arm_spe_synth_event(session, &attr, id);
 		if (err) {
 			pr_err("%s: failed to synthesize 'branches' event type\n",
 			       __func__);
 			return err;
 		}
-		bts->sample_branches = true;
-		bts->branches_sample_type = attr.sample_type;
-		bts->branches_id = id;
+		spe->sample_branches = true;
+		spe->branches_sample_type = attr.sample_type;
+		spe->branches_id = id;
 		/*
 		 * We only use sample types from PERF_SAMPLE_MASK so we can use
 		 * __perf_evsel__sample_size() here.
 		 */
-		bts->branches_event_size = sizeof(struct sample_event) +
+		spe->branches_event_size = sizeof(struct sample_event) +
 				__perf_evsel__sample_size(attr.sample_type);
 	}
 
-	bts->synth_needs_swap = evsel->needs_swap;
+	spe->synth_needs_swap = evsel->needs_swap;
 
 	return 0;
 }
 
-static const char * const intel_bts_info_fmts[] = {
+static const char * const arm_spe_info_fmts[] = {
 	[INTEL_BTS_PMU_TYPE]		= "  PMU Type           %"PRId64"\n",
 	[INTEL_BTS_TIME_SHIFT]		= "  Time Shift         %"PRIu64"\n",
 	[INTEL_BTS_TIME_MULT]		= "  Time Muliplier     %"PRIu64"\n",
@@ -853,7 +852,7 @@ static const char * const intel_bts_info_fmts[] = {
 	[INTEL_BTS_SNAPSHOT_MODE]	= "  Snapshot mode      %"PRId64"\n",
 };
 
-static void intel_bts_print_info(u64 *arr, int start, int finish)
+static void arm_spe_print_info(u64 *arr, int start, int finish)
 {
 	int i;
 
@@ -861,90 +860,90 @@ static void intel_bts_print_info(u64 *arr, int start, int finish)
 		return;
 
 	for (i = start; i <= finish; i++)
-		fprintf(stdout, intel_bts_info_fmts[i], arr[i]);
+		fprintf(stdout, arm_spe_info_fmts[i], arr[i]);
 }
 
-u64 intel_bts_auxtrace_info_priv[INTEL_BTS_AUXTRACE_PRIV_SIZE];
+u64 arm_spe_auxtrace_info_priv[INTEL_BTS_AUXTRACE_PRIV_SIZE];
 
-int intel_bts_process_auxtrace_info(union perf_event *event,
+int arm_spe_process_auxtrace_info(union perf_event *event,
 				    struct perf_session *session)
 {
 	struct auxtrace_info_event *auxtrace_info = &event->auxtrace_info;
 	size_t min_sz = sizeof(u64) * INTEL_BTS_SNAPSHOT_MODE;
-	struct intel_bts *bts;
+	struct arm_spets *spe;
 	int err;
 
 	if (auxtrace_info->header.size < sizeof(struct auxtrace_info_event) +
 					min_sz)
 		return -EINVAL;
 
-	bts = zalloc(sizeof(struct intel_bts));
-	if (!bts)
+	spe = zalloc(sizeof(struct arm_spets));
+	if (!spe)
 		return -ENOMEM;
 
-	err = auxtrace_queues__init(&bts->queues);
+	err = auxtrace_queues__init(&spe->queues);
 	if (err)
 		goto err_free;
 
-	bts->session = session;
-	bts->machine = &session->machines.host; /* No kvm support */
-	bts->auxtrace_type = auxtrace_info->type;
-	bts->pmu_type = auxtrace_info->priv[INTEL_BTS_PMU_TYPE];
-	bts->tc.time_shift = auxtrace_info->priv[INTEL_BTS_TIME_SHIFT];
-	bts->tc.time_mult = auxtrace_info->priv[INTEL_BTS_TIME_MULT];
-	bts->tc.time_zero = auxtrace_info->priv[INTEL_BTS_TIME_ZERO];
-	bts->cap_user_time_zero =
+	spe->session = session;
+	spe->machine = &session->machines.host; /* No kvm support */
+	spe->auxtrace_type = auxtrace_info->type;
+	spe->pmu_type = auxtrace_info->priv[INTEL_BTS_PMU_TYPE];
+	spe->tc.time_shift = auxtrace_info->priv[INTEL_BTS_TIME_SHIFT];
+	spe->tc.time_mult = auxtrace_info->priv[INTEL_BTS_TIME_MULT];
+	spe->tc.time_zero = auxtrace_info->priv[INTEL_BTS_TIME_ZERO];
+	spe->cap_user_time_zero =
 			auxtrace_info->priv[INTEL_BTS_CAP_USER_TIME_ZERO];
-	bts->snapshot_mode = auxtrace_info->priv[INTEL_BTS_SNAPSHOT_MODE];
+	spe->snapshot_mode = auxtrace_info->priv[INTEL_BTS_SNAPSHOT_MODE];
 
-	bts->sampling_mode = false;
+	spe->sampling_mode = false;
 
-	bts->auxtrace.process_event = intel_bts_process_event;
-	bts->auxtrace.process_auxtrace_event = intel_bts_process_auxtrace_event;
-	bts->auxtrace.flush_events = intel_bts_flush;
-	bts->auxtrace.free_events = intel_bts_free_events;
-	bts->auxtrace.free = intel_bts_free;
-	session->auxtrace = &bts->auxtrace;
+	spe->auxtrace.process_event = arm_spe_process_event;
+	spe->auxtrace.process_auxtrace_event = arm_spe_process_auxtrace_event;
+	spe->auxtrace.flush_events = arm_spe_flush;
+	spe->auxtrace.free_events = arm_spe_free_events;
+	spe->auxtrace.free = arm_spe_free;
+	session->auxtrace = &spe->auxtrace;
 
-	intel_bts_print_info(&auxtrace_info->priv[0], INTEL_BTS_PMU_TYPE,
+	arm_spe_print_info(&auxtrace_info->priv[0], INTEL_BTS_PMU_TYPE,
 			     INTEL_BTS_SNAPSHOT_MODE);
 
 	if (dump_trace)
 		return 0;
 
 	if (session->itrace_synth_opts && session->itrace_synth_opts->set) {
-		bts->synth_opts = *session->itrace_synth_opts;
+		spe->synth_opts = *session->itrace_synth_opts;
 	} else {
-		itrace_synth_opts__set_default(&bts->synth_opts);
+		itrace_synth_op__set_default(&spe->synth_opts);
 		if (session->itrace_synth_opts)
-			bts->synth_opts.thread_stack =
+			spe->synth_opts.thread_stack =
 				session->itrace_synth_opts->thread_stack;
 	}
 
-	if (bts->synth_opts.calls)
-		bts->branches_filter |= PERF_IP_FLAG_CALL | PERF_IP_FLAG_ASYNC |
+	if (spe->synth_opts.calls)
+		spe->branches_filter |= PERF_IP_FLAG_CALL | PERF_IP_FLAG_ASYNC |
 					PERF_IP_FLAG_TRACE_END;
-	if (bts->synth_opts.returns)
-		bts->branches_filter |= PERF_IP_FLAG_RETURN |
+	if (spe->synth_opts.returns)
+		spe->branches_filter |= PERF_IP_FLAG_RETURN |
 					PERF_IP_FLAG_TRACE_BEGIN;
 
-	err = intel_bts_synth_events(bts, session);
+	err = arm_spe_synth_events(spe, session);
 	if (err)
 		goto err_free_queues;
 
-	err = auxtrace_queues__process_index(&bts->queues, session);
+	err = auxtrace_queues__process_index(&spe->queues, session);
 	if (err)
 		goto err_free_queues;
 
-	if (bts->queues.populated)
-		bts->data_queued = true;
+	if (spe->queues.populated)
+		spe->data_queued = true;
 
 	return 0;
 
 err_free_queues:
-	auxtrace_queues__free(&bts->queues);
+	auxtrace_queues__free(&spe->queues);
 	session->auxtrace = NULL;
 err_free:
-	free(bts);
+	free(spe);
 	return err;
 }
