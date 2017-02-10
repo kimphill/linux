@@ -241,7 +241,8 @@
 	};
 
 	spe-pmu {
-		compatible = "arm,arm-spe-pmu-v1";
+		compatible = "arm,statistical-profiling-extension-v1",
+				"arm,arm-spe-pmu-v1";
 		interrupts = <GIC_PPI 05 IRQ_TYPE_EDGE_RISING &part1>;
 	};
 
