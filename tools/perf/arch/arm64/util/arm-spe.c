@@ -141,13 +141,27 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 		return -EINVAL;
 	}
 
+	/* We are in full trace mode but '-m,xyz' wasn't specified */
+	if (opts->full_auxtrace && !opts->auxtrace_mmap_pages) {
+		if (privileged) {
+			opts->auxtrace_mmap_pages = MiB(4) / page_size;
+		} else {
+			opts->auxtrace_mmap_pages = KiB(128) / page_size;
+			if (opts->mmap_pages == UINT_MAX)
+				opts->mmap_pages = KiB(256) / page_size;
+		}
+
+	}
+
 	if (!opts->full_auxtrace)
 		return 0;
 
+#if 0 /* want to push to not have to specify --per-thread, in case get past failed to mmap */
 	if (opts->full_auxtrace && !cpu_map__empty(cpus)) {
 		pr_err(ARM_SPE_PMU_NAME " does not support per-cpu recording\n");
 		return -EINVAL;
 	}
+#endif
 
 	/* Set default sizes for snapshot mode */
 	if (opts->auxtrace_snapshot_mode) {
@@ -229,6 +243,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 			perf_evsel__set_sample_bit(arm_spe_evsel, CPU);
 	}
 
+#if 0 /* 1 is use intel bts  way */
 	/* Add dummy event to keep tracking */
 	if (opts->full_auxtrace) {
 		struct perf_evsel *tracking_evsel;
@@ -245,6 +260,27 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 		tracking_evsel->attr.freq = 0;
 		tracking_evsel->attr.sample_period = 1;
 	}
+#else
+	/* Add dummy event to keep tracking */
+	if (opts->full_auxtrace) {
+		struct perf_evsel *tracking_evsel;
+		int err;
+
+		err = parse_events(evlist, "dummy:u", NULL);
+		if (err)
+			return err;
+
+		tracking_evsel = perf_evlist__last(evlist);
+		perf_evlist__set_tracking_event(evlist, tracking_evsel);
+
+		tracking_evsel->attr.freq = 0;
+		tracking_evsel->attr.sample_period = 1;
+
+		/* In per-cpu case, always need the time of mmap events etc */
+		if (!cpu_map__empty(cpus))
+			perf_evsel__set_sample_bit(tracking_evsel, TIME);
+	}
+#endif
 
 	return 0;
 }
