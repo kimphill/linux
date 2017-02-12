@@ -72,9 +72,9 @@ static int arm_spe_info_fill(struct auxtrace_record *itr,
 			       struct auxtrace_info_event *auxtrace_info,
 			       size_t priv_size)
 {
-	struct arm_spe_recording *btsr =
+	struct arm_spe_recording *sper =
 			container_of(itr, struct arm_spe_recording, itr);
-	struct perf_pmu *arm_spe_pmu = btsr->arm_spe_pmu;
+	struct perf_pmu *arm_spe_pmu = sper->arm_spe_pmu;
 
 	if (priv_size != ARM_SPE_AUXTRACE_PRIV_SIZE)
 		return -EINVAL;
@@ -104,7 +104,7 @@ static int arm_spe_info_fill(struct auxtrace_record *itr,
 
 	auxtrace_info->type = PERF_AUXTRACE_ARM_SPE;
 	auxtrace_info->priv[ARM_SPE_PMU_TYPE] = arm_spe_pmu->type;
-	auxtrace_info->priv[ARM_SPE_SNAPSHOT_MODE] = btsr->snapshot_mode;
+	auxtrace_info->priv[ARM_SPE_SNAPSHOT_MODE] = sper->snapshot_mode;
 
 	return 0;
 }
@@ -113,15 +113,15 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 				       struct perf_evlist *evlist,
 				       struct record_opts *opts)
 {
-	struct arm_spe_recording *btsr =
+	struct arm_spe_recording *sper =
 			container_of(itr, struct arm_spe_recording, itr);
-	struct perf_pmu *arm_spe_pmu = btsr->arm_spe_pmu;
+	struct perf_pmu *arm_spe_pmu = sper->arm_spe_pmu;
 	struct perf_evsel *evsel, *arm_spe_evsel = NULL;
 	const struct cpu_map *cpus = evlist->cpus;
 	bool privileged = geteuid() == 0 || perf_event_paranoid() < 0;
 
-	btsr->evlist = evlist;
-	btsr->snapshot_mode = opts->auxtrace_snapshot_mode;
+	sper->evlist = evlist;
+	sper->snapshot_mode = opts->auxtrace_snapshot_mode;
 
 	evlist__for_each_entry(evlist, evsel) {
 		if (evsel->attr.type == arm_spe_pmu->type) {
@@ -253,7 +253,7 @@ static int arm_spe_parse_snapshot_options(struct auxtrace_record *itr,
 					    struct record_opts *opts,
 					    const char *str)
 {
-	struct arm_spe_recording *btsr =
+	struct arm_spe_recording *sper =
 			container_of(itr, struct arm_spe_recording, itr);
 	unsigned long long snapshot_size = 0;
 	char *endptr;
@@ -267,7 +267,7 @@ static int arm_spe_parse_snapshot_options(struct auxtrace_record *itr,
 	opts->auxtrace_snapshot_mode = true;
 	opts->auxtrace_snapshot_size = snapshot_size;
 
-	btsr->snapshot_size = snapshot_size;
+	sper->snapshot_size = snapshot_size;
 
 	return 0;
 }
@@ -277,11 +277,11 @@ static u64 arm_spe_reference(struct auxtrace_record *itr __maybe_unused)
 	return rdtsc();
 }
 
-static int arm_spe_alloc_snapshot_refs(struct arm_spe_recording *btsr,
+static int arm_spe_alloc_snapshot_refs(struct arm_spe_recording *sper,
 					 int idx)
 {
 	const size_t sz = sizeof(struct arm_spe_snapshot_ref);
-	int cnt = btsr->snapshot_ref_cnt, new_cnt = cnt * 2;
+	int cnt = sper->snapshot_ref_cnt, new_cnt = cnt * 2;
 	struct arm_spe_snapshot_ref *refs;
 
 	if (!new_cnt)
@@ -294,40 +294,40 @@ static int arm_spe_alloc_snapshot_refs(struct arm_spe_recording *btsr,
 	if (!refs)
 		return -ENOMEM;
 
-	memcpy(refs, btsr->snapshot_refs, cnt * sz);
+	memcpy(refs, sper->snapshot_refs, cnt * sz);
 
-	btsr->snapshot_refs = refs;
-	btsr->snapshot_ref_cnt = new_cnt;
+	sper->snapshot_refs = refs;
+	sper->snapshot_ref_cnt = new_cnt;
 
 	return 0;
 }
 
-static void arm_spe_free_snapshot_refs(struct arm_spe_recording *btsr)
+static void arm_spe_free_snapshot_refs(struct arm_spe_recording *sper)
 {
 	int i;
 
-	for (i = 0; i < btsr->snapshot_ref_cnt; i++)
-		zfree(&btsr->snapshot_refs[i].ref_buf);
-	zfree(&btsr->snapshot_refs);
+	for (i = 0; i < sper->snapshot_ref_cnt; i++)
+		zfree(&sper->snapshot_refs[i].ref_buf);
+	zfree(&sper->snapshot_refs);
 }
 
 static void arm_spe_recording_free(struct auxtrace_record *itr)
 {
-	struct arm_spe_recording *btsr =
+	struct arm_spe_recording *sper =
 			container_of(itr, struct arm_spe_recording, itr);
 
-	arm_spe_free_snapshot_refs(btsr);
-	free(btsr);
+	arm_spe_free_snapshot_refs(sper);
+	free(sper);
 }
 
 static int arm_spe_snapshot_start(struct auxtrace_record *itr)
 {
-	struct arm_spe_recording *btsr =
+	struct arm_spe_recording *sper =
 			container_of(itr, struct arm_spe_recording, itr);
 	struct perf_evsel *evsel;
 
-	evlist__for_each_entry(btsr->evlist, evsel) {
-		if (evsel->attr.type == btsr->arm_spe_pmu->type)
+	evlist__for_each_entry(sper->evlist, evsel) {
+		if (evsel->attr.type == sper->arm_spe_pmu->type)
 			return perf_evsel__disable(evsel);
 	}
 	return -EINVAL;
@@ -335,12 +335,12 @@ static int arm_spe_snapshot_start(struct auxtrace_record *itr)
 
 static int arm_spe_snapshot_finish(struct auxtrace_record *itr)
 {
-	struct arm_spe_recording *btsr =
+	struct arm_spe_recording *sper =
 			container_of(itr, struct arm_spe_recording, itr);
 	struct perf_evsel *evsel;
 
-	evlist__for_each_entry(btsr->evlist, evsel) {
-		if (evsel->attr.type == btsr->arm_spe_pmu->type)
+	evlist__for_each_entry(sper->evlist, evsel) {
+		if (evsel->attr.type == sper->arm_spe_pmu->type)
 			return perf_evsel__enable(evsel);
 	}
 	return -EINVAL;
@@ -367,7 +367,7 @@ static int arm_spe_find_snapshot(struct auxtrace_record *itr, int idx,
 				   struct auxtrace_mmap *mm, unsigned char *data,
 				   u64 *head, u64 *old)
 {
-	struct arm_spe_recording *btsr =
+	struct arm_spe_recording *sper =
 			container_of(itr, struct arm_spe_recording, itr);
 	bool wrapped;
 	int err;
@@ -375,15 +375,15 @@ static int arm_spe_find_snapshot(struct auxtrace_record *itr, int idx,
 	pr_debug3("%s: mmap index %d old head %zu new head %zu\n",
 		  __func__, idx, (size_t)*old, (size_t)*head);
 
-	if (idx >= btsr->snapshot_ref_cnt) {
-		err = arm_spe_alloc_snapshot_refs(btsr, idx);
+	if (idx >= sper->snapshot_ref_cnt) {
+		err = arm_spe_alloc_snapshot_refs(sper, idx);
 		if (err)
 			goto out_err;
 	}
 
-	wrapped = btsr->snapshot_refs[idx].wrapped;
+	wrapped = sper->snapshot_refs[idx].wrapped;
 	if (!wrapped && arm_spe_first_wrap((u64 *)data, mm->len)) {
-		btsr->snapshot_refs[idx].wrapped = true;
+		sper->snapshot_refs[idx].wrapped = true;
 		wrapped = true;
 	}
 
@@ -417,13 +417,13 @@ out_err:
 
 static int arm_spe_read_finish(struct auxtrace_record *itr, int idx)
 {
-	struct arm_spe_recording *btsr =
+	struct arm_spe_recording *sper =
 			container_of(itr, struct arm_spe_recording, itr);
 	struct perf_evsel *evsel;
 
-	evlist__for_each_entry(btsr->evlist, evsel) {
-		if (evsel->attr.type == btsr->arm_spe_pmu->type)
-			return perf_evlist__enable_event_idx(btsr->evlist,
+	evlist__for_each_entry(sper->evlist, evsel) {
+		if (evsel->attr.type == sper->arm_spe_pmu->type)
+			return perf_evlist__enable_event_idx(sper->evlist,
 							     evsel, idx);
 	}
 	return -EINVAL;
@@ -432,7 +432,7 @@ static int arm_spe_read_finish(struct auxtrace_record *itr, int idx)
 struct auxtrace_record *arm_spe_recording_init(int *err)
 {
 	struct perf_pmu *arm_spe_pmu = perf_pmu__find(ARM_SPE_PMU_NAME);
-	struct arm_spe_recording *btsr;
+	struct arm_spe_recording *sper;
 
 	if (!arm_spe_pmu)
 		return NULL;
@@ -442,23 +442,23 @@ struct auxtrace_record *arm_spe_recording_init(int *err)
 		return NULL;
 	}
 
-	btsr = zalloc(sizeof(struct arm_spe_recording));
-	if (!btsr) {
+	sper = zalloc(sizeof(struct arm_spe_recording));
+	if (!sper) {
 		*err = -ENOMEM;
 		return NULL;
 	}
 
-	btsr->arm_spe_pmu = arm_spe_pmu;
-	btsr->itr.recording_options = arm_spe_recording_options;
-	btsr->itr.info_priv_size = arm_spe_info_priv_size;
-	btsr->itr.info_fill = arm_spe_info_fill;
-	btsr->itr.free = arm_spe_recording_free;
-	btsr->itr.snapshot_start = arm_spe_snapshot_start;
-	btsr->itr.snapshot_finish = arm_spe_snapshot_finish;
-	btsr->itr.find_snapshot = arm_spe_find_snapshot;
-	btsr->itr.parse_snapshot_options = arm_spe_parse_snapshot_options;
-	btsr->itr.reference = arm_spe_reference;
-	btsr->itr.read_finish = arm_spe_read_finish;
-	btsr->itr.alignment = sizeof(struct branch);
-	return &btsr->itr;
+	sper->arm_spe_pmu = arm_spe_pmu;
+	sper->itr.recording_options = arm_spe_recording_options;
+	sper->itr.info_priv_size = arm_spe_info_priv_size;
+	sper->itr.info_fill = arm_spe_info_fill;
+	sper->itr.free = arm_spe_recording_free;
+	sper->itr.snapshot_start = arm_spe_snapshot_start;
+	sper->itr.snapshot_finish = arm_spe_snapshot_finish;
+	sper->itr.find_snapshot = arm_spe_find_snapshot;
+	sper->itr.parse_snapshot_options = arm_spe_parse_snapshot_options;
+	sper->itr.reference = arm_spe_reference;
+	sper->itr.read_finish = arm_spe_read_finish;
+	sper->itr.alignment = sizeof(struct branch);
+	return &sper->itr;
 }
