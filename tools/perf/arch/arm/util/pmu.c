@@ -31,6 +31,11 @@ struct perf_event_attr
 		pmu->selectable = true;
 		pmu->set_drv_config = cs_etm_set_drv_config;
 	}
+	if (!strcmp(pmu->name, ARM_SPE_PMU_NAME)) {
+		/* add SPE default config here */
+		pmu->selectable = true;
+		pmu->set_drv_config = arm_spe_set_drv_config;
+	}
 #endif
 	return NULL;
 }

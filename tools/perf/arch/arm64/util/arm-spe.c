@@ -110,8 +110,8 @@ static int arm_spe_info_fill(struct auxtrace_record *itr,
 }
 
 static int arm_spe_recording_options(struct auxtrace_record *itr,
-				       struct perf_evlist *evlist,
-				       struct record_opts *opts)
+				     struct perf_evlist *evlist,
+				     struct record_opts *opts)
 {
 	struct arm_spe_recording *sper =
 			container_of(itr, struct arm_spe_recording, itr);
@@ -130,7 +130,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 				return -EINVAL;
 			}
 			evsel->attr.freq = 0;
-			evsel->attr.sample_period = 1;
+			evsel->attr.sample_period = 1; /* FIXME? */
 			arm_spe_evsel = evsel;
 			opts->full_auxtrace = true;
 		}
@@ -141,22 +141,10 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 		return -EINVAL;
 	}
 
-	/* We are in full trace mode but '-m,xyz' wasn't specified */
-	if (opts->full_auxtrace && !opts->auxtrace_mmap_pages) {
-		if (privileged) {
-			opts->auxtrace_mmap_pages = MiB(4) / page_size;
-		} else {
-			opts->auxtrace_mmap_pages = KiB(128) / page_size;
-			if (opts->mmap_pages == UINT_MAX)
-				opts->mmap_pages = KiB(256) / page_size;
-		}
-
-	}
-
 	if (!opts->full_auxtrace)
 		return 0;
 
-#if 0 /* want to push to not have to specify --per-thread, in case get past failed to mmap */
+#if 1 /* want to push to not have to specify --per-thread, in case get past failed to mmap */
 	if (opts->full_auxtrace && !cpu_map__empty(cpus)) {
 		pr_err(ARM_SPE_PMU_NAME " does not support per-cpu recording\n");
 		return -EINVAL;
@@ -472,11 +460,6 @@ struct auxtrace_record *arm_spe_recording_init(int *err)
 
 	if (!arm_spe_pmu)
 		return NULL;
-
-	if (setenv("JITDUMP_USE_ARCH_TIMESTAMP", "1", 1)) {
-		*err = -errno;
-		return NULL;
-	}
 
 	sper = zalloc(sizeof(struct arm_spe_recording));
 	if (!sper) {
