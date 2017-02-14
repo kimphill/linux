@@ -21,6 +21,16 @@
 
 #include "cs-etm.h"
 #include "../../util/pmu.h"
+#include "../../util/arm-spe.h"
+
+int arm_spe_set_drv_config(struct perf_evsel_config_term *term __maybe_unused);
+
+int arm_spe_set_drv_config(struct perf_evsel_config_term *term __maybe_unused)
+{
+	fprintf(stderr, "%s %d: not implemented\n", __func__, __LINE__);
+
+	return 0;
+}
 
 struct perf_event_attr
 *perf_pmu__get_default_config(struct perf_pmu *pmu __maybe_unused)
