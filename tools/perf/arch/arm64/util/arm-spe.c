@@ -491,6 +491,6 @@ struct auxtrace_record *arm_spe_recording_init(int *err)
 	sper->itr.parse_snapshot_options = arm_spe_parse_snapshot_options;
 	sper->itr.reference = arm_spe_reference;
 	sper->itr.read_finish = arm_spe_read_finish;
-	sper->itr.alignment = sizeof(struct branch);
+	sper->itr.alignment = 0;
 	return &sper->itr;
 }
