@@ -23,6 +23,7 @@
 #include "../../util/pmu.h"
 #include "../../util/arm-spe.h"
 
+#if 0
 int arm_spe_set_drv_config(struct perf_evsel_config_term *term __maybe_unused);
 
 int arm_spe_set_drv_config(struct perf_evsel_config_term *term __maybe_unused)
@@ -31,6 +32,7 @@ int arm_spe_set_drv_config(struct perf_evsel_config_term *term __maybe_unused)
 
 	return 0;
 }
+#endif
 
 struct perf_event_attr
 *perf_pmu__get_default_config(struct perf_pmu *pmu __maybe_unused)
@@ -44,7 +46,7 @@ struct perf_event_attr
 	if (!strcmp(pmu->name, ARM_SPE_PMU_NAME)) {
 		/* add SPE default config here */
 		pmu->selectable = true;
-		pmu->set_drv_config = arm_spe_set_drv_config;
+		//pmu->set_drv_config = arm_spe_set_drv_config;
 	}
 #endif
 	return NULL;

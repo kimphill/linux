@@ -144,7 +144,12 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 	if (!opts->full_auxtrace)
 		return 0;
 
-#if 1 /* want to push to not have to specify --per-thread, in case get past failed to mmap */
+#if 1 
+	/*
+	 * nomistakes doesn't support this behaviour:
+	 * want to push to not have to specify --per-thread,
+	 * in case get past failed to mmap
+	 */
 	if (opts->full_auxtrace && !cpu_map__empty(cpus)) {
 		pr_err(ARM_SPE_PMU_NAME " does not support per-cpu recording\n");
 		return -EINVAL;
@@ -190,6 +195,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 	}
 
 	/* Set default sizes for full trace mode */
+	/* cs-etm style */
 	if (opts->full_auxtrace && !opts->auxtrace_mmap_pages) {
 		if (privileged) {
 			opts->auxtrace_mmap_pages = MiB(4) / page_size;
@@ -231,7 +237,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 			perf_evsel__set_sample_bit(arm_spe_evsel, CPU);
 	}
 
-#if 0 /* 1 is use intel bts  way */
+#if 1 /* 1 is use intel bts  way */
 	/* Add dummy event to keep tracking */
 	if (opts->full_auxtrace) {
 		struct perf_evsel *tracking_evsel;
@@ -248,7 +254,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 		tracking_evsel->attr.freq = 0;
 		tracking_evsel->attr.sample_period = 1;
 	}
-#else
+#else /* else clause contains the cs-etm way, which has a per-cpu case difference */
 	/* Add dummy event to keep tracking */
 	if (opts->full_auxtrace) {
 		struct perf_evsel *tracking_evsel;
