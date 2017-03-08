@@ -883,8 +883,6 @@ static void arm_spe_print_info(u64 *arr, int start, int finish)
 		fprintf(stdout, arm_spe_info_fmts[i], arr[i]);
 }
 
-u64 arm_spe_auxtrace_info_priv[ARM_SPE_AUXTRACE_PRIV_SIZE];
-
 int arm_spe_process_auxtrace_info(union perf_event *event,
 				    struct perf_session *session)
 {
