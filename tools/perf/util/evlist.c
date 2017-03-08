@@ -1158,6 +1158,7 @@ static int perf_evlist__mmap_per_thread(struct perf_evlist *evlist,
 	int nr_threads = thread_map__nr(evlist->threads);
 
 	pr_debug2("perf event ring buffer mmapped per thread\n");
+	pr_debug2("%s %d: nr threads %d\n", __func__, __LINE__, nr_threads);
 	for (thread = 0; thread < nr_threads; thread++) {
 		int output = -1;
 		int output_backward = -1;
@@ -1167,7 +1168,10 @@ static int perf_evlist__mmap_per_thread(struct perf_evlist *evlist,
 
 		if (perf_evlist__mmap_per_evsel(evlist, thread, mp, 0, thread,
 						&output, &output_backward))
+		{
+			pr_debug2("%s %d: uh oh\n", __func__, __LINE__);
 			goto out_unmap;
+		}
 	}
 
 	return 0;
