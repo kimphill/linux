@@ -73,6 +73,41 @@ arm_spe_info_priv_size(struct auxtrace_record *itr __maybe_unused,
 	return nr_cpus * ARM_SPE_AUXTRACE_PRIV_MAX;
 }
 
+static int arm_spe_parse_terms_with_default(struct list_head *formats,
+					    const char *str, u64 *config)
+{
+	struct list_head *terms;
+	struct perf_event_attr attr = { .size = 0, };
+	int err;
+
+	terms = malloc(sizeof(struct list_head));
+	if (!terms)
+		return -ENOMEM;
+
+	INIT_LIST_HEAD(terms);
+
+	err = parse_events_terms(terms, str);
+	if (err)
+		goto out_free;
+
+	attr.config = *config;
+	err = perf_pmu__config_terms(formats, &attr, terms, true, NULL);
+	if (err)
+		goto out_free;
+
+	*config = attr.config;
+out_free:
+	parse_events_terms__delete(terms);
+	return err;
+}
+
+static int arm_spe_parse_terms(struct list_head *formats, const char *str,
+				u64 *config)
+{
+	*config = 0;
+	return arm_spe_parse_terms_with_default(formats, str, config);
+}
+
 static int arm_spe_info_fill(struct auxtrace_record *itr,
 			     struct perf_session *session,
 			     struct auxtrace_info_event *auxtrace_info,
@@ -81,10 +116,8 @@ static int arm_spe_info_fill(struct auxtrace_record *itr,
 	struct arm_spe_recording *sper =
 			container_of(itr, struct arm_spe_recording, itr);
 	struct perf_pmu *arm_spe_pmu = sper->arm_spe_pmu;
-#if 0
 	u64 ts_enable, pa_enable, jitter;
 	u64 load_filter, store_filter, branch_filter, min_latency;
-#endif
 fprintf(stderr, "%s: entry!\n", __func__);
 pr_debug("%s: (debug)entry!\n", __func__);
 
@@ -120,15 +153,6 @@ fprintf(stderr, "argh2!\n");
 	}
 #endif
 
-	auxtrace_info->type = PERF_AUXTRACE_ARM_SPE;
-	auxtrace_info->priv[ARM_SPE_PMU_TYPE] = arm_spe_pmu->type;
-	auxtrace_info->priv[ARM_SPE_SNAPSHOT_MODE] = sper->snapshot_mode;
-
-
-#if 0
-	if (priv_size != ARM_SPE_AUXTRACE_PRIV_SIZE)
-		return -EINVAL;
-
 	arm_spe_parse_terms(&arm_spe_pmu->format, "ts_enable", &ts_enable);
 	arm_spe_parse_terms(&arm_spe_pmu->format, "pa_enable", &pa_enable);
 	arm_spe_parse_terms(&arm_spe_pmu->format, "jitter", &jitter);
@@ -136,11 +160,6 @@ fprintf(stderr, "argh2!\n");
 	arm_spe_parse_terms(&arm_spe_pmu->format, "store_filter", &store_filter);
 	arm_spe_parse_terms(&arm_spe_pmu->format, "branch_filter", &branch_filter);
 	arm_spe_parse_terms(&arm_spe_pmu->format, "min_latency", &min_latency);
-
-	if (!session->evlist->nr_mmaps)
-		return -EINVAL;
-
-	per_cpu_mmaps = !cpu_map__empty(session->evlist->cpus);
 
 	auxtrace_info->type = PERF_AUXTRACE_ARM_SPE;
 	auxtrace_info->priv[ARM_SPE_PMU_TYPE] = arm_spe_pmu->type;
@@ -151,10 +170,11 @@ fprintf(stderr, "argh2!\n");
 	auxtrace_info->priv[ARM_SPE_STORE_FILTER] = store_filter;
 	auxtrace_info->priv[ARM_SPE_BRANCH_FILTER] = branch_filter;
 	auxtrace_info->priv[ARM_SPE_MIN_LATENCY] = min_latency;
-	auxtrace_info->priv[ARM_SPE_HAVE_SCHED_SWITCH] = ptr->have_sched_switch;
-	auxtrace_info->priv[ARM_SPE_SNAPSHOT_MODE] = ptr->snapshot_mode;
-	auxtrace_info->priv[ARM_SPE_PER_CPU_MMAPS] = per_cpu_mmaps;
-#endif
+	auxtrace_info->priv[ARM_SPE_SNAPSHOT_MODE] = sper->snapshot_mode;
+
+//	per_cpu_mmaps = !cpu_map__empty(session->evlist->cpus);
+//	auxtrace_info->priv[ARM_SPE_PER_CPU_MMAPS] = per_cpu_mmaps;
+//	auxtrace_info->priv[ARM_SPE_HAVE_SCHED_SWITCH] = sper->have_sched_switch;
 
 	return 0;
 }
@@ -273,19 +293,17 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 		}
 	}
 
-	if (arm_spe_evsel) {
-		/*
-		 * To obtain the auxtrace buffer file descriptor, the auxtrace event
-		 * must come first.
-		 */
-		perf_evlist__to_front(evlist, arm_spe_evsel);
-		/*
-		 * In the case of per-cpu mmaps, we need the CPU on the
-		 * AUX event.
-		 */
-		if (!cpu_map__empty(cpus))
-			perf_evsel__set_sample_bit(arm_spe_evsel, CPU);
-	}
+	/*
+	 * To obtain the auxtrace buffer file descriptor, the auxtrace event
+	 * must come first.
+	 */
+	perf_evlist__to_front(evlist, arm_spe_evsel);
+	/*
+	 * In the case of per-cpu mmaps, we need the CPU on the
+	 * AUX event.
+	 */
+	if (!cpu_map__empty(cpus))
+		perf_evsel__set_sample_bit(arm_spe_evsel, CPU);
 
 #if 1 /* 1 is use intel bts  way */
 	/* Add dummy event to keep tracking */
