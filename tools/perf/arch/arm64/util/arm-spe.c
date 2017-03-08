@@ -34,10 +34,6 @@
 #define KiB_MASK(x) (KiB(x) - 1)
 #define MiB_MASK(x) (MiB(x) - 1)
 
-#define ARM_SPE_DFLT_SAMPLE_SIZE	KiB(4)
-
-#define ARM_SPE_MAX_SAMPLE_SIZE		KiB(60)
-
 struct arm_spe_snapshot_ref {
 	void	*ref_buf;
 	size_t	ref_offset;
