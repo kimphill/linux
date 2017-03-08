@@ -60,6 +60,7 @@ static size_t
 arm_spe_info_priv_size(struct auxtrace_record *itr __maybe_unused,
 			 struct perf_evlist *evlist __maybe_unused)
 {
+#if 0
 	const struct cpu_map *cpus = evlist->cpus;
 	int nr_cpus;
 
@@ -71,6 +72,9 @@ arm_spe_info_priv_size(struct auxtrace_record *itr __maybe_unused,
 		nr_cpus = cpu__max_cpu();
 
 	return nr_cpus * ARM_SPE_AUXTRACE_PRIV_MAX;
+#else
+	return ARM_SPE_AUXTRACE_PRIV_MAX;
+#endif
 }
 
 static int arm_spe_parse_terms_with_default(struct list_head *formats,
@@ -214,7 +218,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 	if (!opts->full_auxtrace)
 		return 0;
 
-#if 1 
+#if 0
 	/*
 	 * nomistakes doesn't support this behaviour:
 	 * want to push to not have to specify --per-thread,
@@ -305,7 +309,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 	if (!cpu_map__empty(cpus))
 		perf_evsel__set_sample_bit(arm_spe_evsel, CPU);
 
-#if 1 /* 1 is use intel bts  way */
+#if 0 /* 1 is use intel bts  way */
 	/* Add dummy event to keep tracking */
 	if (opts->full_auxtrace) {
 		struct perf_evsel *tracking_evsel;
