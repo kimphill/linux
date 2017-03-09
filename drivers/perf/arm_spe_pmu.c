@@ -306,6 +306,8 @@ static ssize_t arm_spe_pmu_get_attr_cpumask(struct device *dev,
 	struct platform_device *pdev = to_platform_device(dev);
 	struct arm_spe_pmu *spe_pmu = platform_get_drvdata(pdev);
 
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	return cpumap_print_to_pagebuf(true, buf, &spe_pmu->supported_cpus);
 }
 static DEVICE_ATTR(cpumask, S_IRUGO, arm_spe_pmu_get_attr_cpumask, NULL);
@@ -781,6 +783,8 @@ static void arm_spe_pmu_stop(struct perf_event *event, int flags)
 	struct hw_perf_event *hwc = &event->hw;
 	struct perf_output_handle *handle = this_cpu_ptr(spe_pmu->handle);
 
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	/* If we're already stopped, then nothing to do */
 	if (hwc->state & PERF_HES_STOPPED)
 		return;
@@ -841,6 +845,8 @@ static void *arm_spe_pmu_setup_aux(int cpu, void **pages, int nr_pages,
 	struct page **pglist;
 	struct arm_spe_pmu_buf *buf;
 
+pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	/*
 	 * We require an even number of pages for snapshot mode, so that
 	 * we can effectively treat the buffer as consisting of two equal
@@ -848,20 +854,27 @@ static void *arm_spe_pmu_setup_aux(int cpu, void **pages, int nr_pages,
 	 * useful data out of it.
 	 */
 	if (!nr_pages || (snapshot && (nr_pages & 1)))
+{ pr_err("%s %d: uh oh\n", __func__, __LINE__);
 		return NULL;
+}
 
 	buf = kzalloc_node(sizeof(*buf), GFP_KERNEL, cpu_to_node(cpu));
 	if (!buf)
+{ pr_err("%s %d: uh oh\n", __func__, __LINE__);
 		return NULL;
+}
 
 	pglist = kcalloc(nr_pages, sizeof(*pglist), GFP_KERNEL);
 	if (!pglist)
+{ pr_err("%s %d: uh oh\n", __func__, __LINE__);
 		goto out_free_buf;
+}
 
 	for (i = 0; i < nr_pages; ++i) {
 		struct page *page = virt_to_page(pages[i]);
 
 		if (PagePrivate(page)) {
+pr_err("%s %d: uh oh\n", __func__, __LINE__);
 			pr_warn("unexpected high-order page for auxbuf!");
 			goto out_free_pglist;
 		}
@@ -871,7 +884,9 @@ static void *arm_spe_pmu_setup_aux(int cpu, void **pages, int nr_pages,
 
 	buf->base = vmap(pglist, nr_pages, VM_MAP, PAGE_KERNEL);
 	if (!buf->base)
+{ pr_err("%s %d: uh oh\n", __func__, __LINE__);
 		goto out_free_pglist;
+}
 
 	buf->nr_pages	= nr_pages;
 	buf->snapshot	= snapshot;
@@ -889,6 +904,7 @@ out_free_buf:
 static void arm_spe_pmu_free_aux(void *aux)
 {
 	struct arm_spe_pmu_buf *buf = aux;
+pr_err("%s %d: entry\n", __func__, __LINE__);
 
 	vunmap(buf->base);
 	kfree(buf);
@@ -903,6 +919,7 @@ static int arm_spe_pmu_perf_init(struct arm_spe_pmu *spe_pmu)
 	char *name;
 	struct device *dev = &spe_pmu->pdev->dev;
 
+pr_err("%s %d: entry\n", __func__, __LINE__);
 	spe_pmu->pmu = (struct pmu) {
 		.capabilities	= PERF_PMU_CAP_EXCLUSIVE | PERF_PMU_CAP_ITRACE,
 		.attr_groups	= arm_spe_pmu_attr_groups,
@@ -1099,6 +1116,8 @@ static int arm_spe_pmu_cpu_teardown(unsigned int cpu, struct hlist_node *node)
 {
 	struct arm_spe_pmu *spe_pmu;
 
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	spe_pmu = hlist_entry_safe(node, struct arm_spe_pmu, hotplug_node);
 	if (!cpumask_test_cpu(cpu, &spe_pmu->supported_cpus))
 		return 0;
@@ -1111,6 +1130,8 @@ static int arm_spe_pmu_dev_init(struct arm_spe_pmu *spe_pmu)
 {
 	int ret;
 	cpumask_t *mask = &spe_pmu->supported_cpus;
+
+	pr_err("%s %d: entry\n", __func__, __LINE__);
 
 	/* Keep the hotplug state steady whilst we probe */
 	get_online_cpus();
@@ -1174,6 +1195,8 @@ static int arm_spe_pmu_device_dt_probe(struct platform_device *pdev)
 	struct arm_spe_pmu *spe_pmu;
 	struct device *dev = &pdev->dev;
 
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	spe_pmu = devm_kzalloc(dev, sizeof(*spe_pmu), GFP_KERNEL);
 	if (!spe_pmu) {
 		dev_err(dev, "failed to allocate spe_pmu\n");
@@ -1199,6 +1222,7 @@ static int arm_spe_pmu_device_dt_probe(struct platform_device *pdev)
 	if (ret)
 		goto out_free_handle;
 
+	pr_err("%s %d: successful exit\n", __func__, __LINE__);
 	return 0;
 
 out_free_handle:
@@ -1211,6 +1235,8 @@ static int arm_spe_pmu_device_remove(struct platform_device *pdev)
 	struct arm_spe_pmu *spe_pmu = platform_get_drvdata(pdev);
 	cpumask_t *mask = &spe_pmu->supported_cpus;
 
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	arm_spe_pmu_perf_destroy(spe_pmu);
 
 	get_online_cpus();
@@ -1220,6 +1246,8 @@ static int arm_spe_pmu_device_remove(struct platform_device *pdev)
 	free_percpu_irq(spe_pmu->irq, spe_pmu->handle);
 	free_percpu(spe_pmu->handle);
 	put_online_cpus();
+
+	pr_err("%s %d: successful exit\n", __func__, __LINE__);
 
 	return 0;
 }
