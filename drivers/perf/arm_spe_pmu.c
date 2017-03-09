@@ -397,18 +397,24 @@ static u64 arm_spe_event_to_pmsfcr(struct perf_event *event)
 static u64 arm_spe_event_to_pmsevfr(struct perf_event *event)
 {
 	struct perf_event_attr *attr = &event->attr;
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	return ATTR_CFG_GET_FLD(attr, event_filter);
 }
 
 static u64 arm_spe_event_to_pmslatfr(struct perf_event *event)
 {
 	struct perf_event_attr *attr = &event->attr;
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	return ATTR_CFG_GET_FLD(attr, min_latency) << PMSLATFR_EL1_MINLAT_SHIFT;
 }
 
 static bool arm_spe_pmu_buffer_mgmt_pending(u64 pmbsr)
 {
 	const char *err_str;
+
+	pr_err("%s %d: entry\n", __func__, __LINE__);
 
 	/* Service required? */
 	if (!(pmbsr & BIT(PMBSR_EL1_S_SHIFT)))
@@ -479,6 +485,8 @@ static u64 __arm_spe_pmu_next_off(struct perf_output_handle *handle)
 	u64 wakeup = PERF_IDX2OFF(handle->wakeup, buf);
 	u64 limit = buf->nr_pages * PAGE_SIZE;
 
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	/*
 	 * Set the limit pointer to either the watermark or the
 	 * current tail pointer; whichever comes first.
@@ -531,6 +539,8 @@ static u64 arm_spe_pmu_next_off(struct perf_output_handle *handle)
 	u64 limit = __arm_spe_pmu_next_off(handle);
 	u64 head = PERF_IDX2OFF(handle->head, buf);
 
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	/*
 	 * If the head has come too close to the end of the buffer,
 	 * then pad to the end and recompute the limit.
@@ -549,6 +559,8 @@ static void arm_spe_perf_aux_output_begin(struct perf_output_handle *handle,
 {
 	u64 base, limit;
 	struct arm_spe_pmu_buf *buf;
+
+	pr_err("%s %d: entry\n", __func__, __LINE__);
 
 	/* Start a new aux session */
 	buf = perf_aux_output_begin(handle, event);
@@ -583,6 +595,8 @@ static bool arm_spe_perf_aux_output_end(struct perf_output_handle *handle,
 	struct arm_spe_pmu *spe_pmu = to_spe_pmu(event->pmu);
 	struct arm_spe_pmu_buf *buf = perf_get_aux(handle);
 	bool truncated, collided;
+
+	pr_err("%s %d: entry\n", __func__, __LINE__);
 
 	/*
 	 * We can be called via IRQ work trying to disable the PMU after
@@ -657,7 +671,9 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 	u64 reg;
 	struct perf_event_attr *attr = &event->attr;
 	struct arm_spe_pmu *spe_pmu = to_spe_pmu(event->pmu);
-	struct device *dev = &spe_pmu->pdev->dev;
+//	struct device *dev = &spe_pmu->pdev->dev;
+
+	pr_err("%s %d: entry\n", __func__, __LINE__);
 
 	/* This is, of course, deeply driver-specific */
 	if (attr->type != event->pmu->type)
@@ -665,23 +681,23 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 
 	if (event->cpu >= 0 &&
 	    !cpumask_test_cpu(event->cpu, &spe_pmu->supported_cpus)) {
-		dev_err_ratelimited(dev, "%s %d: return -ENOENT;\n", __func__, __LINE__);
+		pr_err("%s %d: return -ENOENT;\n", __func__, __LINE__);
 		return -ENOENT;
 	}
 
 	if (arm_spe_event_to_pmsevfr(event) & PMSEVFR_EL1_RES0) {
-		dev_err_ratelimited(dev, "%s %d: return -EOPNOTSUPP\n", __func__, __LINE__);
+		pr_err("%s %d: return -EOPNOTSUPP\n", __func__, __LINE__);
 		return -EOPNOTSUPP;
 	}
 
 	if (event->hw.sample_period < spe_pmu->min_period ||
 	    event->hw.sample_period & PMSIRR_EL1_IVAL_MASK) {
-		dev_err_ratelimited(dev, "Cannot set a sample period that is below the minimum interval\n");
+		pr_err("Cannot set a sample period that is below the minimum interval\n");
 		return -EOPNOTSUPP;
 	}
 
 	if (attr->exclude_idle) {
-		dev_err_ratelimited(dev, "Cannot exclude profiling when idle\n");
+		pr_err("Cannot exclude profiling when idle\n");
 		return -EOPNOTSUPP;
 	}
 
@@ -693,38 +709,40 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 	 * sample period instead.
 	 */
 	if (attr->freq) {
-		dev_err_ratelimited(dev, "sample period must be specified\n");
+		pr_err("sample period must be specified\n");
 		return -EINVAL;
 	}
 
 	if (is_kernel_in_hyp_mode()) {
 		if (attr->exclude_kernel != attr->exclude_hv) {
-			dev_err_ratelimited(dev, "VHE is enabled but exclude_kernel and exclude_hv have different values\n");
+			pr_err("VHE is enabled but exclude_kernel and exclude_hv have different values\n");
 			return -EOPNOTSUPP;
 		}
 	} else if (!attr->exclude_hv) {
-		dev_err_ratelimited(dev, "VHE is disabled but exclude_hv is not set\n");
+		pr_err("VHE is disabled but exclude_hv is not set\n");
 		return -EOPNOTSUPP;
 	}
 
 	reg = arm_spe_event_to_pmsfcr(event);
 	if ((reg & BIT(PMSFCR_EL1_FE_SHIFT)) &&
 	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_EVT)) {
-		dev_err_ratelimited(dev, "unsupported filter (EVT)\n");
+		pr_err("unsupported filter (EVT)\n");
 		return -EOPNOTSUPP;
 	}
 
 	if ((reg & BIT(PMSFCR_EL1_FT_SHIFT)) &&
 	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_TYP)) {
-		dev_err_ratelimited(dev, "unsupported filter (TYP)\n");
+		pr_err("unsupported filter (TYP)\n");
 		return -EOPNOTSUPP;
 	}
 
 	if ((reg & BIT(PMSFCR_EL1_FL_SHIFT)) &&
 	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_LAT)) {
-		dev_err_ratelimited(dev, "unsupported filter (LAT)\n");
+		pr_err("unsupported filter (LAT)\n");
 		return -EOPNOTSUPP;
 	}
+
+	pr_err("successful return\n");
 
 	return 0;
 }
@@ -765,6 +783,8 @@ static void arm_spe_pmu_start(struct perf_event *event, int flags)
 
 static void arm_spe_pmu_disable_and_drain_local(void)
 {
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	/* Disable profiling at EL0 and EL1 */
 	write_sysreg_s(0, PMSCR_EL1);
 	isb();
@@ -815,6 +835,8 @@ static int arm_spe_pmu_add(struct perf_event *event, int flags)
 	struct hw_perf_event *hwc = &event->hw;
 	int cpu = event->cpu == -1 ? smp_processor_id() : event->cpu;
 
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	if (!cpumask_test_cpu(cpu, &spe_pmu->supported_cpus))
 		return -ENOENT;
 
@@ -831,11 +853,15 @@ static int arm_spe_pmu_add(struct perf_event *event, int flags)
 
 static void arm_spe_pmu_del(struct perf_event *event, int flags)
 {
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	arm_spe_pmu_stop(event, PERF_EF_UPDATE);
 }
 
 static void arm_spe_pmu_read(struct perf_event *event)
 {
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 }
 
 static void *arm_spe_pmu_setup_aux(int cpu, void **pages, int nr_pages,
@@ -961,6 +987,8 @@ static void __arm_spe_pmu_dev_probe(void *info)
 	struct arm_spe_pmu *spe_pmu = info;
 	struct device *dev = &spe_pmu->pdev->dev;
 
+	pr_err("\n%s %d: entry\n", __func__, __LINE__);
+
 	fld = cpuid_feature_extract_unsigned_field(read_cpuid(ID_AA64DFR0_EL1),
 						   ID_AA64DFR0_PMSVER_SHIFT);
 	if (!fld) {
@@ -1069,6 +1097,8 @@ static void __arm_spe_pmu_dev_probe(void *info)
 
 static void __arm_spe_pmu_reset_local(void)
 {
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	/*
 	 * This is probably overkill, as we have no idea where we're
 	 * draining any buffered data to...
@@ -1088,6 +1118,8 @@ static void __arm_spe_pmu_setup_one(void *info)
 {
 	struct arm_spe_pmu *spe_pmu = info;
 
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	__arm_spe_pmu_reset_local();
 	enable_percpu_irq(spe_pmu->irq, IRQ_TYPE_NONE);
 }
@@ -1096,6 +1128,8 @@ static void __arm_spe_pmu_stop_one(void *info)
 {
 	struct arm_spe_pmu *spe_pmu = info;
 
+	pr_err("%s %d: entry\n", __func__, __LINE__);
+
 	disable_percpu_irq(spe_pmu->irq);
 	__arm_spe_pmu_reset_local();
 }
@@ -1103,6 +1137,8 @@ static void __arm_spe_pmu_stop_one(void *info)
 static int arm_spe_pmu_cpu_startup(unsigned int cpu, struct hlist_node *node)
 {
 	struct arm_spe_pmu *spe_pmu;
+
+	pr_err("%s %d: entry\n", __func__, __LINE__);
 
 	spe_pmu = hlist_entry_safe(node, struct arm_spe_pmu, hotplug_node);
 	if (!cpumask_test_cpu(cpu, &spe_pmu->supported_cpus))
@@ -1140,6 +1176,7 @@ static int arm_spe_pmu_dev_init(struct arm_spe_pmu *spe_pmu)
 	ret = smp_call_function_any(mask,  __arm_spe_pmu_dev_probe, spe_pmu, 1);
 	if (ret || !(spe_pmu->features & SPE_PMU_FEAT_DEV_PROBED)) {
 		ret = -ENXIO;
+		pr_err("%s %d: uh oh\n", __func__, __LINE__);
 		goto out_put_cpus;
 	}
 
