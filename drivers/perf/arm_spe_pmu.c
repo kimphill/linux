@@ -515,7 +515,8 @@ static u64 __arm_spe_pmu_next_off(struct perf_output_handle *handle)
 	if (limit <= head) {
 		memset(buf->base + head, 0, handle->size);
 		perf_aux_output_skip(handle, handle->size);
-		perf_aux_output_end(handle, 0, PERF_AUX_FLAG_TRUNCATED);
+		perf_aux_output_flag(handle, PERF_AUX_FLAG_TRUNCATED);
+		perf_aux_output_end(handle, 0);
 		limit = 0;
 	}
 
@@ -616,9 +617,10 @@ static bool arm_spe_perf_aux_output_end(struct perf_output_handle *handle,
 	 */
 	collided = pmbsr & BIT(PMBSR_EL1_COLL_SHIFT);
 	truncated = pmbsr & BIT(PMBSR_EL1_DL_SHIFT);
-	perf_aux_output_end(handle, size,
-			   (truncated ? PERF_AUX_FLAG_TRUNCATED : 0) |
-			   (collided ? PERF_AUX_FLAG_COLLISION : 0));
+	perf_aux_output_flag(handle,
+			     (truncated ? PERF_AUX_FLAG_TRUNCATED : 0) |
+			     (collided ? PERF_AUX_FLAG_COLLISION : 0));
+	perf_aux_output_end(handle, size);
 
 	/*
 	 * If we're not resuming the session, then we can clear the fault
