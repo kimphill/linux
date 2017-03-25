@@ -1495,12 +1495,8 @@ static int arm_spe_process_event(struct perf_session *session,
 	u64 timestamp;
 	int err = 0;
 
-	if (dump_trace) {
+	if (dump_trace)
 		return 0;
-	} else {
-		pr_err("ARM SPE decoding to perf events not supported at this time\n");
-		return -ENOTSUP;
-	}
 
 	if (!tool->ordered_events) {
 		pr_err("ARM SPE requires ordered events\n");
