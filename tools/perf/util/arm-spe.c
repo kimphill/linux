@@ -118,9 +118,23 @@ struct arm_spe_queue {
 	void *decoder;
 	const struct arm_spe_state *state;
 	struct ip_callchain *chain;
-	struct branch_stack *last_branch;
-	struct branch_stack *last_branch_rb;
+
+	/*
+	 * Stack of branches in reverse chronological order that will be copied
+	 * to a last branch event sample.
+	 */
+	struct branch_stack    *last_branch;
+	/*
+	 * A circular buffer used to record last branches as they are decoded
+	 * from the trace.
+	 */
+	struct branch_stack    *last_branch_rb;
+	/*
+	 * Position in the circular buffer where the last branch has been
+	 * inserted.
+	 */
 	size_t last_branch_pos;
+
 	union perf_event *event_buf;
 	bool on_heap;
 	bool stop;
@@ -689,6 +703,7 @@ static void arm_spe_sample_flags(struct arm_spe_queue *speq)
 	} else {
 		if (speq->state->from_ip)
 			/* FIXME */
+			pr_err("%s %d: FIXME\n", __func__, __LINE__);
 			;
 		else
 			speq->flags = PERF_IP_FLAG_BRANCH |
@@ -777,16 +792,35 @@ static inline void arm_spe_copy_last_branch_rb(struct arm_spe_queue *speq)
 	struct branch_stack *bs_dst = speq->last_branch;
 	size_t nr = 0;
 
+	/*
+	 * Set the number of records before early exit: ->nr is used to
+	 * determine how many branches to copy from ->entries.
+	 */
 	bs_dst->nr = bs_src->nr;
 
+	/*
+	 * Early exit when there is nothing to copy.
+	 */
 	if (!bs_src->nr)
 		return;
 
+	/*
+	 * As bs_src->entries is a circular buffer, we need to copy from it in
+	 * two steps.  First, copy the branches from the most recently inserted
+	 * branch ->last_branch_pos until the end of bs_src->entries buffer.
+	 */
 	nr = speq->spe->synth_opts.last_branch_sz - speq->last_branch_pos;
 	memcpy(&bs_dst->entries[0],
 	       &bs_src->entries[speq->last_branch_pos],
 	       sizeof(struct branch_entry) * nr);
 
+	/*
+	 * If we wrapped around at least once, the branches from the beginning
+	 * of the bs_src->entries buffer and until the ->last_branch_pos element
+	 * are older valid branches: copy them over.  The total number of
+	 * branches copied over will be equal to the number of branches asked by
+	 * the user in last_branch_sz.
+	 */
 	if (bs_src->nr >= speq->spe->synth_opts.last_branch_sz) {
 		memcpy(&bs_dst->entries[nr],
 		       &bs_src->entries[0],
@@ -806,6 +840,12 @@ static void arm_spe_update_last_branch_rb(struct arm_spe_queue *speq)
 	struct branch_stack *bs = speq->last_branch_rb;
 	struct branch_entry *be;
 
+	/*
+	 * The branches are recorded in a circular buffer in reverse
+	 * chronological order: we start recording from the last element of the
+	 * buffer down.  After writing the first element of the stack, move the
+	 * insert position back to the end of the buffer.
+	 */
 	if (!speq->last_branch_pos)
 		speq->last_branch_pos = speq->spe->synth_opts.last_branch_sz;
 
@@ -819,6 +859,10 @@ static void arm_spe_update_last_branch_rb(struct arm_spe_queue *speq)
 	/* No support for mispredict */
 	be->flags.mispred = speq->spe->mispred_all;
 
+	/*
+	 * Increment bs->nr until reaching the number of last branches asked by
+	 * the user on the command line.
+	 */
 	if (bs->nr < speq->spe->synth_opts.last_branch_sz)
 		bs->nr += 1;
 }
@@ -1662,7 +1706,7 @@ static int arm_spe_synth_event(struct perf_session *session,
 }
 
 static int arm_spe_synth_events(struct arm_spe *spe,
-				 struct perf_session *session)
+				struct perf_session *session)
 {
 	struct perf_evlist *evlist = session->evlist;
 	struct perf_evsel *evsel;
