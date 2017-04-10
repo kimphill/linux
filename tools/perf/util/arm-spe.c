@@ -690,6 +690,7 @@ static void arm_spe_set_pid_tid_cpu(struct arm_spe *spe,
 
 static void arm_spe_sample_flags(struct arm_spe_queue *speq)
 {
+	pr_err("%s %d: \n", __func__, __LINE__);
 	if (speq->state->flags & ARM_SPE_ABORT_TX) {
 		speq->flags = PERF_IP_FLAG_BRANCH | PERF_IP_FLAG_TX_ABORT;
 	} else if (speq->state->flags & ARM_SPE_ASYNC) {
@@ -701,11 +702,15 @@ static void arm_spe_sample_flags(struct arm_spe_queue *speq)
 			speq->flags = PERF_IP_FLAG_BRANCH |
 				     PERF_IP_FLAG_TRACE_END;
 	} else {
-		if (speq->state->from_ip)
+		if (speq->state->from_ip) {
 			/* FIXME */
-			pr_err("%s %d: FIXME\n", __func__, __LINE__);
-			;
-		else
+#if 0
+			static bool said;
+			if (!said)
+#endif
+				pr_err("%s %d: FIXME\n", __func__, __LINE__);
+//			said = true;
+		} else
 			speq->flags = PERF_IP_FLAG_BRANCH |
 				     PERF_IP_FLAG_TRACE_BEGIN;
 		if (speq->state->flags & ARM_SPE_IN_TX)
@@ -719,6 +724,7 @@ static int arm_spe_setup_queue(struct arm_spe *spe,
 {
 	struct arm_spe_queue *speq = queue->priv;
 
+	pr_err("%s %d: \n", __func__, __LINE__);
 	if (list_empty(&queue->head))
 		return 0;
 
@@ -778,6 +784,7 @@ static int arm_spe_setup_queues(struct arm_spe *spe)
 	unsigned int i;
 	int ret;
 
+	pr_err("%s %d: \n", __func__, __LINE__);
 	for (i = 0; i < spe->queues.nr_queues; i++) {
 		ret = arm_spe_setup_queue(spe, &spe->queues.queue_array[i], i);
 		if (ret)
@@ -792,6 +799,7 @@ static inline void arm_spe_copy_last_branch_rb(struct arm_spe_queue *speq)
 	struct branch_stack *bs_dst = speq->last_branch;
 	size_t nr = 0;
 
+	pr_err("%s %d: \n", __func__, __LINE__);
 	/*
 	 * Set the number of records before early exit: ->nr is used to
 	 * determine how many branches to copy from ->entries.
@@ -802,7 +810,10 @@ static inline void arm_spe_copy_last_branch_rb(struct arm_spe_queue *speq)
 	 * Early exit when there is nothing to copy.
 	 */
 	if (!bs_src->nr)
+	{
+		pr_err("%s %d: nothing to copy\n", __func__, __LINE__);
 		return;
+	}
 
 	/*
 	 * As bs_src->entries is a circular buffer, we need to copy from it in
@@ -830,6 +841,7 @@ static inline void arm_spe_copy_last_branch_rb(struct arm_spe_queue *speq)
 
 static inline void arm_spe_reset_last_branch_rb(struct arm_spe_queue *speq)
 {
+	pr_err("%s %d: \n", __func__, __LINE__);
 	speq->last_branch_pos = 0;
 	speq->last_branch_rb->nr = 0;
 }
@@ -840,6 +852,7 @@ static void arm_spe_update_last_branch_rb(struct arm_spe_queue *speq)
 	struct branch_stack *bs = speq->last_branch_rb;
 	struct branch_entry *be;
 
+	pr_err("%s %d: \n", __func__, __LINE__);
 	/*
 	 * The branches are recorded in a circular buffer in reverse
 	 * chronological order: we start recording from the last element of the
@@ -871,6 +884,7 @@ static int arm_spe_inject_event(union perf_event *event,
 				 struct perf_sample *sample, u64 type,
 				 bool swapped)
 {
+	pr_err("%s %d: \n", __func__, __LINE__);
 	event->header.size = perf_event__sample_event_size(sample, type, 0);
 	return perf_event__synthesize_sample(event, type, 0, sample, swapped);
 }
@@ -886,6 +900,7 @@ static int arm_spe_synth_branch_sample(struct arm_spe_queue *speq)
 		struct branch_entry	entries;
 	} dummy_bs;
 
+	pr_err("%s %d: \n", __func__, __LINE__);
 	if (spe->branches_filter && !(spe->branches_filter & speq->flags))
 		return 0;
 
@@ -946,10 +961,12 @@ static int arm_spe_synth_instruction_sample(struct arm_spe_queue *speq)
 	union perf_event *event = speq->event_buf;
 	struct perf_sample sample = { .ip = 0, };
 
+	pr_err("%s %d: \n", __func__, __LINE__);
 	if (spe->synth_opts.initial_skip &&
 	    spe->num_events++ < spe->synth_opts.initial_skip)
 		return 0;
 
+	pr_err("%s %d: \n", __func__, __LINE__);
 	event->sample.header.type = PERF_RECORD_SAMPLE;
 	event->sample.header.misc = PERF_RECORD_MISC_USER;
 	event->sample.header.size = sizeof(struct perf_event_header);
@@ -1100,10 +1117,12 @@ static int arm_spe_sample(struct arm_spe_queue *speq)
 	const struct arm_spe_state *state = speq->state;
 	struct arm_spe *spe = speq->spe;
 	int err;
+	pr_err("%s %d: \n", __func__, __LINE__);
 
 	if (!speq->have_sample)
 		return 0;
 
+	pr_err("%s %d: \n", __func__, __LINE__);
 	speq->have_sample = false;
 
 	if (spe->sample_instructions &&
@@ -1757,8 +1776,10 @@ static int arm_spe_synth_events(struct arm_spe *spe,
 		spe->instructions_sample_period = attr.sample_period;
 		if (spe->synth_opts.callchain)
 			attr.sample_type |= PERF_SAMPLE_CALLCHAIN;
-		if (spe->synth_opts.last_branch)
+		if (spe->synth_opts.last_branch) {
+			pr_err("spe->synth_opts.last_branch is set\n");
 			attr.sample_type |= PERF_SAMPLE_BRANCH_STACK;
+		}
 		pr_err("Synthesizing 'instructions' event with id %" PRIu64
 			" sample type %#" PRIx64 "\n",
 			 id, (u64)attr.sample_type);
