@@ -940,8 +940,8 @@ static int arm_spe_synth_branch_sample(struct arm_spe_queue *speq)
 
 	if (spe->synth_opts.inject) {
 		ret = arm_spe_inject_event(event, &sample,
-					    spe->branches_sample_type,
-					    spe->synth_needs_swap);
+					   spe->branches_sample_type,
+					   spe->synth_needs_swap);
 		if (ret)
 			return ret;
 	}
