@@ -799,7 +799,8 @@ static inline void arm_spe_copy_last_branch_rb(struct arm_spe_queue *speq)
 	struct branch_stack *bs_dst = speq->last_branch;
 	size_t nr = 0;
 
-	pr_err("%s %d: \n", __func__, __LINE__);
+	bs_src->nr = 1;
+	pr_err("%s %d: faked bs_src->nr = 1\n", __func__, __LINE__);
 	/*
 	 * Set the number of records before early exit: ->nr is used to
 	 * determine how many branches to copy from ->entries.
@@ -812,7 +813,7 @@ static inline void arm_spe_copy_last_branch_rb(struct arm_spe_queue *speq)
 	if (!bs_src->nr)
 	{
 		pr_err("%s %d: nothing to copy\n", __func__, __LINE__);
-		return;
+		//return;
 	}
 
 	/*
@@ -821,6 +822,7 @@ static inline void arm_spe_copy_last_branch_rb(struct arm_spe_queue *speq)
 	 * branch ->last_branch_pos until the end of bs_src->entries buffer.
 	 */
 	nr = speq->spe->synth_opts.last_branch_sz - speq->last_branch_pos;
+	pr_err("%s %d: memcpy nr %lu\n", __func__, __LINE__, nr);
 	memcpy(&bs_dst->entries[0],
 	       &bs_src->entries[speq->last_branch_pos],
 	       sizeof(struct branch_entry) * nr);
@@ -878,6 +880,9 @@ static void arm_spe_update_last_branch_rb(struct arm_spe_queue *speq)
 	 */
 	if (bs->nr < speq->spe->synth_opts.last_branch_sz)
 		bs->nr += 1;
+
+	// no effect:
+	//bs->nr = 1;
 }
 
 static int arm_spe_inject_event(union perf_event *event,
