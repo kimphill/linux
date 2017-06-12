@@ -152,7 +152,7 @@ struct arm_spe_pmu {
 #define to_spe_pmu(p) (container_of(p, struct arm_spe_pmu, pmu))
 
 /* Convert a free-running index from perf into an SPE buffer offset */
-#define PERF_IDX2OFF(idx, buf)	((idx) & (((buf)->nr_pages << PAGE_SHIFT) - 1))
+#define PERF_IDX2OFF(idx, buf)	((idx) % ((buf)->nr_pages << PAGE_SHIFT))
 
 /* Keep track of our dynamic hotplug state */
 static enum cpuhp_state arm_spe_pmu_online;
@@ -707,6 +707,11 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_LAT))
 		return -EOPNOTSUPP;
 
+	reg = arm_spe_event_to_pmscr(event);
+	if (!capable(CAP_SYS_ADMIN) &&
+	    (reg & (BIT(PMSCR_EL1_PA_SHIFT) | BIT(PMSCR_EL1_CX_SHIFT))))
+		return -EACCES;
+
 	return 0;
 }
 
@@ -830,6 +835,9 @@ static void *arm_spe_pmu_setup_aux(int cpu, void **pages, int nr_pages,
 	 */
 	if (!nr_pages || (snapshot && (nr_pages & 1)))
 		return NULL;
+
+	if (cpu == -1)
+		cpu = raw_smp_processor_id();
 
 	buf = kzalloc_node(sizeof(*buf), GFP_KERNEL, cpu_to_node(cpu));
 	if (!buf)
