@@ -69,7 +69,8 @@
 
 #define PMSIRR_EL1			sys_reg(3, 0, 9, 9, 3)
 #define PMSIRR_EL1_RND_SHIFT		0
-#define PMSIRR_EL1_IVAL_MASK		0xffUL
+#define PMSIRR_EL1_INTERVAL_SHIFT       8
+#define PMSIRR_EL1_INTERVAL_MASK        0xffffffUL
 
 /* Filtering controls */
 #define PMSFCR_EL1			sys_reg(3, 0, 9, 9, 4)
@@ -133,7 +134,7 @@ struct arm_spe_pmu {
 	int					irq; /* PPI */
 
 	u16					min_period;
-	u16					cnt_width;
+	u16					counter_sz;
 
 #define SPE_PMU_FEAT_FILT_EVT			(1UL << 0)
 #define SPE_PMU_FEAT_FILT_TYP			(1UL << 1)
@@ -152,7 +153,7 @@ struct arm_spe_pmu {
 #define to_spe_pmu(p) (container_of(p, struct arm_spe_pmu, pmu))
 
 /* Convert a free-running index from perf into an SPE buffer offset */
-#define PERF_IDX2OFF(idx, buf)	((idx) & (((buf)->nr_pages << PAGE_SHIFT) - 1))
+#define PERF_IDX2OFF(idx, buf)	((idx) % ((buf)->nr_pages << PAGE_SHIFT))
 
 /* Keep track of our dynamic hotplug state */
 static enum cpuhp_state arm_spe_pmu_online;
@@ -178,7 +179,7 @@ static u32 arm_spe_pmu_cap_get(struct arm_spe_pmu *spe_pmu, int cap)
 
 	switch (cap) {
 	case SPE_PMU_CAP_CNT_SZ:
-		return spe_pmu->cnt_width;
+		return spe_pmu->counter_sz;
 	case SPE_PMU_CAP_MIN_IVAL:
 		return spe_pmu->min_period;
 	default:
@@ -350,10 +351,15 @@ static u64 arm_spe_event_to_pmscr(struct perf_event *event)
 static void arm_spe_event_sanitise_period(struct perf_event *event)
 {
 	struct arm_spe_pmu *spe_pmu = to_spe_pmu(event->pmu);
-	u64 period = event->hw.sample_period & ~PMSIRR_EL1_IVAL_MASK;
+	u64 period = event->hw.sample_period;
+	u64 max_period = PMSIRR_EL1_INTERVAL_MASK << PMSIRR_EL1_INTERVAL_SHIFT;
 
 	if (period < spe_pmu->min_period)
 		period = spe_pmu->min_period;
+	else if (period > max_period)
+		period = max_period;
+	else
+		period &= max_period;
 
 	event->hw.sample_period = period;
 }
@@ -432,13 +438,16 @@ static bool arm_spe_pmu_buffer_mgmt_pending(u64 pmbsr)
 		/* Ensure new profiling data is visible to the CPU */
 		psb_csync();
 		dsb(nsh);
+
+		/* Ensure hardware updates to PMBPTR_EL1 are visible */
+		isb();
 		return true;
 	default:
 		err_str = "Unknown buffer status code";
 	}
 
 out_err:
-	pr_err_ratelimited("%s on CPU %d [PMBSR=0x%08llx]\n", err_str,
+	pr_err_ratelimited("%s on CPU %d [PMBSR=0x%016llx]\n", err_str,
 			   smp_processor_id(), pmbsr);
 	return false;
 }
@@ -475,55 +484,45 @@ static u64 arm_spe_pmu_next_snapshot_off(struct perf_output_handle *handle)
 static u64 __arm_spe_pmu_next_off(struct perf_output_handle *handle)
 {
 	struct arm_spe_pmu_buf *buf = perf_get_aux(handle);
+	const u64 bufsize = buf->nr_pages * PAGE_SIZE;
+	u64 limit = bufsize;
 	u64 head = PERF_IDX2OFF(handle->head, buf);
 	u64 tail = PERF_IDX2OFF(handle->head + handle->size, buf);
 	u64 wakeup = PERF_IDX2OFF(handle->wakeup, buf);
-	u64 limit = buf->nr_pages * PAGE_SIZE;
+
+	if (!handle->size)
+		goto no_space;
 
 	/*
-	 * Set the limit pointer to either the watermark or the
-	 * current tail pointer; whichever comes first.
+	 * Avoid clobbering unconsumed data. We know we have space, so
+	 * if we see head == tail we know that the buffer is empty. If
+	 * head > tail, then there's nothing to clobber prior to
+	 * wrapping.
 	 */
-	if (handle->head + handle->size <= handle->wakeup) {
-		/* The tail is next, so check for wrapping */
-		if (tail >= head) {
-			/*
-			 * No wrapping, but need to align downwards to
-			 * avoid corrupting unconsumed data.
-			 */
-			limit = round_down(tail, PAGE_SIZE);
-
-		}
-	} else if (wakeup >= head) {
-		/*
-		 * The wakeup is next and doesn't wrap. Align upwards to
-		 * ensure that we do indeed reach the watermark.
-		 */
-		limit = round_up(wakeup, PAGE_SIZE);
-
-		/*
-		 * If rounding up crosses the tail, then we have to
-		 * round down to avoid corrupting unconsumed data.
-		 * Hopefully the tail will have moved by the time we
-		 * hit the new limit.
-		 */
-		if (wakeup < tail && limit > tail)
-			limit = round_down(wakeup, PAGE_SIZE);
-	}
+	if (head < tail)
+		limit = round_down(tail, PAGE_SIZE);
 
 	/*
-	 * If rounding down crosses the head, then the buffer is full,
-	 * so pad to tail and end the session.
+	 * Wakeup may be arbitrarily far into the future. If it's not in
+	 * the current generation, either we'll wrap before hitting it,
+	 * or it's in the past and has been handled already.
+	 *
+	 * If there's a wakeup before we wrap, arrange to be woken up by
+	 * the page boundary following it. Keep the tail boundary if
+	 * that's lower.
 	 */
-	if (limit <= head) {
-		memset(buf->base + head, 0, handle->size);
-		perf_aux_output_skip(handle, handle->size);
-		perf_aux_output_flag(handle, PERF_AUX_FLAG_TRUNCATED);
-		perf_aux_output_end(handle, 0);
-		limit = 0;
-	}
+	if (handle->wakeup < (handle->head + handle->size) && head <= wakeup)
+		limit = min(limit, round_up(wakeup, PAGE_SIZE));
 
-	return limit;
+	if (limit > head)
+		return limit;
+
+	memset(buf->base + head, 0, handle->size);
+no_space:
+	perf_aux_output_skip(handle, handle->size);
+	perf_aux_output_flag(handle, PERF_AUX_FLAG_TRUNCATED);
+	perf_aux_output_end(handle, 0);
+	return 0;
 }
 
 static u64 arm_spe_pmu_next_off(struct perf_output_handle *handle)
@@ -602,9 +601,6 @@ static bool arm_spe_perf_aux_output_end(struct perf_output_handle *handle,
 	if (!arm_spe_pmu_buffer_mgmt_pending(pmbsr) && resume)
 		return false; /* Spurious IRQ */
 
-	/* Ensure hardware updates to PMBPTR_EL1 are visible */
-	isb();
-
 	/*
 	 * Work out how much data has been written since the last update
 	 * to the head index.
@@ -654,7 +650,6 @@ static irqreturn_t arm_spe_pmu_irq_handler(int irq, void *dev)
 		return IRQ_NONE;
 
 	irq_work_run();
-	isb(); /* Ensure the buffer is disabled if data loss has occurred */
 	write_sysreg_s(0, PMBSR_EL1);
 	return IRQ_HANDLED;
 }
@@ -675,10 +670,6 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 		return -ENOENT;
 
 	if (arm_spe_event_to_pmsevfr(event) & PMSEVFR_EL1_RES0)
-		return -EOPNOTSUPP;
-
-	if (event->hw.sample_period < spe_pmu->min_period ||
-	    event->hw.sample_period & PMSIRR_EL1_IVAL_MASK)
 		return -EOPNOTSUPP;
 
 	if (attr->exclude_idle)
@@ -706,6 +697,11 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 	if ((reg & BIT(PMSFCR_EL1_FL_SHIFT)) &&
 	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_LAT))
 		return -EOPNOTSUPP;
+
+	reg = arm_spe_event_to_pmscr(event);
+	if (!capable(CAP_SYS_ADMIN) &&
+	    (reg & (BIT(PMSCR_EL1_PA_SHIFT) | BIT(PMSCR_EL1_CX_SHIFT))))
+		return -EACCES;
 
 	return 0;
 }
@@ -756,6 +752,7 @@ static void arm_spe_pmu_disable_and_drain_local(void)
 
 	/* Disable the profiling buffer */
 	write_sysreg_s(0, PMBLIMITR_EL1);
+	isb();
 }
 
 static void arm_spe_pmu_stop(struct perf_event *event, int flags)
@@ -830,6 +827,9 @@ static void *arm_spe_pmu_setup_aux(int cpu, void **pages, int nr_pages,
 	 */
 	if (!nr_pages || (snapshot && (nr_pages & 1)))
 		return NULL;
+
+	if (cpu == -1)
+		cpu = raw_smp_processor_id();
 
 	buf = kzalloc_node(sizeof(*buf), GFP_KERNEL, cpu_to_node(cpu));
 	if (!buf)
@@ -1019,7 +1019,7 @@ static void __arm_spe_pmu_dev_probe(void *info)
 			 fld);
 		/* Fallthrough */
 	case 2:
-		spe_pmu->cnt_width = 12;
+		spe_pmu->counter_sz = 12;
 	}
 
 	dev_info(dev,
@@ -1150,6 +1150,7 @@ static int arm_spe_pmu_irq_probe(struct arm_spe_pmu *spe_pmu)
 
 static const struct of_device_id arm_spe_pmu_of_match[] = {
 	{ .compatible = "arm,statistical-profiling-extension-v1", .data = (void *)1 },
+	{ /* Sentinel */ },
 };
 
 static int arm_spe_pmu_device_dt_probe(struct platform_device *pdev)
