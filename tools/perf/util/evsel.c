@@ -2519,6 +2519,19 @@ int perf_evsel__open_strerror(struct perf_evsel *evsel, struct target *target,
 {
 	char sbuf[STRERR_BUFSIZE];
 	int printed = 0;
+	int n, perr;
+
+	do {
+		errno = 0;
+		n = prctl(PR_ERRMSG_READ, sbuf, sizeof(sbuf));
+		perr = errno;
+		if (n > 0) {
+			printed = scnprintf(msg, n + 1, "%s\n", sbuf);
+			size -= printed;
+			msg += printed;
+		}
+		
+	} while (perr == 0);
 
 	switch (err) {
 	case EPERM:

@@ -1093,6 +1093,9 @@ struct task_struct {
 	 */
 	randomized_struct_fields_end
 
+#define ERROR_MSG_SIZE 256
+	char				*error_msg;
+
 	/* CPU-specific state of this task: */
 	struct thread_struct		thread;
 
@@ -1622,5 +1625,32 @@ extern long sched_getaffinity(pid_t pid, struct cpumask *mask);
 #ifndef TASK_SIZE_OF
 #define TASK_SIZE_OF(tsk)	TASK_SIZE
 #endif
+
+/**
+ * errorf - Store supplementary error message
+ * @fmt: The format string
+ *
+ * Store the supplementary error message for the process if the process has
+ * enabled the facility.
+ */
+#define errorf(fmt, ...)			\
+	do {					\
+		if (current->error_msg)					\
+			snprintf(current->error_msg, ERROR_MSG_SIZE, fmt, ## __VA_ARGS__); \
+	} while(0)
+
+/**
+ * invalf - Store supplementary invalid argument error message
+ * @fmt: The format string
+ *
+ * Store the supplementary error message for the process if the process has
+ * enabled the facility and return -EINVAL.
+ */
+#define invalf(fmt, ...)			\
+	({					\
+		errorf(fmt, ## __VA_ARGS__);	\
+		-EINVAL;			\
+	})
+
 
 #endif

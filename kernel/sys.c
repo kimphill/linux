@@ -2389,6 +2389,44 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
 	case PR_GET_FP_MODE:
 		error = GET_FP_MODE(me);
 		break;
+
+	case PR_ERRMSG_ENABLE:
+		switch (arg2) {
+		case 0:
+			if (!current->error_msg)
+				return 0;
+			kfree(current->error_msg);
+			current->error_msg = NULL;
+			return 1;
+		case 1:
+			if (current->error_msg)
+				return 1;
+			current->error_msg = kmalloc(ERROR_MSG_SIZE, GFP_KERNEL);
+			if (!current->error_msg)
+				return -ENOMEM;
+			current->error_msg[0] = 0;
+			return 0;
+		default:
+			error = -EINVAL;
+			break;
+		}
+		break;
+
+	case PR_ERRMSG_READ:
+		if (!arg2 || !arg3)
+			return -EINVAL;
+		if (!current->error_msg)
+			return -EINVAL;
+		if (!current->error_msg[0])
+			return -ENODATA;
+		error = strlen(current->error_msg);
+		if (arg3 < error)
+			error = arg3;
+		if (copy_to_user((char __user *)arg2, current->error_msg, error))
+			return -EFAULT;
+		current->error_msg[0] = 0;
+		return error;
+
 	default:
 		error = -EINVAL;
 		break;
