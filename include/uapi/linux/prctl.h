@@ -197,4 +197,10 @@ struct prctl_mm_map {
 # define PR_CAP_AMBIENT_LOWER		3
 # define PR_CAP_AMBIENT_CLEAR_ALL	4
 
+/*
+ * Control the supplementary error message gathering facility.
+ */
+#define PR_ERRMSG_ENABLE		48
+#define PR_ERRMSG_READ			49
+
 #endif /* _LINUX_PRCTL_H */
