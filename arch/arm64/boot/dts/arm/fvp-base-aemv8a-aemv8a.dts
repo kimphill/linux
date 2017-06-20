@@ -240,10 +240,14 @@
 		};
 	};
 
-	spe-pmu {
-		compatible = "arm,statistical-profiling-extension-v1",
-				"arm,arm-spe-pmu-v1";
-		interrupts = <GIC_PPI 05 IRQ_TYPE_EDGE_RISING &part1>;
+	spe-pmu@0 {
+		compatible = "arm,statistical-profiling-extension-v1";
+		interrupts = <GIC_PPI 05 IRQ_TYPE_LEVEL_HIGH &part0>;
+	};
+
+	spe-pmu@1 {
+		compatible = "arm,statistical-profiling-extension-v1";
+		interrupts = <GIC_PPI 05 IRQ_TYPE_LEVEL_HIGH &part1>;
 	};
 
 	clock35mhz {
