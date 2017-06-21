@@ -76,27 +76,10 @@ static int arm_spe_info_fill(struct auxtrace_record *itr,
 		return -EINVAL;
 
 	if (!session->evlist->nr_mmaps)
+{
+pr_err("when does this occur?\n");
 		return -EINVAL;
-
-#if 0
-	struct perf_event_mmap_page *pc;
-	struct perf_tsc_conversion tc = { .time_mult = 0, };
-	bool cap_user_time_zero = false;
-	int err;
-
-	pc = session->evlist->mmap[0].base;
-	if (pc) {
-		err = perf_read_tsc_conversion(pc, &tc);
-		if (err) {
-			if (err != -EOPNOTSUPP)
-				return err;
-		} else {
-			cap_user_time_zero = tc.time_mult != 0;
-		}
-		if (!cap_user_time_zero)
-			ui__warning("ARM SPE: TSC not available\n");
-	}
-#endif
+}
 
 	auxtrace_info->type = PERF_AUXTRACE_ARM_SPE;
 	auxtrace_info->priv[ARM_SPE_PMU_TYPE] = arm_spe_pmu->type;
