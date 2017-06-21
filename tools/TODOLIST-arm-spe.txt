@@ -1,0 +1,39 @@
+ARM SPE TODO
+============
+
+'perf record' and 'perf report -D(ump)' supported in this release
+    
+- Documentation/arm-spe.txt: add example usage:
+    
+- Documentation/arm-spe.txt: Add link to official SPE architecture
+  documentation once publicly available.
+
+- support platforms with more than one SPE
+
+- conversion to native perf events (e.g., via 'perf inject --itrace')
+
+- support snapshot mode (record -S)
+    
+- allow simultaneous cs-etm operation with SPE
+
+----
+patchv1 review comments:
+
+record arm_spe_0 and arm_spe_1 simultaneously
+events aren't "task bound" (?)
+
+./perf record -vv -c 1024 -e arm_spe_0/ts_enable=1,pa_enable=0/ true
+
+gives:
+
+> mmap size 266240B
+> AUX area mmap length 131072
+> perf event ring buffer mmapped per cpu
+> failed to mmap AUX area
+> failed to mmap with 524 (INTERNAL ERROR: strerror_r(524, 0xffffc8596038, 512)=22)
+
+vs. ./perf record -vvv -e context-switches true
+> ... so I guess this has something to do with the way the tool tries to
+> use the cpumask, maknig the wrong assumption that this implies
+> system-wide collection is mandatory / expected.
+> 
