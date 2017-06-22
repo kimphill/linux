@@ -90,6 +90,10 @@ vary depending on the use-case and architecture.
 Quickstart
 ==========
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+perf list should return arm_spe
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 It is important to start small.  That is because it is easy to capture vastly
 more data than can possibly be processed.
 
