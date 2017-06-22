@@ -111,6 +111,25 @@ yeah right:
 
 see what comes from per-task, inherit 
 
+    'perf record' and 'perf report -D(ump)' supported in this release
+    
+    Example usage:
+    
+    perf record -c 1024 -e arm_spe_0/branch_filter=1,ts_enable=1,pa_enable=1,load_filter=1,jitter=0,store_filter=1,min_latency=0/ -o perf-armspe.data dd if=/dev/zero of=/dev/null count=100000 |& tee record.log
+    perf report -D -i perf-armspe.data
+    
+    Output will contain raw SPE data and its textual representation, such
+    as:
+    
+    0x708 [0x30]: PERF_RECORD_AUXTRACE size: 0x200030  offset: 0  ref: 0x3bfb103df9
+    . ... ARM SPE data: size 2097200 bytes
+    .  0000002e:  4a 00                                           B
+    .  00000030:  b1 f0 eb 0d 08 00 00 ff ff                      TGT ff0000080debf0
+    .  00000039:  42 02                                           RETIRED
+    .  0000003b:  b0 fc 1c 18 08 00 00 ff ff                      PC ff000008181cfc
+    .  00000044:  98 00 00                                        LAT 0 TOT
+    .  00000047:  71 fa d1 db f5 3b 00 00 00                      TS 257527894522
+
 LEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERE
 
 And profiled with 'perf report' e.g.

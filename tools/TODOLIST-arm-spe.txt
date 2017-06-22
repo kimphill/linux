@@ -1,7 +1,17 @@
 ARM SPE TODO
 ============
 
+'perf record' and 'perf report -D(ump)' supported in this release
+    
+- Documentation/arm-spe.txt: add example usage:
+    
 - Documentation/arm-spe.txt: Add link to official SPE architecture
   documentation once publicly available.
 
 - support platforms with more than one SPE
+
+- conversion to native perf events (e.g., via 'perf inject --itrace')
+
+- support snapshot mode (record -S)
+    
+- allow simultaneous cs-etm operation with SPE
