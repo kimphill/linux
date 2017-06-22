@@ -49,22 +49,13 @@ consist of the following packets:
 It is also possible to toggle properties such as timestamp packets in
 each record.
 
-Intel Processor Trace (Intel PT) is an extension of Intel Architecture that
-collects information about software execution such as control flow, execution
-modes and timings and formats it into highly compressed binary packets.
-Technical details are documented in the Intel 64 and IA-32 Architectures
-Software Developer Manuals, Chapter 36 Intel Processor Trace.
-
-Intel PT is first supported in Intel Core M and 5th generation Intel Core
-processors that are based on the Intel micro-architecture code name Broadwell.
-
-Trace data is collected by 'perf record' and stored within the perf.data file.
+SPE data is collected by 'perf record' and stored within the perf.data file.
 See below for options to 'perf record'.
 
-Trace data must be 'decoded' which involves walking the object code and matching
+SPE data must be 'decoded' [which involves walking the object code and matching
 the trace data packets. For example a TNT packet only tells whether a
 conditional branch was taken or not taken, so to make use of that packet the
-decoder must know precisely which instruction was being executed.
+decoder must know precisely which instruction was being executed.]
 
 Decoding is done on-the-fly.  The decoder outputs samples in the same format as
 samples output by perf hardware events, for example as though the "instructions"
@@ -90,17 +81,37 @@ vary depending on the use-case and architecture.
 Quickstart
 ==========
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-perf list should return arm_spe
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+On a platform with an SPE implementation running a kernel built with
+CONFIG_ARM_SPE_PMU enabled:
 
-It is important to start small.  That is because it is easy to capture vastly
-more data than can possibly be processed.
+ - dmesg should manifest a successful driver probe [FIXME: CPUs figures right here?]:
 
-The simplest thing to do with Intel PT is userspace profiling of small programs.
+[    1.140567] arm_spe_pmu spe-pmu@0: probed for CPUs 0-7 [max_record_sz 64, align 1, features 0xf]
+[    1.142167] arm_spe_pmu spe-pmu@1: probed for CPUs 0-7 [max_record_sz 64, align 1, features 0xf]
+
+ - 'perf list' should return arm_spe:
+
+# ./perf list | grep spe
+  arm_spe_0//                                        [Kernel PMU event]
+
 Data is captured with 'perf record' e.g. to trace 'ls' userspace-only:
 
-	perf record -e intel_pt//u ls
+	perf record -e arm_spe_0//u ls
+more like:
+	perf record -e arm_spe_0//u ls
+
+yeah right:
+# ./perf record -c 1024 -e arm_spe_0//u dd if=/dev/urandom of=/dev/null count=10000
+
+10000+0 records in
+10000+0 records out
+5120000 bytes (5.1 MB) copied, 1.33875 s, 3.8 MB/s
+[ perf record: Woken up 1 times to write data ]
+[ perf record: Captured and wrote 0.001 MB perf.data ]
+
+see what comes from per-task, inherit 
+
+LEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERE
 
 And profiled with 'perf report' e.g.
 

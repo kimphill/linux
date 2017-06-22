@@ -1,0 +1,7 @@
+ARM SPE TODO
+============
+
+- Documentation/arm-spe.txt: Add link to official SPE architecture
+  documentation once publicly available.
+
+- support platforms with more than one SPE
