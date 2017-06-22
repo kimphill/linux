@@ -35,6 +35,7 @@
 #include "tsc.h"
 #include "auxtrace.h"
 #include "arm-spe.h"
+#include "arm-spe-pkt-decoder.h"
 
 #define MAX_TIMESTAMP (~0ULL)
 
@@ -90,49 +91,6 @@ struct branch {
 	u64 to;
 	u64 misc;
 };
-
-
-/* FIXME: aus arm-spe-pkt-decoder.h */
-
-#define ARM_SPE_PKT_DESC_MAX	256
-
-#define ARM_SPE_NEED_MORE_BYTES	-1
-#define ARM_SPE_BAD_PACKET		-2
-
-#define ARM_SPE_PKT_MAX_SZ		16
-
-/* ARM versions */
-#define ARM_SPE_NEED_MORE_BYTES		-1
-#define ARM_SPE_BAD_PACKET		-2
-
-/* TODO: revisit potential reordering not sure what based on though */
-enum arm_spe_pkt_type {
-	ARM_SPE_BAD,
-	ARM_SPE_PAD,
-	ARM_SPE_END,
-	ARM_SPE_TIMESTAMP,
-	ARM_SPE_ADDRESS,
-	ARM_SPE_COUNTER,
-	ARM_SPE_CONTEXT,
-	ARM_SPE_INSN_TYPE,
-	ARM_SPE_EVENTS,
-	ARM_SPE_DATA_SOURCE,
-};
-
-struct arm_spe_pkt {
-	enum arm_spe_pkt_type	type;
-	unsigned char		index;
-	uint64_t		payload;
-};
-
-const char *arm_spe_pkt_name(enum arm_spe_pkt_type);
-
-int arm_spe_get_packet(const unsigned char *buf, size_t len,
-			struct arm_spe_pkt *packet);
-
-int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf, size_t len);
-/* FIXME: EOdecoder.h */
-
 
 static void arm_spe_dump(struct arm_spe *spe __maybe_unused,
 			   unsigned char *buf, size_t len)
