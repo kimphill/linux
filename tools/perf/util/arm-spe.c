@@ -84,17 +84,63 @@ struct arm_spe_queue {
 	u32			sample_flags;
 };
 
+/* FIXME: rmthis: bts h/w struct */
 struct branch {
 	u64 from;
 	u64 to;
 	u64 misc;
 };
 
+
+/* FIXME: aus arm-spe-pkt-decoder.h */
+
+#define ARM_SPE_PKT_DESC_MAX	256
+
+#define ARM_SPE_NEED_MORE_BYTES	-1
+#define ARM_SPE_BAD_PACKET		-2
+
+#define ARM_SPE_PKT_MAX_SZ		16
+
+/* ARM versions */
+#define ARM_SPE_NEED_MORE_BYTES		-1
+#define ARM_SPE_BAD_PACKET		-2
+
+/* TODO: revisit potential reordering not sure what based on though */
+enum arm_spe_pkt_type {
+	ARM_SPE_BAD,
+	ARM_SPE_PAD,
+	ARM_SPE_END,
+	ARM_SPE_TIMESTAMP,
+	ARM_SPE_ADDRESS,
+	ARM_SPE_COUNTER,
+	ARM_SPE_CONTEXT,
+	ARM_SPE_INSN_TYPE,
+	ARM_SPE_EVENTS,
+	ARM_SPE_DATA_SOURCE,
+};
+
+struct arm_spe_pkt {
+	enum arm_spe_pkt_type	type;
+	unsigned char		index;
+	uint64_t		payload;
+};
+
+const char *arm_spe_pkt_name(enum arm_spe_pkt_type);
+
+int arm_spe_get_packet(const unsigned char *buf, size_t len,
+			struct arm_spe_pkt *packet);
+
+int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf, size_t len);
+/* FIXME: EOdecoder.h */
+
+
 static void arm_spe_dump(struct arm_spe *spe __maybe_unused,
 			   unsigned char *buf, size_t len)
 {
-	struct branch *branch;
-	size_t i, pos = 0, br_sz = sizeof(struct branch), sz;
+	struct arm_spe_pkt packet;
+	size_t pos = 0;
+	int ret, pkt_len, i;
+	char desc[ARM_SPE_PKT_DESC_MAX];
 	const char *color = PERF_COLOR_BLUE;
 
 	color_fprintf(stdout, color,
@@ -102,29 +148,28 @@ static void arm_spe_dump(struct arm_spe *spe __maybe_unused,
 		      len);
 
 	while (len) {
-		if (len >= br_sz)
-			sz = br_sz;
+		ret = arm_spe_get_packet(buf, len, &packet);
+		if (ret > 0)
+			pkt_len = ret;
 		else
-			sz = len;
+			pkt_len = 1;
 		printf(".");
 		color_fprintf(stdout, color, "  %08x: ", pos);
-		for (i = 0; i < sz; i++)
+		for (i = 0; i < pkt_len; i++)
 			color_fprintf(stdout, color, " %02x", buf[i]);
-		for (; i < br_sz; i++)
+		for (; i < 16; i++)
 			color_fprintf(stdout, color, "   ");
-		if (len >= br_sz) {
-			branch = (struct branch *)buf;
-			color_fprintf(stdout, color, " %"PRIx64" -> %"PRIx64" %s\n",
-				      le64_to_cpu(branch->from),
-				      le64_to_cpu(branch->to),
-				      le64_to_cpu(branch->misc) & 0x10 ?
-							"pred" : "miss");
+		if (ret > 0) {
+			ret = arm_spe_pkt_desc(&packet, desc,
+					       ARM_SPE_PKT_DESC_MAX);
+			if (ret > 0)
+				color_fprintf(stdout, color, " %s\n", desc);
 		} else {
-			color_fprintf(stdout, color, " Bad record!\n");
+			color_fprintf(stdout, color, " Bad packet!\n");
 		}
-		pos += sz;
-		buf += sz;
-		len -= sz;
+		pos += pkt_len;
+		buf += pkt_len;
+		len -= pkt_len;
 	}
 }
 
