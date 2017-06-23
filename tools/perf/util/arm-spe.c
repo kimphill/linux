@@ -449,25 +449,67 @@ static int arm_spe_get_branch_type(struct arm_spe_queue *speq,
 }
 
 static int arm_spe_process_buffer(struct arm_spe_queue *speq,
-				    struct auxtrace_buffer *buffer,
-				    struct thread *thread)
+				  struct auxtrace_buffer *buffer,
+				  struct thread *thread __maybe_unused)
 {
-	struct branch *branch;
-	size_t sz, bsz = sizeof(struct branch);
-	u32 filter = speq->spe->branches_filter;
-	int err = 0;
+	struct arm_spe_pkt packet;
+	void *buf;
+	struct branch branch;
+	int buf_len, ret, pkt_len;
 
 	if (buffer->use_data) {
-		sz = buffer->use_size;
-		branch = buffer->use_data;
+		buf_len = buffer->use_size;
+		buf = buffer->use_data;
 	} else {
-		sz = buffer->size;
-		branch = buffer->data;
+		buf_len = buffer->size;
+		buf = buffer->data;
 	}
 
 	if (!speq->spe->sample_branches)
 		return 0;
 
+	while (buf_len) {
+		ret = arm_spe_get_packet(buf, buf_len, &packet);
+		if (ret > 0)
+			pkt_len = ret;
+		else
+			pkt_len = 1;
+		if (ret > 0) {
+			/* check for branches */
+/*
+.  000000ad:  4a 00                                           B
+.  000000af:  b1 60 dd 37 08 00 00 ff ff                      TGT ff00000837dd60 el3 ns=1
+.  000000b8:  42 02                                           RETIRED 
+.  000000ba:  b0 e8 1f 20 08 00 00 ff ff                      PC ff000008201fe8 el3 ns=1
+.  000000c3:  98 00 00                                        LAT 0 TOT
+.  000000c6:  01                                              END
+*/
+
+			if (packet.type == ARM_SPE_INSN_TYPE &&
+			    packet.index == 2) {
+				branch.to = *(u64 *)((void *)buf + 3);
+				branch.from = *(u64 *)((void *)buf + 14);
+				branch.misc = 0;
+				arm_spe_get_branch_type(speq, &branch);
+#if 0
+		if (speq->spe->synth_opts.thread_stack)
+			thread_stack__event(thread, speq->sample_flags,
+					    le64_to_cpu(branch.from),
+					    le64_to_cpu(branch.to),
+					    4 /*speq->intel_pt_insn.length */,
+					    buffer->buffer_nr + 1);
+#endif
+				ret = arm_spe_synth_branch_sample(speq, &branch);
+				if (ret)
+					break;  /* FIXME: breaking from? */
+				
+			}
+		}
+		buf += pkt_len;
+		buf_len -= pkt_len;
+	}
+
+#if 0
 	for (; sz > bsz; branch += 1, sz -= bsz) {
 		if (!branch->from && !branch->to)
 			continue;
@@ -484,7 +526,8 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 		if (err)
 			break;
 	}
-	return err;
+#endif
+	return ret;
 }
 
 static int arm_spe_process_queue(struct arm_spe_queue *speq, u64 *timestamp)
@@ -651,9 +694,12 @@ static int arm_spe_process_event(struct perf_session *session,
 		return -EINVAL;
 	}
 
+#if 0
+	/* FIXME: cause of SIGFPE in non-D report */
 	if (sample->time && sample->time != (u64)-1)
 		timestamp = perf_time_to_tsc(sample->time, &spe->tc);
 	else
+#endif
 		timestamp = 0;
 
 	err = arm_spe_update_queues(spe);
