@@ -519,12 +519,6 @@ static int arm_spe_process_queue(struct arm_spe_queue *speq, u64 *timestamp)
 		goto out_put;
 	}
 
-	/* Currently there is no support for split buffers */
-	if (buffer->consecutive) {
-		err = -EINVAL;
-		goto out_put;
-	}
-
 	if (!buffer->data) {
 		int fd = perf_data_file__fd(speq->spe->session->file);
 
@@ -628,7 +622,7 @@ static int arm_spe_process_event(struct perf_session *session,
 {
 	struct arm_spe *spe = container_of(session->auxtrace, struct arm_spe,
 					     auxtrace);
-	u64 timestamp;
+	u64 timestamp = 0;
 	int err;
 
 	if (dump_trace)
@@ -638,14 +632,6 @@ static int arm_spe_process_event(struct perf_session *session,
 		pr_err("ARM SPE requires ordered events\n");
 		return -EINVAL;
 	}
-
-#if 0
-	/* FIXME: cause of SIGFPE in non-D report */
-	if (sample->time && sample->time != (u64)-1)
-		timestamp = perf_time_to_tsc(sample->time, &spe->tc);
-	else
-#endif
-		timestamp = 0;
 
 	err = arm_spe_update_queues(spe);
 	if (err)

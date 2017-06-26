@@ -78,6 +78,8 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 	struct perf_evsel *evsel, *arm_spe_evsel = NULL;
 	const struct cpu_map *cpus = evlist->cpus;
 	bool privileged = geteuid() == 0 || perf_event_paranoid() < 0;
+	struct perf_evsel *tracking_evsel;
+	int err;
 
 	sper->evlist = evlist;
 
@@ -120,39 +122,33 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 		}
 	}
 
-	if (arm_spe_evsel) {
-		/*
-		 * To obtain the auxtrace buffer file descriptor, the auxtrace event
-		 * must come first.
-		 */
-		perf_evlist__to_front(evlist, arm_spe_evsel);
-		/*
-		 * In the case of per-cpu mmaps, we need the CPU on the
-		 * AUX event.
-		 */
-		if (!cpu_map__empty(cpus))
-			perf_evsel__set_sample_bit(arm_spe_evsel, CPU);
-	}
+	/*
+	 * To obtain the auxtrace buffer file descriptor, the auxtrace event
+	 * must come first.
+	 */
+	perf_evlist__to_front(evlist, arm_spe_evsel);
+
+	/*
+	 * In the case of per-cpu mmaps, we need the CPU on the
+	 * AUX event.
+	 */
+	if (!cpu_map__empty(cpus))
+		perf_evsel__set_sample_bit(arm_spe_evsel, CPU);
 
 	/* Add dummy event to keep tracking */
-	if (opts->full_auxtrace) {
-		struct perf_evsel *tracking_evsel;
-		int err;
+	err = parse_events(evlist, "dummy:u", NULL);
+	if (err)
+		return err;
 
-		err = parse_events(evlist, "dummy:u", NULL);
-		if (err)
-			return err;
+	tracking_evsel = perf_evlist__last(evlist);
+	perf_evlist__set_tracking_event(evlist, tracking_evsel);
 
-		tracking_evsel = perf_evlist__last(evlist);
-		perf_evlist__set_tracking_event(evlist, tracking_evsel);
+	tracking_evsel->attr.freq = 0;
+	tracking_evsel->attr.sample_period = 1;
 
-		tracking_evsel->attr.freq = 0;
-		tracking_evsel->attr.sample_period = 1;
-
-		/* In per-cpu case, always need the time of mmap events etc */
-		if (!cpu_map__empty(cpus))
-			perf_evsel__set_sample_bit(tracking_evsel, TIME);
-	}
+	/* In per-cpu case, always need the time of mmap events etc */
+	if (!cpu_map__empty(cpus))
+		perf_evsel__set_sample_bit(tracking_evsel, TIME);
 
 	return 0;
 }
@@ -195,11 +191,6 @@ struct auxtrace_record *arm_spe_recording_init(int *err)
 
 	if (!arm_spe_pmu)
 		return NULL;
-
-	if (setenv("JITDUMP_USE_ARCH_TIMESTAMP", "1", 1)) {
-		*err = -errno;
-		return NULL;
-	}
 
 	sper = zalloc(sizeof(struct arm_spe_recording));
 	if (!sper) {
