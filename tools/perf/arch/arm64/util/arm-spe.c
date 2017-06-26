@@ -236,32 +236,13 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 	return 0;
 }
 
-static int arm_spe_parse_snapshot_options(struct auxtrace_record *itr,
-					    struct record_opts *opts,
-					    const char *str)
-{
-	struct arm_spe_recording *sper =
-			container_of(itr, struct arm_spe_recording, itr);
-	unsigned long long snapshot_size = 0;
-	char *endptr;
-
-	if (str) {
-		snapshot_size = strtoull(str, &endptr, 0);
-		if (*endptr || snapshot_size > SIZE_MAX)
-			return -1;
-	}
-
-	opts->auxtrace_snapshot_mode = true;
-	opts->auxtrace_snapshot_size = snapshot_size;
-
-	sper->snapshot_size = snapshot_size;
-
-	return 0;
-}
-
 static u64 arm_spe_reference(struct auxtrace_record *itr __maybe_unused)
 {
-	return rdtsc();
+	u64 ts;
+
+	asm volatile ("isb; mrs %0, cntvct_el0" : "=r" (ts));
+
+	return ts;
 }
 
 static int arm_spe_alloc_snapshot_refs(struct arm_spe_recording *sper,
