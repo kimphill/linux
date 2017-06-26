@@ -76,14 +76,10 @@ static int arm_spe_info_fill(struct auxtrace_record *itr,
 		return -EINVAL;
 
 	if (!session->evlist->nr_mmaps)
-{
-pr_err("when does this occur?\n");
 		return -EINVAL;
-}
 
 	auxtrace_info->type = PERF_AUXTRACE_ARM_SPE;
 	auxtrace_info->priv[ARM_SPE_PMU_TYPE] = arm_spe_pmu->type;
-	auxtrace_info->priv[ARM_SPE_SNAPSHOT_MODE] = sper->snapshot_mode;
 
 	return 0;
 }
@@ -194,12 +190,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 	/* Validate auxtrace_mmap_pages */
 	if (opts->auxtrace_mmap_pages) {
 		size_t sz = opts->auxtrace_mmap_pages * (size_t)page_size;
-		size_t min_sz;
-
-		if (opts->auxtrace_snapshot_mode)
-			min_sz = KiB(4);
-		else
-			min_sz = KiB(8);
+		size_t min_sz = KiB(8);
 
 		if (sz < min_sz || !is_power_of_2(sz)) {
 			pr_err("Invalid mmap size for ARM SPE: must be at least %zuKiB and a power of 2\n",
@@ -222,24 +213,6 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 			perf_evsel__set_sample_bit(arm_spe_evsel, CPU);
 	}
 
-#if 0 /* 1 is use intel bts  way */
-	/* Add dummy event to keep tracking */
-	if (opts->full_auxtrace) {
-		struct perf_evsel *tracking_evsel;
-		int err;
-
-		err = parse_events(evlist, "dummy:u", NULL);
-		if (err)
-			return err;
-
-		tracking_evsel = perf_evlist__last(evlist);
-
-		perf_evlist__set_tracking_event(evlist, tracking_evsel);
-
-		tracking_evsel->attr.freq = 0;
-		tracking_evsel->attr.sample_period = 1;
-	}
-#else
 	/* Add dummy event to keep tracking */
 	if (opts->full_auxtrace) {
 		struct perf_evsel *tracking_evsel;
@@ -259,7 +232,6 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 		if (!cpu_map__empty(cpus))
 			perf_evsel__set_sample_bit(tracking_evsel, TIME);
 	}
-#endif
 
 	return 0;
 }

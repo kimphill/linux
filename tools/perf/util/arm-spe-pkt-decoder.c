@@ -276,7 +276,7 @@ int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf,
 	const char *name = arm_spe_pkt_name(packet->type);
 
 	switch (packet->type) {
-	case ARM_SPE_BAD:  /* should be removed, no? */
+	case ARM_SPE_BAD:
 	case ARM_SPE_PAD:
 	case ARM_SPE_END:
 		return snprintf(buf, buf_len, "%s", name);

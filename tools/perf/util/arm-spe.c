@@ -55,8 +55,6 @@ struct arm_spe {
 	u32				auxtrace_type;
 	struct perf_session		*session;
 	struct machine			*machine;
-	bool				sampling_mode;
-	bool				snapshot_mode;
 	bool				data_queued;
 	u32				pmu_type;
 	struct perf_tsc_conversion	tc;
@@ -578,16 +576,8 @@ static int arm_spe_process_queue(struct arm_spe_queue *speq, u64 *timestamp)
 		}
 	}
 
-	if (speq->spe->snapshot_mode && !buffer->consecutive &&
-	    arm_spe_do_fix_overlap(queue, buffer)) {
-		err = -ENOMEM;
-		goto out_put;
-	}
-
 	if (!speq->spe->synth_opts.callchain &&
-	    !speq->spe->synth_opts.thread_stack && thread &&
-	    (!old_buffer || speq->spe->sampling_mode ||
-	     (speq->spe->snapshot_mode && !buffer->consecutive)))
+	    !speq->spe->synth_opts.thread_stack && thread)
 		thread_stack__set_trace_nr(thread, buffer->buffer_nr + 1);
 
 	err = arm_spe_process_buffer(speq, buffer, thread);
@@ -920,7 +910,6 @@ static int arm_spe_synth_events(struct arm_spe *spe,
 
 static const char * const arm_spe_info_fmts[] = {
 	[ARM_SPE_PMU_TYPE]		= "  PMU Type           %"PRId64"\n",
-	[ARM_SPE_SNAPSHOT_MODE]		= "  Snapshot mode      %"PRId64"\n",
 };
 
 static void arm_spe_print_info(u64 *arr, int start, int finish)
@@ -938,7 +927,7 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 				    struct perf_session *session)
 {
 	struct auxtrace_info_event *auxtrace_info = &event->auxtrace_info;
-	size_t min_sz = sizeof(u64) * ARM_SPE_SNAPSHOT_MODE;
+	size_t min_sz = sizeof(u64) * ARM_SPE_PMU_TYPE;
 	struct arm_spe *spe;
 	int err;
 
@@ -958,7 +947,6 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 	spe->machine = &session->machines.host; /* No kvm support */
 	spe->auxtrace_type = auxtrace_info->type;
 	spe->pmu_type = auxtrace_info->priv[ARM_SPE_PMU_TYPE];
-	spe->snapshot_mode = auxtrace_info->priv[ARM_SPE_SNAPSHOT_MODE];
 
 	spe->sampling_mode = false;
 
@@ -969,9 +957,7 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 	spe->auxtrace.free = arm_spe_free;
 	session->auxtrace = &spe->auxtrace;
 
-	arm_spe_print_info(&auxtrace_info->priv[0], ARM_SPE_PMU_TYPE,
-			   ARM_SPE_SNAPSHOT_MODE);
-
+	arm_spe_print_info(&auxtrace_info->priv[0], ARM_SPE_PMU_TYPE);
 	if (dump_trace)
 		return 0;
 
