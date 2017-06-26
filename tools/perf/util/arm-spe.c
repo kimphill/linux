@@ -191,9 +191,6 @@ static int arm_spe_setup_queue(struct arm_spe *spe,
 		speq->tid = queue->tid;
 	}
 
-	if (spe->sampling_mode)
-		return 0;
-
 	if (!speq->on_heap && !speq->buffer) {
 		int ret;
 
@@ -530,7 +527,7 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 
 static int arm_spe_process_queue(struct arm_spe_queue *speq, u64 *timestamp)
 {
-	struct auxtrace_buffer *buffer = speq->buffer, *old_buffer = buffer;
+	struct auxtrace_buffer *buffer = speq->buffer;
 	struct auxtrace_queue *queue;
 	struct thread *thread;
 	int err;
@@ -554,8 +551,6 @@ static int arm_spe_process_queue(struct arm_spe_queue *speq, u64 *timestamp)
 		buffer = auxtrace_buffer__next(queue, NULL);
 
 	if (!buffer) {
-		if (!speq->spe->sampling_mode)
-			speq->done = 1;
 		err = 1;
 		goto out_put;
 	}
@@ -585,13 +580,9 @@ static int arm_spe_process_queue(struct arm_spe_queue *speq, u64 *timestamp)
 	auxtrace_buffer__drop_data(buffer);
 
 	speq->buffer = auxtrace_buffer__next(queue, buffer);
-	if (speq->buffer) {
+	if (speq->buffer)
 		if (timestamp)
 			*timestamp = speq->buffer->reference;
-	} else {
-		if (!speq->spe->sampling_mode)
-			speq->done = 1;
-	}
 out_put:
 	thread__put(thread);
 	return err;
@@ -720,9 +711,6 @@ static int arm_spe_process_auxtrace_event(struct perf_session *session,
 	struct arm_spe *spe = container_of(session->auxtrace, struct arm_spe,
 					     auxtrace);
 
-	if (spe->sampling_mode)
-		return 0;
-
 	if (!spe->data_queued) {
 		struct auxtrace_buffer *buffer;
 		off_t data_offset;
@@ -762,7 +750,7 @@ static int arm_spe_flush(struct perf_session *session,
 					     auxtrace);
 	int ret;
 
-	if (dump_trace || spe->sampling_mode)
+	if (dump_trace)
 		return 0;
 
 	if (!tool->ordered_events)
@@ -912,15 +900,12 @@ static const char * const arm_spe_info_fmts[] = {
 	[ARM_SPE_PMU_TYPE]		= "  PMU Type           %"PRId64"\n",
 };
 
-static void arm_spe_print_info(u64 *arr, int start, int finish)
+static void arm_spe_print_info(u64 *arr)
 {
-	int i;
-
 	if (!dump_trace)
 		return;
 
-	for (i = start; i <= finish; i++)
-		fprintf(stdout, arm_spe_info_fmts[i], arr[i]);
+	fprintf(stdout, arm_spe_info_fmts[ARM_SPE_PMU_TYPE], arr[ARM_SPE_PMU_TYPE]);
 }
 
 int arm_spe_process_auxtrace_info(union perf_event *event,
@@ -948,8 +933,6 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 	spe->auxtrace_type = auxtrace_info->type;
 	spe->pmu_type = auxtrace_info->priv[ARM_SPE_PMU_TYPE];
 
-	spe->sampling_mode = false;
-
 	spe->auxtrace.process_event = arm_spe_process_event;
 	spe->auxtrace.process_auxtrace_event = arm_spe_process_auxtrace_event;
 	spe->auxtrace.flush_events = arm_spe_flush;
@@ -957,7 +940,7 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 	spe->auxtrace.free = arm_spe_free;
 	session->auxtrace = &spe->auxtrace;
 
-	arm_spe_print_info(&auxtrace_info->priv[0], ARM_SPE_PMU_TYPE);
+	arm_spe_print_info(&auxtrace_info->priv[0]);
 	if (dump_trace)
 		return 0;
 
