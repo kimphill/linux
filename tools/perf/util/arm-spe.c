@@ -231,42 +231,6 @@ static inline int arm_spe_update_queues(struct arm_spe *spe)
 	return 0;
 }
 
-static unsigned char *arm_spe_find_overlap(unsigned char *buf_a, size_t len_a,
-					     unsigned char *buf_b, size_t len_b)
-{
-	size_t offs, len;
-
-	if (len_a > len_b)
-		offs = len_a - len_b;
-	else
-		offs = 0;
-
-	for (; offs < len_a; offs += sizeof(struct branch)) {
-		len = len_a - offs;
-		if (!memcmp(buf_a + offs, buf_b, len))
-			return buf_b + len;
-	}
-
-	return buf_b;
-}
-
-static int arm_spe_do_fix_overlap(struct auxtrace_queue *queue,
-				    struct auxtrace_buffer *b)
-{
-	struct auxtrace_buffer *a;
-	void *start;
-
-	if (b->list.prev == &queue->head)
-		return 0;
-	a = list_entry(b->list.prev, struct auxtrace_buffer, list);
-	start = arm_spe_find_overlap(a->data, a->size, b->data, b->size);
-	if (!start)
-		return -EINVAL;
-	b->use_size = b->data + b->size - start;
-	b->use_data = start;
-	return 0;
-}
-
 static int arm_spe_synth_branch_sample(struct arm_spe_queue *speq,
 					 struct branch *branch)
 {
