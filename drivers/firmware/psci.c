@@ -139,11 +139,13 @@ static int psci_to_linux_errno(int errno)
 		return -EOPNOTSUPP;
 	case PSCI_RET_INVALID_PARAMS:
 	case PSCI_RET_INVALID_ADDRESS:
+		pr_err("%s %d: EINVAL\n", __func__, __LINE__);
 		return -EINVAL;
 	case PSCI_RET_DENIED:
 		return -EPERM;
 	};
 
+	pr_err("%s %d: EINVAL\n", __func__, __LINE__);
 	return -EINVAL;
 }
 
@@ -227,6 +229,7 @@ static int get_set_conduit_method(struct device_node *np)
 		invoke_psci_fn = __invoke_psci_fn_smc;
 	} else {
 		pr_warn("invalid \"method\" property: %s\n", method);
+		pr_err("%s %d: EINVAL\n", __func__, __LINE__);
 		return -EINVAL;
 	}
 	return 0;
@@ -290,6 +293,7 @@ static int psci_dt_cpu_init_idle(struct device_node *cpu_node, int cpu)
 		pr_debug("psci-power-state %#x index %d\n", state, i);
 		if (!psci_power_state_is_valid(state)) {
 			pr_warn("Invalid PSCI power state %#x\n", state);
+			pr_err("%s %d: EINVAL\n", __func__, __LINE__);
 			ret = -EINVAL;
 			goto free_mem;
 		}
@@ -315,7 +319,10 @@ static int __maybe_unused psci_acpi_cpu_init_idle(unsigned int cpu)
 	struct acpi_processor *pr = per_cpu(processors, cpu);
 
 	if (unlikely(!pr || !pr->flags.has_lpi))
+{
+			pr_err("%s %d: EINVAL\n", __func__, __LINE__);
 		return -EINVAL;
+}
 
 	count = pr->power.count - 1;
 	if (count <= 0)
@@ -337,6 +344,7 @@ static int __maybe_unused psci_acpi_cpu_init_idle(unsigned int cpu)
 		if (!psci_power_state_is_valid(state)) {
 			pr_warn("Invalid PSCI power state %#x\n", state);
 			kfree(psci_states);
+			pr_err("%s %d: EINVAL\n", __func__, __LINE__);
 			return -EINVAL;
 		}
 		psci_states[i] = state;
@@ -348,6 +356,7 @@ static int __maybe_unused psci_acpi_cpu_init_idle(unsigned int cpu)
 #else
 static int __maybe_unused psci_acpi_cpu_init_idle(unsigned int cpu)
 {
+			pr_err("%s %d: EINVAL\n", __func__, __LINE__);
 	return -EINVAL;
 }
 #endif
@@ -395,7 +404,10 @@ int psci_cpu_suspend_enter(unsigned long index)
 	 * from the cpu_suspend operations
 	 */
 	if (WARN_ON_ONCE(!index))
+{
+			pr_err("%s %d: EINVAL\n", __func__, __LINE__);
 		return -EINVAL;
+}
 
 	if (!psci_power_state_loses_context(state[index - 1]))
 		ret = psci_ops.cpu_suspend(state[index - 1], 0);
@@ -531,6 +543,7 @@ static int __init psci_probe(void)
 
 	if (PSCI_VERSION_MAJOR(ver) == 0 && PSCI_VERSION_MINOR(ver) < 2) {
 		pr_err("Conflicting PSCI version detected.\n");
+			pr_err("%s %d: EINVAL\n", __func__, __LINE__);
 		return -EINVAL;
 	}
 
