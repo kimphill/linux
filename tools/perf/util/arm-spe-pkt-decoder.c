@@ -262,7 +262,7 @@ int arm_spe_get_packet(const unsigned char *buf, size_t len,
 
 	ret = arm_spe_do_get_packet(buf, len, packet);
 	if (ret > 0) {
-		while (ret < 8 && len > (size_t)ret && !buf[ret])
+		while (ret < 1 && len > (size_t)ret && !buf[ret])
 			ret += 1;
 	}
 	return ret;
