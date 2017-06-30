@@ -31,8 +31,6 @@
 
 #define KiB(x) ((x) * 1024)
 #define MiB(x) ((x) * 1024 * 1024)
-#define KiB_MASK(x) (KiB(x) - 1)
-#define MiB_MASK(x) (MiB(x) - 1)
 
 struct arm_spe_recording {
 	struct auxtrace_record		itr;
@@ -189,8 +187,10 @@ struct auxtrace_record *arm_spe_recording_init(int *err)
 	struct perf_pmu *arm_spe_pmu = perf_pmu__find(ARM_SPE_PMU_NAME);
 	struct arm_spe_recording *sper;
 
-	if (!arm_spe_pmu)
+	if (!arm_spe_pmu) {
+		*err = -ENODEV;
 		return NULL;
+	}
 
 	sper = zalloc(sizeof(struct arm_spe_recording));
 	if (!sper) {
