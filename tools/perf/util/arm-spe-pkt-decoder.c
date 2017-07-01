@@ -145,24 +145,18 @@ static int arm_spe_get_data_source(const unsigned char *buf, size_t len,
 static int arm_spe_get_context(const unsigned char *buf, size_t len,
 			       struct arm_spe_pkt *packet)
 {
-	if (len < 4)
-		return ARM_SPE_NEED_MORE_BYTES;
-
 	packet->type = ARM_SPE_CONTEXT;
 	packet->index = buf[0] & 0x3;
-	packet->payload = le32_to_cpu(*(uint32_t *)(buf + 1));
 
-	return 1 + 4;
+	return arm_spe_get_payload(buf, len, packet);
 }
 
-static int arm_spe_get_insn_type(const unsigned char *buf,
+static int arm_spe_get_insn_type(const unsigned char *buf, size_t len,
 				 struct arm_spe_pkt *packet)
 {
 	packet->type = ARM_SPE_INSN_TYPE;
 	packet->index = buf[0] & 0x3;
-	packet->payload = buf[1];
-
-	return 1 + 1;
+	return arm_spe_get_payload(buf, len, packet);
 }
 
 static int arm_spe_get_counter(const unsigned char *buf, size_t len,
@@ -231,7 +225,7 @@ static int arm_spe_do_get_packet(const unsigned char *buf, size_t len,
 			else if ((byte & 0x3c) == 0x24)
 				return arm_spe_get_context(buf, len, packet);
 			else if ((byte & 0x3c) == 0x8)
-				return arm_spe_get_insn_type(buf, packet);
+				return arm_spe_get_insn_type(buf, len, packet);
 	} else if ((byte & 0xe0) == 0x20 /* 0y00100000 */) {
 		/* 16-bit header */ 
 		byte = buf[1];
