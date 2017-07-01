@@ -193,8 +193,24 @@ static int arm_spe_get_addr(const unsigned char *buf, size_t len,
 	return 1 + ext_hdr + 8;
 }
 
-static int arm_spe_do_get_packet(const unsigned char *buf, size_t len,
-				 struct arm_spe_pkt *packet)
+#define SPE_HEADER0_PAD		0x0
+#define SPE_HEADER0_END		0x1
+
+/* argh.:
+#define SPE_HEADER0_EVENTS	0x42
+#define SPE_HEADER0_EVENTS_MASK	0xcf
+
+if (byte == SPE_HEADER0_PAD) { 
+ 	...
+} else if (byte == SPE_HEADER0_END) {
+ 	...
+} else if ((byte & SPE_HEADER0_EVENTS_MASK) == SPE_HEADER0_EVENTS) {
+ 	...
+}
+*/
+
+int arm_spe_get_packet(const unsigned char *buf, size_t len,
+		       struct arm_spe_pkt *packet)
 {
 	unsigned int byte;
 
@@ -204,9 +220,9 @@ static int arm_spe_do_get_packet(const unsigned char *buf, size_t len,
 		return ARM_SPE_NEED_MORE_BYTES;
 
 	byte = buf[0];
-	if (byte == 0)
+	if (byte == SPE_HEADER0_PAD)
 		return arm_spe_get_pad(packet);
-	else if (byte == 1) /* no timestamp at end of record */
+	else if (byte == SPE_HEADER0_END) /* no timestamp at end of record */
 		return arm_spe_get_end(packet);
 	else if (byte & 0xc0 /* 0y11000000 */) {
 		if (byte & 0x80) {
@@ -219,6 +235,7 @@ static int arm_spe_do_get_packet(const unsigned char *buf, size_t len,
 			if (byte == 0x71)
 				return arm_spe_get_timestamp(buf, len, packet);
 			else if ((byte & 0xf) == 0x2)
+//} else if ((byte & SPE_HEADER0_EVENTS_MASK) == SPE_HEADER0_EVENTS) {
 				return arm_spe_get_events(buf, len, packet);
 			else if ((byte & 0xf) == 0x3)
 				return arm_spe_get_data_source(buf, len, packet);
@@ -238,19 +255,6 @@ static int arm_spe_do_get_packet(const unsigned char *buf, size_t len,
 	}
 
 	return ARM_SPE_BAD_PACKET;
-}
-
-int arm_spe_get_packet(const unsigned char *buf, size_t len,
-		       struct arm_spe_pkt *packet)
-{
-	int ret;
-
-	ret = arm_spe_do_get_packet(buf, len, packet);
-	if (ret > 0) {
-		while (ret < 1 && len > (size_t)ret && !buf[ret])
-			ret += 1;
-	}
-	return ret;
 }
 
 int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf,
