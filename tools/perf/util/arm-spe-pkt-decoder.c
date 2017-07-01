@@ -113,7 +113,7 @@ static int arm_spe_get_events(const unsigned char *buf, size_t len,
 {
 	unsigned int events_len = payloadlen(buf[0]);
 
-	if (len < events_len)
+	if (len < 1 + events_len)
 		return ARM_SPE_NEED_MORE_BYTES;
 
 	packet->type = ARM_SPE_EVENTS;
