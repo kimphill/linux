@@ -72,6 +72,27 @@ static int payloadlen(unsigned char byte)
 	return 1 << ((byte & 0x30) >> 4);
 }
 
+static int arm_spe_get_payload(const unsigned char *buf, size_t len,
+			       struct arm_spe_pkt *packet)
+{
+	size_t payload_len = payloadlen(buf[0]);
+
+	if (len < 1 + payload_len)
+		return ARM_SPE_NEED_MORE_BYTES;
+
+	/* FIXME: can this be condensed even further? table driven, or
+	   payload = .  Bah, not if Big endian */
+	switch (payload_len) {
+	case 1: packet->payload = *(uint8_t *)(buf + 1); break;
+	case 2: packet->payload = le16_to_cpu(*(uint16_t *)(buf + 1)); break;
+	case 4: packet->payload = le32_to_cpu(*(uint32_t *)(buf + 1)); break;
+	case 8: packet->payload = le64_to_cpu(*(uint64_t *)(buf + 1)); break;
+	default: return ARM_SPE_BAD_PACKET;
+	}
+
+	return 1 + payload_len;
+}
+
 static int arm_spe_get_pad(struct arm_spe_pkt *packet)
 {
 	packet->type = ARM_SPE_PAD;
@@ -99,48 +120,26 @@ static int arm_spe_get_end(struct arm_spe_pkt *packet)
 static int arm_spe_get_timestamp(const unsigned char *buf, size_t len,
 				 struct arm_spe_pkt *packet)
 {
-	if (len < 8)
-		return ARM_SPE_NEED_MORE_BYTES;
-
 	packet->type = ARM_SPE_TIMESTAMP;
-	memcpy_le64(&packet->payload, buf + 1, 8);
-
-	return 1 + 8;
+	return arm_spe_get_payload(buf, len, packet);
 }
 
 static int arm_spe_get_events(const unsigned char *buf, size_t len,
 			      struct arm_spe_pkt *packet)
 {
-	unsigned int events_len = payloadlen(buf[0]);
-
-	if (len < 1 + events_len)
-		return ARM_SPE_NEED_MORE_BYTES;
+	int ret = arm_spe_get_payload(buf, len, packet);
 
 	packet->type = ARM_SPE_EVENTS;
-	packet->index = events_len;
-	switch (events_len) {
-	case 1: packet->payload = *(uint8_t *)(buf + 1); break;
-	case 2: packet->payload = le16_to_cpu(*(uint16_t *)(buf + 1)); break;
-	case 4: packet->payload = le32_to_cpu(*(uint32_t *)(buf + 1)); break;
-	case 8: packet->payload = le64_to_cpu(*(uint64_t *)(buf + 1)); break;
-	default: return ARM_SPE_BAD_PACKET;
-	}
+	packet->index = ret - 1;
 
-	return 1 + events_len;
+	return ret;
 }
 
-static int arm_spe_get_data_source(const unsigned char *buf,
+static int arm_spe_get_data_source(const unsigned char *buf, size_t len,
 				   struct arm_spe_pkt *packet)
 {
-	int len = payloadlen(buf[0]);
-
 	packet->type = ARM_SPE_DATA_SOURCE;
-	if (len == 1)
-		packet->payload = buf[1];
-	else if (len == 2)
-		packet->payload = le16_to_cpu(*(uint16_t *)(buf + 1));
-
-	return 1 + len;
+	return arm_spe_get_payload(buf, len, packet);
 }
 
 static int arm_spe_get_context(const unsigned char *buf, size_t len,
@@ -228,7 +227,7 @@ static int arm_spe_do_get_packet(const unsigned char *buf, size_t len,
 			else if ((byte & 0xf) == 0x2)
 				return arm_spe_get_events(buf, len, packet);
 			else if ((byte & 0xf) == 0x3)
-				return arm_spe_get_data_source(buf, packet);
+				return arm_spe_get_data_source(buf, len, packet);
 			else if ((byte & 0x3c) == 0x24)
 				return arm_spe_get_context(buf, len, packet);
 			else if ((byte & 0x3c) == 0x8)
