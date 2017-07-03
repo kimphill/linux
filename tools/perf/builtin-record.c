@@ -1820,10 +1820,27 @@ int cmd_record(int argc, const char **argv)
 	if (record.opts.overwrite)
 		record.opts.tail_synthesize = true;
 
-	if (rec->evlist->nr_entries == 0 &&
-	    __perf_evlist__add_default(rec->evlist, !record.opts.no_samples) < 0) {
-		pr_err("Not enough memory for event selector list\n");
-		goto out;
+	if (rec->evlist->nr_entries == 0) {
+		if (__perf_evlist__add_default(rec->evlist, !record.opts.no_samples) < 0) {
+			pr_err("Not enough memory for event selector list\n");
+			goto out;
+		}
+	} else if (record.opts.no_samples) {
+		struct perf_evsel *evsel;
+
+		err = 0;
+
+		evlist__for_each_entry(rec->evlist, evsel) {
+			if (evsel->attr.precise_ip) {
+				if (!err)
+					pr_err("No sampling mode doesn't support precise_ip:\n");
+
+				pr_err("  %s\n", perf_evsel__name(evsel));
+				err = -EINVAL;
+			}
+		}
+		if (err)
+			goto out;
 	}
 
 	if (rec->opts.target.tid && !rec->opts.no_inherit_set)
