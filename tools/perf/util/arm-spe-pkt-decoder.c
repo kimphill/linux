@@ -51,7 +51,7 @@ static const char * const arm_spe_packet_name[] = {
 	[ARM_SPE_ADDRESS]	= "ADDR",
 	[ARM_SPE_COUNTER]	= "LAT",
 	[ARM_SPE_CONTEXT]	= "CONTEXT",
-	[ARM_SPE_INSN_TYPE]	= "INSN-TYPE",
+	[ARM_SPE_OP_TYPE]	= "OP-TYPE",
 	[ARM_SPE_EVENTS]	= "EVENTS",
 	[ARM_SPE_DATA_SOURCE]	= "DATA-SOURCE",
 };
@@ -151,10 +151,10 @@ static int arm_spe_get_context(const unsigned char *buf, size_t len,
 	return arm_spe_get_payload(buf, len, packet);
 }
 
-static int arm_spe_get_insn_type(const unsigned char *buf, size_t len,
-				 struct arm_spe_pkt *packet)
+static int arm_spe_get_op_type(const unsigned char *buf, size_t len,
+			       struct arm_spe_pkt *packet)
 {
-	packet->type = ARM_SPE_INSN_TYPE;
+	packet->type = ARM_SPE_OP_TYPE;
 	packet->index = buf[0] & 0x3;
 	return arm_spe_get_payload(buf, len, packet);
 }
@@ -242,7 +242,7 @@ int arm_spe_get_packet(const unsigned char *buf, size_t len,
 			else if ((byte & 0x3c) == 0x24)
 				return arm_spe_get_context(buf, len, packet);
 			else if ((byte & 0x3c) == 0x8)
-				return arm_spe_get_insn_type(buf, len, packet);
+				return arm_spe_get_op_type(buf, len, packet);
 	} else if ((byte & 0xe0) == 0x20 /* 0y00100000 */) {
 		/* 16-bit header */ 
 		byte = buf[1];
@@ -335,7 +335,7 @@ int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf,
 		blen -= ret;
 		return buf_len - blen;
 	}
-	case ARM_SPE_INSN_TYPE:
+	case ARM_SPE_OP_TYPE:
 		switch (index) {
 		case 0:	return snprintf(buf, buf_len, "%s", payload & 0x1 ?
 					"COND-SELECT" : "INSN-OTHER");
