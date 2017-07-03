@@ -270,7 +270,7 @@ struct perf_evsel *perf_evsel__new_idx(struct perf_event_attr *attr, int idx)
 	return evsel;
 }
 
-struct perf_evsel *perf_evsel__new_cycles(void)
+struct perf_evsel *perf_evsel__new_cycles(bool precise)
 {
 	struct perf_event_attr attr = {
 		.type	= PERF_TYPE_HARDWARE,
@@ -279,6 +279,9 @@ struct perf_evsel *perf_evsel__new_cycles(void)
 	struct perf_evsel *evsel;
 
 	event_attr_init(&attr);
+
+	if (!precise)
+		goto new_event;
 	/*
 	 * Unnamed union member, not supported as struct member named
 	 * initializer in older compilers such as gcc 4.4.7
@@ -293,7 +296,7 @@ struct perf_evsel *perf_evsel__new_cycles(void)
 	 * to kick in when we return and before perf_evsel__open() is called.
 	 */
 	attr.sample_period = 0;
-
+new_event:
 	evsel = perf_evsel__new(&attr);
 	if (evsel == NULL)
 		goto out;
