@@ -2322,6 +2322,15 @@ F:	Documentation/devicetree/bindings/input/atmel,maxtouch.txt
 F:	drivers/input/touchscreen/atmel_mxt_ts.c
 F:	include/linux/platform_data/atmel_mxt_ts.h
 
+ATOMIC INFRASTRUCTURE
+M:	Will Deacon <will.deacon@arm.com>
+M:	Peter Zijlstra <peterz@infradead.org>
+R:	Boqun Feng <boqun.feng@gmail.com>
+L:	linux-kernel@vger.kernel.org
+S:	Maintained
+F:	arch/*/include/asm/atomic*.h
+F:	include/*/atomic*.h
+
 ATTO EXPRESSSAS SAS/SATA RAID SCSI DRIVER
 M:	Bradley Grove <linuxdrivers@attotech.com>
 L:	linux-scsi@vger.kernel.org
@@ -2964,7 +2973,7 @@ F:	sound/pci/oxygen/
 
 C6X ARCHITECTURE
 M:	Mark Salter <msalter@redhat.com>
-M:	Aurelien Jacquiot <a-jacquiot@ti.com>
+M:	Aurelien Jacquiot <jacquiot.aurelien@gmail.com>
 L:	linux-c6x-dev@linux-c6x.org
 W:	http://www.linux-c6x.org/wiki/index.php/Main_Page
 S:	Maintained
@@ -7555,7 +7564,7 @@ S:	Maintained
 F:	drivers/ata/sata_promise.*
 
 LIBLOCKDEP
-M:	Sasha Levin <sasha.levin@oracle.com>
+M:	Sasha Levin <alexander.levin@verizon.com>
 S:	Maintained
 F:	tools/lib/lockdep/
 
@@ -13460,6 +13469,17 @@ M:	Karel Zak <kzak@redhat.com>
 L:	util-linux@vger.kernel.org
 W:	http://en.wikipedia.org/wiki/Util-linux
 T:	git git://git.kernel.org/pub/scm/utils/util-linux/util-linux.git
+S:	Maintained
+
+UUID HELPERS
+M:	Christoph Hellwig <hch@lst.de>
+R:	Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+L:	linux-kernel@vger.kernel.org
+T:	git git://git.infradead.org/users/hch/uuid.git
+F:	lib/uuid.c
+F:	lib/test_uuid.c
+F:	include/linux/uuid.h
+F:	include/uapi/linux/uuid.h
 S:	Maintained
 
 UVESAFB DRIVER
