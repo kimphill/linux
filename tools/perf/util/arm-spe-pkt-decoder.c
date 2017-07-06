@@ -343,6 +343,8 @@ int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf,
 				blen -= ret;
 			}
 		}
+		if (ret == 0)
+			ret = snprintf(buf, buf_len, " ");
 		if (ret < 0)
 			return ret;
 		blen -= ret;
