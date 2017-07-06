@@ -46,7 +46,7 @@ struct arm_spe_pkt {
 const char *arm_spe_pkt_name(enum arm_spe_pkt_type);
 
 int arm_spe_get_packet(const unsigned char *buf, size_t len,
-			struct arm_spe_pkt *packet);
+		       struct arm_spe_pkt *packet);
 
 int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf, size_t len);
 #endif

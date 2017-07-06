@@ -209,8 +209,8 @@ if (byte == SPE_HEADER0_PAD) {
 }
 */
 
-int arm_spe_get_packet(const unsigned char *buf, size_t len,
-		       struct arm_spe_pkt *packet)
+static int arm_spe_do_get_packet(const unsigned char *buf, size_t len,
+				 struct arm_spe_pkt *packet)
 {
 	unsigned int byte;
 
@@ -255,6 +255,19 @@ int arm_spe_get_packet(const unsigned char *buf, size_t len,
 	}
 
 	return ARM_SPE_BAD_PACKET;
+}
+
+int arm_spe_get_packet(const unsigned char *buf, size_t len,
+		       struct arm_spe_pkt *packet)
+{
+	int ret;
+
+	ret = arm_spe_do_get_packet(buf, len, packet);
+	if (ret > 0 && packet->type == ARM_SPE_PAD) {
+		while (ret < 16 && len > (size_t)ret && !buf[ret])
+			ret += 1;
+	}
+	return ret;
 }
 
 int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf,
