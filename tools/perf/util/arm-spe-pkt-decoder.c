@@ -421,17 +421,17 @@ int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf,
 		case 1: ns = !!(packet->payload & NS_FLAG);
 			el = (packet->payload & EL_FLAG) >> 61;
 			payload &= ~(0xffULL << 56);
-			return snprintf(buf, buf_len, "%s %llx el%d ns=%d",
+			return snprintf(buf, buf_len, "%s 0x%llx el%d ns=%d",
 				        (index == 1) ? "TGT" : "PC", payload, el, ns);
-		case 2:	return snprintf(buf, buf_len, "VA %llx", payload);
+		case 2:	return snprintf(buf, buf_len, "VA 0x%llx", payload);
 		case 3:	ns = !!(packet->payload & NS_FLAG);
 			payload &= ~(0xffULL << 56);
-			return snprintf(buf, buf_len, "PA %llx ns=%d",
+			return snprintf(buf, buf_len, "PA 0x%llx ns=%d",
 					payload, ns);
 		default: return 0;
 		}
 	case ARM_SPE_CONTEXT:
-		return snprintf(buf, buf_len, "%s %lx el%d", name,
+		return snprintf(buf, buf_len, "%s 0x%lx el%d", name,
 				(unsigned long)payload, index + 1);
 	case ARM_SPE_COUNTER: {
 		size_t blen = buf_len;
