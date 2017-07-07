@@ -477,14 +477,20 @@ set_hcr:
 
 	/* Statistical profiling */
 	ubfx	x0, x1, #32, #4			// Check ID_AA64DFR0_EL1 PMSVer
-	cbz	x0, 6f				// Skip if SPE not present
-	cbnz	x2, 5f				// VHE?
+	cbz	x0, 7f				// Skip if SPE not present
+	cbnz	x2, 6f				// VHE?
+	mrs_s	x4, sys_reg(3, 0, 9, 10, 7)	// FIXME: PMBIDR macro
+	and	x4, x4, #(1 << 4)		// FIXME: PMBIDR.P
+	cbnz	x4, 5f
+	mov	x4, #(1 << 6 | 1 << 4)		// FIXME: PMSCR_EL2.{PCT,PA}
+	msr_s	sys_reg(3, 4, 9, 9, 0), x4	// FIXME: PMSCR_EL2
+5:
 	mov	x1, #(MDCR_EL2_E2PB_MASK << MDCR_EL2_E2PB_SHIFT)
 	orr	x3, x3, x1			// If we don't have VHE, then
-	b	6f				// use EL1&0 translation.
-5:						// For VHE, use EL2 translation
+	b	7f				// use EL1&0 translation.
+6:						// For VHE, use EL2 translation
 	orr	x3, x3, #MDCR_EL2_TPMS		// and disable access from EL1
-6:
+7:
 	msr	mdcr_el2, x3			// Configure debug traps
 
 	/* Stage-2 translation */
