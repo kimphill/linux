@@ -455,7 +455,7 @@ void perf_aux_output_end(struct perf_output_handle *handle, unsigned long size)
 
 	if (aux_head - rb->aux_wakeup >= rb->aux_watermark) {
 		wakeup = true;
-		rb->aux_wakeup += rb->aux_watermark;
+		rb->aux_wakeup = rounddown(aux_head, rb->aux_watermark);
 	}
 
 	if (wakeup) {
@@ -490,7 +490,7 @@ int perf_aux_output_skip(struct perf_output_handle *handle, unsigned long size)
 	aux_head = rb->user_page->aux_head = rb->aux_head;
 	if (aux_head - rb->aux_wakeup >= rb->aux_watermark) {
 		perf_output_wakeup(handle);
-		rb->aux_wakeup += rb->aux_watermark;
+		rb->aux_wakeup = rounddown(aux_head, rb->aux_watermark);
 		handle->wakeup = rb->aux_wakeup + rb->aux_watermark;
 	}
 
