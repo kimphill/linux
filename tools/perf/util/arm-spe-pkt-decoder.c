@@ -22,6 +22,7 @@
 
 #define BIT(n)		(1 << (n))
 
+#define BIT56		((uint64_t)1 << 56)
 #define BIT61		((uint64_t)1 << 61)
 #define BIT62		((uint64_t)1 << 62)
 #define BIT63		((uint64_t)1 << 63)
@@ -286,6 +287,9 @@ int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf,
 		size_t blen = buf_len;
 
 		ret = 0;
+		ret = snprintf(buf, buf_len, "EVENTS ");
+		buf += ret;
+		blen -= ret;
 		if (payload & 0x1) {
 			ret = snprintf(buf, buf_len, "EXCEPTION-GEN ");
 			buf += ret;
@@ -343,8 +347,6 @@ int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf,
 				blen -= ret;
 			}
 		}
-		if (ret == 0)
-			ret = snprintf(buf, buf_len, " ");
 		if (ret < 0)
 			return ret;
 		blen -= ret;
@@ -420,7 +422,11 @@ int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf,
 		case 0:
 		case 1: ns = !!(packet->payload & NS_FLAG);
 			el = (packet->payload & EL_FLAG) >> 61;
-			payload &= ~(0xffULL << 56);
+/* FIXME!!!! */
+/*			if (packet->payload & BIT56)
+				payload |= 0xffULL << 56;
+			else */
+				payload &= ~(0xffULL << 56);
 			return snprintf(buf, buf_len, "%s 0x%llx el%d ns=%d",
 				        (index == 1) ? "TGT" : "PC", payload, el, ns);
 		case 2:	return snprintf(buf, buf_len, "VA 0x%llx", payload);
