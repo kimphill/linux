@@ -287,62 +287,62 @@ int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf,
 		size_t blen = buf_len;
 
 		ret = 0;
-		ret = snprintf(buf, buf_len, "EVENTS ");
+		ret = snprintf(buf, buf_len, "EV");
 		buf += ret;
 		blen -= ret;
 		if (payload & 0x1) {
-			ret = snprintf(buf, buf_len, "EXCEPTION-GEN ");
+			ret = snprintf(buf, buf_len, " EXCEPTION-GEN");
 			buf += ret;
 			blen -= ret;
 		}
 		if (payload & 0x2) {
-			ret = snprintf(buf, buf_len, "RETIRED ");
+			ret = snprintf(buf, buf_len, " RETIRED");
 			buf += ret;
 			blen -= ret;
 		}
 		if (payload & 0x4) {
-			ret = snprintf(buf, buf_len, "L1D-ACCESS ");
+			ret = snprintf(buf, buf_len, " L1D-ACCESS");
 			buf += ret;
 			blen -= ret;
 		}
 		if (payload & 0x8) {
-			ret = snprintf(buf, buf_len, "L1D-REFILL ");
+			ret = snprintf(buf, buf_len, " L1D-REFILL");
 			buf += ret;
 			blen -= ret;
 		}
 		if (payload & 0x10) {
-			ret = snprintf(buf, buf_len, "TLB-ACCESS ");
+			ret = snprintf(buf, buf_len, " TLB-ACCESS");
 			buf += ret;
 			blen -= ret;
 		}
 		if (payload & 0x20) {
-			ret = snprintf(buf, buf_len, "TLB-REFILL ");
+			ret = snprintf(buf, buf_len, " TLB-REFILL");
 			buf += ret;
 			blen -= ret;
 		}
 		if (payload & 0x40) {
-			ret = snprintf(buf, buf_len, "NOT-TAKEN ");
+			ret = snprintf(buf, buf_len, " NOT-TAKEN");
 			buf += ret;
 			blen -= ret;
 		}
 		if (payload & 0x80) {
-			ret = snprintf(buf, buf_len, "MISPRED ");
+			ret = snprintf(buf, buf_len, " MISPRED");
 			buf += ret;
 			blen -= ret;
 		}
 		if (index > 1) {
 			if (payload & 0x100) {
-				ret = snprintf(buf, buf_len, "LLC-ACCESS ");
+				ret = snprintf(buf, buf_len, " LLC-ACCESS");
 				buf += ret;
 				blen -= ret;
 			}
 			if (payload & 0x200) {
-				ret = snprintf(buf, buf_len, "LLC-REFILL ");
+				ret = snprintf(buf, buf_len, " LLC-REFILL");
 				buf += ret;
 				blen -= ret;
 			}
 			if (payload & 0x400) {
-				ret = snprintf(buf, buf_len, "REMOTE-ACCESS ");
+				ret = snprintf(buf, buf_len, " REMOTE-ACCESS");
 				buf += ret;
 				blen -= ret;
 			}
