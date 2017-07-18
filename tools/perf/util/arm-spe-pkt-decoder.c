@@ -424,10 +424,9 @@ int arm_spe_pkt_desc(const struct arm_spe_pkt *packet, char *buf,
 		case 0:
 		case 1: ns = !!(packet->payload & NS_FLAG);
 			el = (packet->payload & EL_FLAG) >> 61;
-/* FIXME!!!! */
-/*			if (packet->payload & BIT56)
+			if (packet->payload & BIT56)
 				payload |= 0xffULL << 56;
-			else */
+			else
 				payload &= ~(0xffULL << 56);
 			return snprintf(buf, buf_len, "%s 0x%llx el%d ns=%d",
 				        (index == 1) ? "TGT" : "PC", payload, el, ns);
