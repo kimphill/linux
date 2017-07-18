@@ -81,8 +81,6 @@ static int arm_spe_get_payload(const unsigned char *buf, size_t len,
 	if (len < 1 + payload_len)
 		return ARM_SPE_NEED_MORE_BYTES;
 
-	/* FIXME: can this be condensed even further? table driven, or
-	   payload = .  Bah, not if Big endian */
 	switch (payload_len) {
 	case 1: packet->payload = *(uint8_t *)(buf + 1); break;
 	case 2: packet->payload = le16_to_cpu(*(uint16_t *)(buf + 1)); break;
@@ -194,21 +192,27 @@ static int arm_spe_get_addr(const unsigned char *buf, size_t len,
 	return 1 + ext_hdr + 8;
 }
 
-#define SPE_HEADER0_PAD		0x0
-#define SPE_HEADER0_END		0x1
-
-/* argh.:
-#define SPE_HEADER0_EVENTS	0x42
-#define SPE_HEADER0_EVENTS_MASK	0xcf
-
-if (byte == SPE_HEADER0_PAD) { 
- 	...
-} else if (byte == SPE_HEADER0_END) {
- 	...
-} else if ((byte & SPE_HEADER0_EVENTS_MASK) == SPE_HEADER0_EVENTS) {
- 	...
-}
-*/
+#define SPE_HEADER0_PAD			0x0
+#define SPE_HEADER0_END			0x1
+#define SPE_HEADER0_ADDRESS		0x30 /* address packet (short) */
+#define SPE_HEADER0_ADDRESS_MASK	0x38
+#define SPE_HEADER0_COUNTER		0x18 /* counter packet (short) */
+#define SPE_HEADER0_COUNTER_MASK	0x38
+#define SPE_HEADER0_TIMESTAMP		0x71
+#define SPE_HEADER0_TIMESTAMP		0x71
+#define SPE_HEADER0_EVENTS		0x2
+#define SPE_HEADER0_EVENTS_MASK		0xf
+#define SPE_HEADER0_SOURCE		0x3
+#define SPE_HEADER0_SOURCE_MASK		0xf
+#define SPE_HEADER0_CONTEXT		0x24
+#define SPE_HEADER0_CONTEXT_MASK	0x3c
+#define SPE_HEADER0_OP_TYPE		0x8
+#define SPE_HEADER0_OP_TYPE_MASK	0x3c
+#define SPE_HEADER1_ALIGNMENT		0x0
+#define SPE_HEADER1_ADDRESS		0xb0 /* address packet (extended) */
+#define SPE_HEADER1_ADDRESS_MASK	0xf8
+#define SPE_HEADER1_COUNTER		0x98 /* counter packet (extended) */
+#define SPE_HEADER1_COUNTER_MASK	0xf8
 
 static int arm_spe_do_get_packet(const unsigned char *buf, size_t len,
 				 struct arm_spe_pkt *packet)
@@ -225,33 +229,31 @@ static int arm_spe_do_get_packet(const unsigned char *buf, size_t len,
 		return arm_spe_get_pad(packet);
 	else if (byte == SPE_HEADER0_END) /* no timestamp at end of record */
 		return arm_spe_get_end(packet);
-	else if (byte & 0xc0 /* 0y11000000 */) {
+	else if (byte & 0xc0 /* 0y11xxxxxx */) {
 		if (byte & 0x80) {
-			/* 0x38 is 0y00111000 */
-			if ((byte & 0x38) == 0x30) /* address packet (short) */
+			if ((byte & SPE_HEADER0_ADDRESS_MASK) == SPE_HEADER0_ADDRESS)
 				return arm_spe_get_addr(buf, len, 0, packet);
-			if ((byte & 0x38) == 0x18) /* counter packet (short) */
+			if ((byte & SPE_HEADER0_COUNTER_MASK) == SPE_HEADER0_COUNTER)
 				return arm_spe_get_counter(buf, len, 0, packet);
 		} else
-			if (byte == 0x71)
+			if (byte == SPE_HEADER0_TIMESTAMP)
 				return arm_spe_get_timestamp(buf, len, packet);
-			else if ((byte & 0xf) == 0x2)
-//} else if ((byte & SPE_HEADER0_EVENTS_MASK) == SPE_HEADER0_EVENTS) {
+			else if ((byte & SPE_HEADER0_EVENTS_MASK) == SPE_HEADER0_EVENTS)
 				return arm_spe_get_events(buf, len, packet);
-			else if ((byte & 0xf) == 0x3)
+			else if ((byte & SPE_HEADER0_SOURCE_MASK) == SPE_HEADER0_SOURCE)
 				return arm_spe_get_data_source(buf, len, packet);
-			else if ((byte & 0x3c) == 0x24)
+			else if ((byte & SPE_HEADER0_CONTEXT_MASK) == SPE_HEADER0_CONTEXT)
 				return arm_spe_get_context(buf, len, packet);
-			else if ((byte & 0x3c) == 0x8)
+			else if ((byte & SPE_HEADER0_OP_TYPE_MASK) == SPE_HEADER0_OP_TYPE)
 				return arm_spe_get_op_type(buf, len, packet);
-	} else if ((byte & 0xe0) == 0x20 /* 0y00100000 */) {
+	} else if ((byte & 0xe0) == 0x20 /* 0y001xxxxx */) {
 		/* 16-bit header */ 
 		byte = buf[1];
-		if (byte == 0)
+		if (byte == SPE_HEADER1_ALIGNMENT)
 			return arm_spe_get_alignment(buf, len, packet);
-		else if ((byte & 0xf8) == 0xb0)
+		else if ((byte & SPE_HEADER1_ADDRESS_MASK) == SPE_HEADER1_ADDRESS)
 			return arm_spe_get_addr(buf, len, 1, packet);
-		else if ((byte & 0xf8) == 0x98)
+		else if ((byte & SPE_HEADER1_COUNTER_MASK) == SPE_HEADER1_COUNTER)
 			return arm_spe_get_counter(buf, len, 1, packet);
 	}
 
