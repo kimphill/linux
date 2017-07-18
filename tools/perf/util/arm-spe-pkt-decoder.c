@@ -29,6 +29,28 @@
 #define NS_FLAG		BIT63
 #define EL_FLAG		(BIT62 | BIT61)
 
+#define SPE_HEADER0_PAD			0x0
+#define SPE_HEADER0_END			0x1
+#define SPE_HEADER0_ADDRESS		0x30 /* address packet (short) */
+#define SPE_HEADER0_ADDRESS_MASK	0x38
+#define SPE_HEADER0_COUNTER		0x18 /* counter packet (short) */
+#define SPE_HEADER0_COUNTER_MASK	0x38
+#define SPE_HEADER0_TIMESTAMP		0x71
+#define SPE_HEADER0_TIMESTAMP		0x71
+#define SPE_HEADER0_EVENTS		0x2
+#define SPE_HEADER0_EVENTS_MASK		0xf
+#define SPE_HEADER0_SOURCE		0x3
+#define SPE_HEADER0_SOURCE_MASK		0xf
+#define SPE_HEADER0_CONTEXT		0x24
+#define SPE_HEADER0_CONTEXT_MASK	0x3c
+#define SPE_HEADER0_OP_TYPE		0x8
+#define SPE_HEADER0_OP_TYPE_MASK	0x3c
+#define SPE_HEADER1_ALIGNMENT		0x0
+#define SPE_HEADER1_ADDRESS		0xb0 /* address packet (extended) */
+#define SPE_HEADER1_ADDRESS_MASK	0xf8
+#define SPE_HEADER1_COUNTER		0x98 /* counter packet (extended) */
+#define SPE_HEADER1_COUNTER_MASK	0xf8
+
 #if __BYTE_ORDER == __BIG_ENDIAN
 #define le16_to_cpu bswap_16
 #define le32_to_cpu bswap_32
@@ -190,28 +212,6 @@ static int arm_spe_get_addr(const unsigned char *buf, size_t len,
 
 	return 1 + ext_hdr + 8;
 }
-
-#define SPE_HEADER0_PAD			0x0
-#define SPE_HEADER0_END			0x1
-#define SPE_HEADER0_ADDRESS		0x30 /* address packet (short) */
-#define SPE_HEADER0_ADDRESS_MASK	0x38
-#define SPE_HEADER0_COUNTER		0x18 /* counter packet (short) */
-#define SPE_HEADER0_COUNTER_MASK	0x38
-#define SPE_HEADER0_TIMESTAMP		0x71
-#define SPE_HEADER0_TIMESTAMP		0x71
-#define SPE_HEADER0_EVENTS		0x2
-#define SPE_HEADER0_EVENTS_MASK		0xf
-#define SPE_HEADER0_SOURCE		0x3
-#define SPE_HEADER0_SOURCE_MASK		0xf
-#define SPE_HEADER0_CONTEXT		0x24
-#define SPE_HEADER0_CONTEXT_MASK	0x3c
-#define SPE_HEADER0_OP_TYPE		0x8
-#define SPE_HEADER0_OP_TYPE_MASK	0x3c
-#define SPE_HEADER1_ALIGNMENT		0x0
-#define SPE_HEADER1_ADDRESS		0xb0 /* address packet (extended) */
-#define SPE_HEADER1_ADDRESS_MASK	0xf8
-#define SPE_HEADER1_COUNTER		0x98 /* counter packet (extended) */
-#define SPE_HEADER1_COUNTER_MASK	0xf8
 
 static int arm_spe_do_get_packet(const unsigned char *buf, size_t len,
 				 struct arm_spe_pkt *packet)
