@@ -144,6 +144,8 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 	tracking_evsel->attr.freq = 0;
 	tracking_evsel->attr.sample_period = 1;
 
+	tracking_evsel->no_aux_samples = true;
+
 	/* In per-cpu case, always need the time of mmap events etc */
 	if (!cpu_map__empty(cpus))
 		perf_evsel__set_sample_bit(tracking_evsel, TIME);
