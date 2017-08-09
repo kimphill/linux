@@ -94,8 +94,10 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 		}
 	}
 
+/*
 	if (!opts->full_auxtrace)
 		return 0;
+*/
 
 	/* We are in full trace mode but '-m,xyz' wasn't specified */
 	if (opts->full_auxtrace && !opts->auxtrace_mmap_pages) {
