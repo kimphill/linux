@@ -21,6 +21,7 @@
 #include <sys/ioctl.h>
 #include <sys/resource.h>
 #include <sys/types.h>
+#include <sys/prctl.h>
 #include <dirent.h>
 #include "asm/bug.h"
 #include "callchain.h"
@@ -39,6 +40,9 @@
 #include "util/parse-branch-options.h"
 
 #include "sane_ctype.h"
+
+#define PR_ERRMSG_ENABLE		48
+#define PR_ERRMSG_READ			49
 
 static struct {
 	bool sample_id_all;
@@ -2518,19 +2522,19 @@ int perf_evsel__open_strerror(struct perf_evsel *evsel, struct target *target,
 			      int err, char *msg, size_t size)
 {
 	char sbuf[STRERR_BUFSIZE];
-	int printed = 0;
-	int n, perr;
+	int perr, printed = 0;
+	size_t n;
 
 	do {
 		errno = 0;
 		n = prctl(PR_ERRMSG_READ, sbuf, sizeof(sbuf));
 		perr = errno;
-		if (n > 0) {
-			printed = scnprintf(msg, n + 1, "%s\n", sbuf);
+		if (n > 0 && n < size) {
+			sbuf[n] = 0;
+			printed = scnprintf(msg, size, "%s", sbuf);
 			size -= printed;
 			msg += printed;
 		}
-		
 	} while (perr == 0);
 
 	switch (err) {

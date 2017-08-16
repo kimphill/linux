@@ -23,11 +23,13 @@
 #define DRVNAME				PMUNAME "_pmu"
 #define pr_fmt(fmt)			DRVNAME ": " fmt
 
+#include <linux/cpumask.h>
 #include <linux/cpuhotplug.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/module.h>
 #include <linux/of_address.h>
+#include <linux/device.h>
 #include <linux/of_device.h>
 #include <linux/perf_event.h>
 #include <linux/platform_device.h>
@@ -660,20 +662,30 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 	u64 reg;
 	struct perf_event_attr *attr = &event->attr;
 	struct arm_spe_pmu *spe_pmu = to_spe_pmu(event->pmu);
+	const struct device *dev = &spe_pmu->pdev->dev;
+	const char *devname = dev_name(dev);
 
 	/* This is, of course, deeply driver-specific */
 	if (attr->type != event->pmu->type)
 		return -ENOENT;
 
 	if (event->cpu >= 0 &&
-	    !cpumask_test_cpu(event->cpu, &spe_pmu->supported_cpus))
+	    !cpumask_test_cpu(event->cpu, &spe_pmu->supported_cpus)) {
+		errorf("%s: not supported on CPU %d. Supported CPU list: %*pbl\n",
+		       devname, event->cpu, cpumask_pr_args(&spe_pmu->supported_cpus));
 		return -ENOENT;
+	}
 
-	if (arm_spe_event_to_pmsevfr(event) & PMSEVFR_EL1_RES0)
+	if (arm_spe_event_to_pmsevfr(event) & PMSEVFR_EL1_RES0) {
+		errorf("%s: unsupported Sampling Event Filter (PMSEVFR) value\n",
+		       devname);
 		return -EOPNOTSUPP;
+	}
 
-	if (attr->exclude_idle)
+	if (attr->exclude_idle) {
+		errorf("%s: Cannot exclude profiling when idle\n", devname);
 		return -EOPNOTSUPP;
+	}
 
 	/*
 	 * Feedback-directed frequency throttling doesn't work when we
@@ -682,26 +694,44 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 	 * count to reflect that. Instead, force the user to specify a
 	 * sample period instead.
 	 */
-	if (attr->freq)
+	if (attr->freq) {
+		errorf("%s: sample period must be specified\n", devname);
 		return -EINVAL;
+	}
+
+	if (!event->hw.sample_period ||
+	    event->hw.sample_period < spe_pmu->min_period) {
+		errorf("%s: no sample period, or less than minimum (%d)\n",
+		       devname, spe_pmu->min_period);
+		return -EOPNOTSUPP;
+	}
 
 	reg = arm_spe_event_to_pmsfcr(event);
 	if ((reg & BIT(PMSFCR_EL1_FE_SHIFT)) &&
-	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_EVT))
+	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_EVT)) {
+		errorf("%s: unsupported filter (EVT)\n", devname);
 		return -EOPNOTSUPP;
+	}
 
 	if ((reg & BIT(PMSFCR_EL1_FT_SHIFT)) &&
-	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_TYP))
+	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_TYP)) {
+		errorf("%s: unsupported filter (TYP)\n", devname);
 		return -EOPNOTSUPP;
+	}
 
 	if ((reg & BIT(PMSFCR_EL1_FL_SHIFT)) &&
-	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_LAT))
+	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_LAT)) {
+		errorf("%s: unsupported filter (LAT)\n", devname);
 		return -EOPNOTSUPP;
+	}
 
 	reg = arm_spe_event_to_pmscr(event);
 	if (!capable(CAP_SYS_ADMIN) &&
-	    (reg & (BIT(PMSCR_EL1_PA_SHIFT) | BIT(PMSCR_EL1_CX_SHIFT))))
+	    (reg & (BIT(PMSCR_EL1_PA_SHIFT) | BIT(PMSCR_EL1_CX_SHIFT)))) {
+		errorf("%s: physical address and/or context ID capture limited to privileged users\n",
+		       devname);
 		return -EACCES;
+	}
 
 	return 0;
 }
