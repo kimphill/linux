@@ -20,14 +20,10 @@
 
 #include "arm-spe-pkt-decoder.h"
 
-#define BIT(n)		(1 << (n))
+#define BIT(n)		(1ULL << (n))
 
-#define BIT61		((uint64_t)1 << 61)
-#define BIT62		((uint64_t)1 << 62)
-#define BIT63		((uint64_t)1 << 63)
-
-#define NS_FLAG		BIT63
-#define EL_FLAG		(BIT62 | BIT61)
+#define NS_FLAG		BIT(63)
+#define EL_FLAG		(BIT(62) | BIT(61))
 
 #define SPE_HEADER0_PAD			0x0
 #define SPE_HEADER0_END			0x1
@@ -83,7 +79,8 @@ const char *arm_spe_pkt_name(enum arm_spe_pkt_type type)
 	return arm_spe_packet_name[type];
 }
 
-/* return ARM SPE payload size from its encoding:
+/* return ARM SPE payload size from its encoding,
+ * which is in bits 5:4 of the byte.
  * 00 : byte
  * 01 : halfword (2)
  * 10 : word (4)
@@ -102,11 +99,13 @@ static int arm_spe_get_payload(const unsigned char *buf, size_t len,
 	if (len < 1 + payload_len)
 		return ARM_SPE_NEED_MORE_BYTES;
 
+	buf++;
+
 	switch (payload_len) {
-	case 1: packet->payload = *(uint8_t *)(buf + 1); break;
-	case 2: packet->payload = le16_to_cpu(*(uint16_t *)(buf + 1)); break;
-	case 4: packet->payload = le32_to_cpu(*(uint32_t *)(buf + 1)); break;
-	case 8: packet->payload = le64_to_cpu(*(uint64_t *)(buf + 1)); break;
+	case 1: packet->payload = *(uint8_t *)buf; break;
+	case 2: packet->payload = le16_to_cpu(*(uint16_t *)buf); break;
+	case 4: packet->payload = le32_to_cpu(*(uint32_t *)buf); break;
+	case 8: packet->payload = le64_to_cpu(*(uint64_t *)buf); break;
 	default: return ARM_SPE_BAD_PACKET;
 	}
 
@@ -265,6 +264,9 @@ int arm_spe_get_packet(const unsigned char *buf, size_t len,
 	int ret;
 
 	ret = arm_spe_do_get_packet(buf, len, packet);
+	/* put multiple consecutive PADs on the same line, up to
+	 * the fixed-width output format of 16 bytes per line.
+	 */
 	if (ret > 0 && packet->type == ARM_SPE_PAD) {
 		while (ret < 16 && len > (size_t)ret && !buf[ret])
 			ret += 1;
