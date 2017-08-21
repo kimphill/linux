@@ -17,6 +17,7 @@
 #include <linux/types.h>
 #include <linux/bitops.h>
 #include <linux/log2.h>
+#include <time.h>
 
 #include "../../util/cpumap.h"
 #include "../../util/evsel.h"
@@ -153,11 +154,11 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 
 static u64 arm_spe_reference(struct auxtrace_record *itr __maybe_unused)
 {
-	u64 ts;
+	struct timespec ts;
 
-	asm volatile ("isb; mrs %0, cntvct_el0" : "=r" (ts));
+	clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
 
-	return ts;
+	return ts.tv_sec ^ ts.tv_nsec;
 }
 
 static void arm_spe_recording_free(struct auxtrace_record *itr)
