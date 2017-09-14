@@ -149,6 +149,12 @@ static int arm_spe_get_events(const unsigned char *buf, size_t len,
 	int ret = arm_spe_get_payload(buf, len, packet);
 
 	packet->type = ARM_SPE_EVENTS;
+
+	/* we use index to identify Events with a less number of
+	 * comparisons in arm_spe_pkt_desc(): E.g., the LLC-ACCESS,
+	 * LLC-REFILL, and REMOTE-ACCESS events are identified iff
+	 * index > 1.
+	 */
 	packet->index = ret - 1;
 
 	return ret;
