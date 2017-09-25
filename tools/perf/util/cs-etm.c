@@ -748,13 +748,12 @@ static int cs_etm__synth_events(struct cs_etm_auxtrace *etm,
 	return 0;
 }
 
-int cs_etm__sample(struct cs_etm_queue *etmq, int *cpu)
+static int cs_etm__sample(struct cs_etm_queue *etmq, int *cpu)
 {
 	struct cs_etm_auxtrace *etm = etmq->etm;
 	struct cs_etm_packet *tmp;
 	int err = cs_etm_decoder__get_packet(etmq->decoder, etmq->packet);
 
-	err = cs_etm_decoder__get_packet(etmq->decoder, &packet);
 	/* if there is no sample, it returns err = -1, no real error */
 	if (err)
 		return err;
@@ -789,12 +788,12 @@ int cs_etm__sample(struct cs_etm_queue *etmq, int *cpu)
 		tmp = etmq->packet;
 		etmq->packet = etmq->prev_packet;
 		etmq->prev_packet = tmp;
-	} else if (packet.sample_type & CS_ETM_RANGE) {
+	} else if (etmq->packet->sample_type & CS_ETM_RANGE) {
 		/*
 		 * if the packet contains an instruction range, generate
 		 * an instruction sequence event
 		 */
-		err = cs_etm__synth_instruction_sample(etmq, &packet);
+		err = cs_etm__synth_instruction_sample(etmq);
 		if (err)
 			return err;
 	}
