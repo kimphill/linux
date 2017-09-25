@@ -232,6 +232,8 @@ static void cs_etm__free_queue(void *priv)
 	zfree(&etmq->event_buf);
 	zfree(&etmq->last_branch);
 	zfree(&etmq->last_branch_rb);
+	zfree(&etmq->prev_packet);
+	zfree(&etmq->packet);
 	free(etmq);
 }
 
@@ -592,13 +594,13 @@ static int cs_etm__inject_event(union perf_event *event,
  * The cs etm packet encodes an instruction range between a branch target
  * and the next taken branch. Generate sample accordingly.
  */
-static int cs_etm__synth_instruction_sample(struct cs_etm_queue *etmq,
-					    struct cs_etm_packet *packet)
+static int cs_etm__synth_instruction_sample(struct cs_etm_queue *etmq)
 {
 	int ret = 0;
 	struct cs_etm_auxtrace *etm = etmq->etm;
 	union perf_event *event = etmq->event_buf;
 	struct perf_sample sample = {.ip = 0,};
+	struct cs_etm_packet *packet = etmq->packet;
 	uint64_t start_addr = packet->start_addr;
 	uint64_t end_addr = packet->end_addr;
 
@@ -748,8 +750,9 @@ static int cs_etm__synth_events(struct cs_etm_auxtrace *etm,
 
 int cs_etm__sample(struct cs_etm_queue *etmq, int *cpu)
 {
-	struct cs_etm_packet packet;
-	int err;
+	struct cs_etm_auxtrace *etm = etmq->etm;
+	struct cs_etm_packet *tmp;
+	int err = cs_etm_decoder__get_packet(etmq->decoder, etmq->packet);
 
 	err = cs_etm_decoder__get_packet(etmq->decoder, &packet);
 	/* if there is no sample, it returns err = -1, no real error */
