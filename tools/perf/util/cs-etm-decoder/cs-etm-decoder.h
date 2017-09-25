@@ -47,6 +47,7 @@ struct cs_etm_packet {
 	enum cs_etm_sample_type	sample_type;
 	uint64_t		start_addr;
 	uint64_t		end_addr;
+	bool     		last_instruction_is_branch;
 	bool			exc;
 	bool			exc_ret;
 	int			cpu;

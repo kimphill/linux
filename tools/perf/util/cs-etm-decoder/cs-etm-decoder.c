@@ -262,6 +262,18 @@ static int cs_etm_decoder__buffer_packet(struct cs_etm_decoder *decoder,
 	decoder->packet_buffer[et].sample_type	= sample_type;
 	decoder->packet_buffer[et].start_addr	= elem->st_addr;
 	decoder->packet_buffer[et].end_addr	= elem->en_addr;
+	switch (elem->last_i_type) {
+	case OCSD_INSTR_BR:
+	case OCSD_INSTR_BR_INDIRECT:
+		decoder->packet_buffer[et].last_instruction_is_branch = true;
+		break;
+	case OCSD_INSTR_OTHER:
+	case OCSD_INSTR_ISB:
+	case OCSD_INSTR_DSB_DMB:
+	default:
+		decoder->packet_buffer[et].last_instruction_is_branch = false;
+		break;
+	}
 	decoder->packet_buffer[et].exc		= false;
 	decoder->packet_buffer[et].exc_ret	= false;
 	decoder->packet_buffer[et].cpu		= *((int *)inode->priv);
