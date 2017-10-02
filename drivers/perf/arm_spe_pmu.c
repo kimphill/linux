@@ -664,13 +664,22 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 
 	if (event->cpu >= 0 &&
 	    !cpumask_test_cpu(event->cpu, &spe_pmu->supported_cpus))
+{
+		pr_err("spe driver: cpu %d  >=0 && !cpumask(cpu, supported_cpus)\n", event->cpu);
 		return -ENOENT;
+}
 
 	if (arm_spe_event_to_pmsevfr(event) & SYS_PMSEVFR_EL1_RES0)
+{
+		pr_err("spe driver: arm_spe_event_to_pmsevfr(event) & SYS_PMSEVFR_EL1_RES0)\n");
 		return -EOPNOTSUPP;
+}
 
 	if (attr->exclude_idle)
+{
+		pr_err("spe driver: can't exclude_idle\n");
 		return -EOPNOTSUPP;
+}
 
 	/*
 	 * Feedback-directed frequency throttling doesn't work when we
@@ -680,27 +689,42 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 	 * a sample period.
 	 */
 	if (attr->freq)
+{
+		pr_err("spe driver: no attr->freq\n");
 		return -EINVAL;
+}
 
 	reg = arm_spe_event_to_pmsfcr(event);
 	if ((reg & BIT(SYS_PMSFCR_EL1_FE_SHIFT)) &&
 	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_EVT))
+{
+		pr_err("spe driver: no FILT_EVT\n");
 		return -EOPNOTSUPP;
+}
 
 	if ((reg & BIT(SYS_PMSFCR_EL1_FT_SHIFT)) &&
 	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_TYP))
+{
+		pr_err("spe driver: no FILT_TYP\n");
 		return -EOPNOTSUPP;
+}
 
 	if ((reg & BIT(SYS_PMSFCR_EL1_FL_SHIFT)) &&
 	    !(spe_pmu->features & SPE_PMU_FEAT_FILT_LAT))
+{
+		pr_err("spe driver: no FILT_LAT\n");
 		return -EOPNOTSUPP;
+}
 
 	reg = arm_spe_event_to_pmscr(event);
 	if (!capable(CAP_SYS_ADMIN) &&
 	    (reg & (BIT(SYS_PMSCR_EL1_PA_SHIFT) |
 		    BIT(SYS_PMSCR_EL1_CX_SHIFT) |
 		    BIT(SYS_PMSCR_EL1_PCT_SHIFT))))
+{
+		pr_err("spe driver: not admin\n");
 		return -EACCES;
+}
 
 	return 0;
 }
