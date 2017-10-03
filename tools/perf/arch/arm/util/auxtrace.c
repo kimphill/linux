@@ -30,9 +30,19 @@ struct auxtrace_record
 	struct perf_pmu	*cs_etm_pmu, *arm_spe_pmu;
 	struct perf_evsel *evsel;
 	bool found_etm = false, found_spe = false;
+	char *arm_spe_pmu_name[sizeof(ARM_SPE_PMU_NAME) + 5 /* dec width of MAX_NR_CPUS + term. */];
+	int spe_idx;
 
 	cs_etm_pmu = perf_pmu__find(CORESIGHT_ETM_PMU_NAME);
-	arm_spe_pmu = perf_pmu__find(ARM_SPE_PMU_NAME);
+
+	*err = sprintf(arm_spe_pmu_name, "%s_%d", ARM_SPE_PMU_NAME, spe_idx);
+	if (*err < 0) {
+		pr_err("sprintf failed\n");
+		*err = -ENOMEM;
+		return NULL;
+	}
+
+	arm_spe_pmu = perf_pmu__find(arm_spe_pmu_name);
 
 	if (evlist) {
 		evlist__for_each_entry(evlist, evsel) {
