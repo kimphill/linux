@@ -16,7 +16,7 @@
 #ifndef INCLUDE__PERF_ARM_SPE_H__
 #define INCLUDE__PERF_ARM_SPE_H__
 
-#define ARM_SPE_PMU_NAME "arm_spe_0"
+#define ARM_SPE_PMU_NAME "arm_spe"
 
 enum {
 	ARM_SPE_PMU_TYPE,
