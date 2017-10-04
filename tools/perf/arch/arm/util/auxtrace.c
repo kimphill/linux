@@ -16,6 +16,7 @@
  */
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <linux/coresight-pmu.h>
 
 #include "../../util/auxtrace.h"
@@ -30,8 +31,11 @@ struct auxtrace_record
 	struct perf_pmu	*cs_etm_pmu, *arm_spe_pmu;
 	struct perf_evsel *evsel;
 	bool found_etm = false, found_spe = false;
-	char *arm_spe_pmu_name[sizeof(ARM_SPE_PMU_NAME) + 5 /* dec width of MAX_NR_CPUS + term. */];
-	int spe_idx;
+	char arm_spe_pmu_name[sizeof(ARM_SPE_PMU_NAME) + 5 /* dec width of MAX_NR_CPUS + term. */];
+	static int spe_idx = 0;
+
+	pr_err("%s %d: \n", __func__, __LINE__);
+	fprintf(stderr, "%s %d: \n", __func__, __LINE__);
 
 	cs_etm_pmu = perf_pmu__find(CORESIGHT_ETM_PMU_NAME);
 
@@ -64,8 +68,12 @@ struct auxtrace_record
 	if (found_etm)
 		return cs_etm_record_init(err);
 
-	if (found_spe)
-		return arm_spe_recording_init(err);
+	if (found_spe) {
+		pr_err("%s %d: spe found, arm_spe_pmu_name %s\n", __func__, __LINE__, arm_spe_pmu_name);
+		spe_idx++;
+		return arm_spe_recording_init(err, arm_spe_pmu);
+	} else
+		pr_err("%s %d: spe NOT found, spe_idx %d\n", __func__, __LINE__, spe_idx);
 
 	/*
 	 * Clear 'err' even if we haven't found an event - that way perf
