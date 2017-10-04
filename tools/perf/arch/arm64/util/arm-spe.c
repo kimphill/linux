@@ -183,19 +183,27 @@ static int arm_spe_read_finish(struct auxtrace_record *itr, int idx)
 	return -EINVAL;
 }
 
-struct auxtrace_record *arm_spe_recording_init(int *err)
+struct auxtrace_record *arm_spe_recording_init(int *err, 
+	struct perf_pmu *arm_spe_pmu)
 {
-	struct perf_pmu *arm_spe_pmu = perf_pmu__find(ARM_SPE_PMU_NAME);
+//	struct perf_pmu *arm_spe_pmu = perf_pmu__find(ARM_SPE_PMU_NAME);
 	struct arm_spe_recording *sper;
+
+	pr_err("%s %d: \n", __func__, __LINE__);
 
 	if (!arm_spe_pmu) {
 		*err = -ENODEV;
+		pr_err("%s %d: -ENODEV\n", __func__, __LINE__);
+
 		return NULL;
 	}
+
+	pr_err("%s %d: \n", __func__, __LINE__);
 
 	sper = zalloc(sizeof(struct arm_spe_recording));
 	if (!sper) {
 		*err = -ENOMEM;
+		pr_err("%s %d: -ENOMEM\n", __func__, __LINE__);
 		return NULL;
 	}
 
@@ -207,5 +215,8 @@ struct auxtrace_record *arm_spe_recording_init(int *err)
 	sper->itr.reference = arm_spe_reference;
 	sper->itr.read_finish = arm_spe_read_finish;
 	sper->itr.alignment = 0;
+
+	pr_err("%s %d: returning &sper->itr %p\n", __func__, __LINE__ , &sper->itr);
+
 	return &sper->itr;
 }
