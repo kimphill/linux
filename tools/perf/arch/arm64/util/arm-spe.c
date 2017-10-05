@@ -143,7 +143,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 	perf_evlist__set_tracking_event(evlist, tracking_evsel);
 
 	tracking_evsel->attr.freq = 0;
-	tracking_evsel->attr.sample_period = 1;
+	tracking_evsel->attr.sample_period = evsel->attr.sample_period;
 
 	/* In per-cpu case, always need the time of mmap events etc */
 	if (!cpu_map__empty(cpus))
