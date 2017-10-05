@@ -35,7 +35,7 @@
 
 struct arm_spe_recording {
 	struct auxtrace_record		itr;
-	struct perf_pmu			*arm_spe_pmu;
+	struct perf_pmu			*arm_spe_pmu; // more than 1
 	struct perf_evlist		*evlist;
 };
 
@@ -47,9 +47,9 @@ arm_spe_info_priv_size(struct auxtrace_record *itr __maybe_unused,
 }
 
 static int arm_spe_info_fill(struct auxtrace_record *itr,
-			       struct perf_session *session,
-			       struct auxtrace_info_event *auxtrace_info,
-			       size_t priv_size)
+			     struct perf_session *session,
+			     struct auxtrace_info_event *auxtrace_info,
+			     size_t priv_size)
 {
 	struct arm_spe_recording *sper =
 			container_of(itr, struct arm_spe_recording, itr);

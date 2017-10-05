@@ -39,6 +39,8 @@ struct auxtrace_record
 
 	cs_etm_pmu = perf_pmu__find(CORESIGHT_ETM_PMU_NAME);
 
+	arm_spe_pmu = perf_pmu__find(ARM_SPE_PMU_NAME);
+
 	*err = sprintf(arm_spe_pmu_name, "%s_%d", ARM_SPE_PMU_NAME, spe_idx);
 	if (*err < 0) {
 		pr_err("sprintf failed\n");
@@ -46,7 +48,7 @@ struct auxtrace_record
 		return NULL;
 	}
 
-	arm_spe_pmu = perf_pmu__find(arm_spe_pmu_name);
+	arm_spe_pmu_idx = perf_pmu__find(arm_spe_pmu_name);
 
 	if (evlist) {
 		evlist__for_each_entry(evlist, evsel) {
