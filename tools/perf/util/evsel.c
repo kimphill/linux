@@ -2753,6 +2753,16 @@ int perf_evsel__open_strerror(struct perf_evsel *evsel, struct target *target,
 	"We found oprofile daemon running, please stop it and try again.");
 		break;
 	case EINVAL:
+#if defined(__aarch64__)
+		if (!strncmp(perf_evsel__name(evsel), "arm_spe", sizeof("arm_spe"))) {
+			if (evsel->attr.sample_period != 0)
+				return scnprintf(msg, size, "required sample period missing.  Use -c <n>");
+			else
+				return scnprintf(msg, size,
+	"Bad sample period %d.  SPE requires one of: 256, 512, 768, 1024, 1536, 2048, 3072, 4096.\n",
+						evsel->attr.sample_period);
+		}
+#endif
 		if (evsel->attr.write_backward && perf_missing_features.write_backward)
 			return scnprintf(msg, size, "Reading from overwrite event is not supported by this kernel.");
 		if (perf_missing_features.clockid)
