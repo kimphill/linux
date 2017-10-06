@@ -28,7 +28,7 @@
 struct auxtrace_record
 *auxtrace_record__init(struct perf_evlist *evlist, int *err)
 {
-	struct perf_pmu	*cs_etm_pmu, *arm_spe_pmu;
+	struct perf_pmu	*cs_etm_pmu, *arm_spe_pmu, *arm_spe_pmu_idx;
 	struct perf_evsel *evsel;
 	bool found_etm = false, found_spe = false;
 	char arm_spe_pmu_name[sizeof(ARM_SPE_PMU_NAME) + 5 /* dec width of MAX_NR_CPUS + term. */];
@@ -73,7 +73,10 @@ struct auxtrace_record
 	if (found_spe) {
 		pr_err("%s %d: spe found, arm_spe_pmu_name %s\n", __func__, __LINE__, arm_spe_pmu_name);
 		spe_idx++;
-		return arm_spe_recording_init(err, arm_spe_pmu);
+		if (spe_idx == 1)
+			return arm_spe_recording_init(err, arm_spe_pmu);
+		else
+			return arm_spe_recording_init(err, arm_spe_pmu_idx);
 	} else
 		pr_err("%s %d: spe NOT found, spe_idx %d\n", __func__, __LINE__, spe_idx);
 
