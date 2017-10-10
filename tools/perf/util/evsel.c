@@ -2680,11 +2680,26 @@ static bool find_process(const char *name)
 	return ret ? false : true;
 }
 
+int __weak perf_evsel__suppl_strerror(struct perf_evsel *evsel __maybe_unused,
+				      struct target *target __maybe_unused,
+				      int err __maybe_unused,
+				      char *msg __maybe_unused,
+				      size_t size __maybe_unused)
+{
+	return 0;
+}
+
 int perf_evsel__open_strerror(struct perf_evsel *evsel, struct target *target,
 			      int err, char *msg, size_t size)
 {
 	char sbuf[STRERR_BUFSIZE];
 	int printed = 0;
+
+	printed = perf_evsel__suppl_strerror(evsel, target, err, msg, size);
+	if (printed > 0) {
+		msg += printed;
+		size -= printed;
+	}
 
 	switch (err) {
 	case EPERM:
@@ -2739,12 +2754,6 @@ int perf_evsel__open_strerror(struct perf_evsel *evsel, struct target *target,
 		if (evsel->attr.precise_ip)
 			return scnprintf(msg, size, "%s",
 	"\'precise\' request may not be supported. Try removing 'p' modifier.");
-#if defined(__i386__) || defined(__x86_64__)
-		if (evsel->attr.type == PERF_TYPE_HARDWARE)
-			return scnprintf(msg, size, "%s",
-	"No hardware sampling interrupt available.\n"
-	"No APIC? If so then you can boot the kernel with the \"lapic\" boot parameter to force-enable it.");
-#endif
 		break;
 	case EBUSY:
 		if (find_process("oprofiled"))
