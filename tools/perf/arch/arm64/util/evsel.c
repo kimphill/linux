@@ -30,6 +30,7 @@ int ccn_strerror(struct perf_evsel *evsel,
 			return scnprintf(msg, size, "Sampling not supported!\n");
 		if (target->per_thread)
 			return scnprintf(msg, size, "Can't provide per-task data!\n");
+		return scnprintf(msg, size, "*FILL ME IN*\n");
 		break;
 	case EINVAL:
 		if (//(attr->sample_type & PERF_SAMPLE_BRANCH_STACK) ||
