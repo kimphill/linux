@@ -1415,13 +1415,11 @@ static const char *annotate__norm_arch(const char *arch_name)
 	return normalize_arch((char *)arch_name);
 }
 
-int symbol__disassemble(struct symbol *sym, struct map *map,
-			const char *arch_name, size_t privsize,
-			struct arch **parch, char *cpuid)
+static int symbol__disassemble(struct symbol *sym, struct map *map,
+			       size_t privsize, struct arch *arch)
 {
 	struct dso *dso = map->dso;
 	char command[PATH_MAX * 2];
-	struct arch *arch = NULL;
 	FILE *file;
 	char symfs_filename[PATH_MAX];
 	struct kcore_extract kce;
@@ -1434,25 +1432,6 @@ int symbol__disassemble(struct symbol *sym, struct map *map,
 
 	if (err)
 		return err;
-
-	arch_name = annotate__norm_arch(arch_name);
-	if (!arch_name)
-		return -1;
-
-	arch = arch__find(arch_name);
-	if (arch == NULL)
-		return -ENOTSUP;
-
-	if (parch)
-		*parch = arch;
-
-	if (arch->init) {
-		err = arch->init(arch, cpuid);
-		if (err) {
-			pr_err("%s: failed to initialize %s arch priv area\n", __func__, arch->name);
-			return err;
-		}
-	}
 
 	pr_debug("%s: filename=%s, sym=%s, start=%#" PRIx64 ", end=%#" PRIx64 "\n", __func__,
 		 symfs_filename, sym->name, map->unmap_ip(map, sym->start),
@@ -1569,6 +1548,35 @@ out:
 out_close_stdout:
 	close(stdout_fd[1]);
 	goto out_remove_tmp;
+}
+
+int symbol__annotate(struct symbol *sym, struct map *map,
+		     const char *arch_name, size_t privsize,
+		     struct arch **parch, char *cpuid)
+{
+	struct arch *arch;
+	int err;
+
+	arch_name = annotate__norm_arch(arch_name);
+	if (!arch_name)
+		return -1;
+
+	arch = arch__find(arch_name);
+	if (arch == NULL)
+		return -ENOTSUP;
+
+	if (parch)
+		*parch = arch;
+
+	if (arch->init) {
+		err = arch->init(arch, cpuid);
+		if (err) {
+			pr_err("%s: failed to initialize %s arch priv area\n", __func__, arch->name);
+			return err;
+		}
+	}
+
+	return symbol__disassemble(sym, map, privsize, arch);
 }
 
 static void insert_source_line(struct rb_root *root, struct source_line *src_line)
@@ -1944,8 +1952,8 @@ int symbol__tty_annotate(struct symbol *sym, struct map *map,
 	struct rb_root source_line = RB_ROOT;
 	u64 len;
 
-	if (symbol__disassemble(sym, map, perf_evsel__env_arch(evsel),
-				0, NULL, NULL) < 0)
+	if (symbol__annotate(sym, map, perf_evsel__env_arch(evsel),
+			     0, NULL, NULL) < 0)
 		return -1;
 
 	len = symbol__size(sym);
