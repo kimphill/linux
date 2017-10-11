@@ -1082,6 +1082,7 @@ static void annotate__branch_printf(struct block_range *br, u64 addr)
 	}
 }
 
+#define ADDR_LEN 10
 
 static int disasm_line__print(struct disasm_line *dl, u64 start)
 {
@@ -1090,7 +1091,7 @@ static int disasm_line__print(struct disasm_line *dl, u64 start)
 	struct block_range *br;
 
 	br = block_range__find(addr);
-	color_fprintf(stdout, annotate__address_color(br), "  %" PRIx64 ":", addr);
+	color_fprintf(stdout, annotate__address_color(br), "  %*" PRIx64 ":", ADDR_LEN, addr);
 	color_fprintf(stdout, annotate__asm_color(br), "%s", dl->al.line);
 	annotate__branch_printf(br, addr);
 	return 0;
@@ -1164,7 +1165,7 @@ annotation_line__print(struct annotation_line *al, struct symbol *sym, u64 start
 				color_fprintf(stdout, color, " %7.2f", sample->percent);
 		}
 
-		printf(" :	");
+		printf(" : ");
 
 		disasm_line__print(dl, start);
 		printf("\n");
@@ -1182,7 +1183,7 @@ annotation_line__print(struct annotation_line *al, struct symbol *sym, u64 start
 		if (!*al->line)
 			printf(" %*s:\n", width, " ");
 		else
-			printf(" %*s:	%s\n", width, " ", al->line);
+			printf(" %*s:     %*s %s\n", width, " ", ADDR_LEN, " ", al->line);
 	}
 
 	return 0;
