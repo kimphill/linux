@@ -28,30 +28,38 @@
 struct auxtrace_record
 *auxtrace_record__init(struct perf_evlist *evlist, int *err)
 {
-	struct perf_pmu	*cs_etm_pmu, *arm_spe_pmu, *arm_spe_pmu_idx;
+	struct perf_pmu	*cs_etm_pmu, *arm_spe_pmu;
 	struct perf_evsel *evsel;
 	bool found_etm = false, found_spe = false;
 	char arm_spe_pmu_name[sizeof(ARM_SPE_PMU_NAME) + 5 /* dec width of MAX_NR_CPUS + term. */];
 	static int spe_idx = 0;
 
-	pr_err("%s %d: \n", __func__, __LINE__);
-	fprintf(stderr, "%s %d: \n", __func__, __LINE__);
+	pr_err("%s %d: spe_idx %d\n", __func__, __LINE__, spe_idx);
+	//fprintf(stderr, "%s %d: \n", __func__, __LINE__);
 
 	cs_etm_pmu = perf_pmu__find(CORESIGHT_ETM_PMU_NAME);
 
-	arm_spe_pmu = perf_pmu__find(ARM_SPE_PMU_NAME);
+	if (spe_idx != 0) {
+		*err = sprintf(arm_spe_pmu_name, "%s_%d", ARM_SPE_PMU_NAME, spe_idx);
+		if (*err < 0) {
+			pr_err("sprintf failed\n");
+			*err = -ENOMEM;
+			return NULL;
+		}
 
-	*err = sprintf(arm_spe_pmu_name, "%s_%d", ARM_SPE_PMU_NAME, spe_idx);
-	if (*err < 0) {
-		pr_err("sprintf failed\n");
-		*err = -ENOMEM;
-		return NULL;
-	}
+		arm_spe_pmu = perf_pmu__find(arm_spe_pmu_name);
+	} else
+		arm_spe_pmu = perf_pmu__find(ARM_SPE_PMU_NAME);
 
-	arm_spe_pmu_idx = perf_pmu__find(arm_spe_pmu_name);
+	pr_err("%s %d: arm_spe_pmu %p  type 0x%x\n", __func__, __LINE__,
+		arm_spe_pmu, arm_spe_pmu ? arm_spe_pmu->type : 0xdeadbeef);
 
 	if (evlist) {
 		evlist__for_each_entry(evlist, evsel) {
+			const char *evname = perf_evsel__name(evsel);
+
+			pr_err("%s %d: evname %s   evsel->attr.type %d\n",
+				 __func__, __LINE__, evname, evsel->attr.type);
 			if (cs_etm_pmu &&
 			    evsel->attr.type == cs_etm_pmu->type)
 				found_etm = true;
@@ -73,10 +81,7 @@ struct auxtrace_record
 	if (found_spe) {
 		pr_err("%s %d: spe found, arm_spe_pmu_name %s\n", __func__, __LINE__, arm_spe_pmu_name);
 		spe_idx++;
-		if (spe_idx == 1)
-			return arm_spe_recording_init(err, arm_spe_pmu);
-		else
-			return arm_spe_recording_init(err, arm_spe_pmu_idx);
+		return arm_spe_recording_init(err, arm_spe_pmu);
 	} else
 		pr_err("%s %d: spe NOT found, spe_idx %d\n", __func__, __LINE__, spe_idx);
 
