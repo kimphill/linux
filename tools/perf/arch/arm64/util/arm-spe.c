@@ -41,7 +41,7 @@ struct arm_spe_recording {
 
 static size_t
 arm_spe_info_priv_size(struct auxtrace_record *itr __maybe_unused,
-			 struct perf_evlist *evlist __maybe_unused)
+		       struct perf_evlist *evlist __maybe_unused)
 {
 	return ARM_SPE_AUXTRACE_PRIV_SIZE;
 }
@@ -68,8 +68,8 @@ static int arm_spe_info_fill(struct auxtrace_record *itr,
 }
 
 static int arm_spe_recording_options(struct auxtrace_record *itr,
-				       struct perf_evlist *evlist,
-				       struct record_opts *opts)
+				     struct perf_evlist *evlist,
+				     struct record_opts *opts)
 {
 	struct arm_spe_recording *sper =
 			container_of(itr, struct arm_spe_recording, itr);
@@ -144,6 +144,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 
 	tracking_evsel->attr.freq = 0;
 	tracking_evsel->attr.sample_period = 1;
+	perf_evsel__reset_sample_bit(tracking_evsel, BRANCH_STACK);
 
 	/* In per-cpu case, always need the time of mmap events etc */
 	if (!cpu_map__empty(cpus))
