@@ -41,6 +41,7 @@ static int arm_spe_strerror(struct perf_evsel *evsel,
 			    struct target *target __maybe_unused,
 			    int err, char *msg, size_t size)
 {
+	const char *evname = perf_evsel__name(evsel);
 	struct perf_event_attr *attr = &evsel->attr;
 
 	switch (err) {
@@ -69,8 +70,8 @@ static int arm_spe_strerror(struct perf_evsel *evsel,
 		return scnprintf(msg, size, "*FILL ME IN*\n");
 		break;
 	case EACCES:
-		//if (attr->config)
-		return scnprintf(msg, size, "spe: physical address and time, and EL1 context ID data collection require admin privileges\n");
+		if (strstr(evname, "pa_enable") || strstr(evname, "pct_enable"))
+			return scnprintf(msg, size, "spe: physical address and time, and EL1 context ID data collection require admin privileges\n");
 		break;
 	case EINVAL:
 		if (!attr->sample_period)
