@@ -2686,6 +2686,8 @@ int __weak perf_evsel__suppl_strerror(struct perf_evsel *evsel __maybe_unused,
 				      char *msg __maybe_unused,
 				      size_t size __maybe_unused)
 {
+	pr_err("%s %d: in weak dummy version of function\n", __func__, __LINE__);
+
 	return 0;
 }
 
@@ -2694,6 +2696,11 @@ int perf_evsel__open_strerror(struct perf_evsel *evsel, struct target *target,
 {
 	char sbuf[STRERR_BUFSIZE];
 	int printed = 0;
+
+	fprintf(stderr, "%.60s\n", graph_dotted_line);
+	fprintf(stderr, "perf_event_attr:\n");
+	perf_event_attr__fprintf(stderr, &evsel->attr, __open_attr__fprintf, NULL);
+	fprintf(stderr, "%.60s\n", graph_dotted_line);
 
 	printed = perf_evsel__suppl_strerror(evsel, target, err, msg, size);
 	if (printed > 0) {
