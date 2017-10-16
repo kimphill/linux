@@ -68,16 +68,19 @@ static int arm_spe_strerror(struct perf_evsel *evsel,
 
 
 		if (attr->exclude_idle)
-			return scnprintf(msg, size, "spe: Cannot exclude profiling when idle, try without //I\n");
+			return scnprintf(msg, size,
+	"spe: Cannot exclude profiling when idle, try without //I\n");
 		return scnprintf(msg, size, "*FILL ME IN*\n");
 		break;
 	case EACCES:
 		if (strstr(evname, "pa_enable") || strstr(evname, "pct_enable"))
-			return scnprintf(msg, size, "spe: physical address and time, and EL1 context ID data collection require admin privileges\n");
+			return scnprintf(msg, size,
+	"spe: physical address and time, and EL1 context ID data collection require admin privileges\n");
 		break;
 	case EINVAL:
 		if (attr->freq || !attr->sample_period)
-			return scnprintf(msg, size, "required sample period missing.  Use '--count='\n");
+			return scnprintf(msg, size,
+	"required sample period missing.  Use '--count='\n");
 		break;
 	default:
 		break;
