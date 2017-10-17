@@ -37,7 +37,7 @@ struct arm_spe_recording {
 	struct auxtrace_record		itr;
 	struct perf_pmu			*arm_spe_pmu; // more than 1
 	struct perf_evlist		*evlist;
-	struct perf_pmu_attr			*arm_spe_pmu; // more than 1
+//	struct perf_pmu_attr			*arm_spe_pmu; // more than 1
 	u64				min_interval;
 	u64				count_size;
 };
@@ -92,7 +92,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 				return -EINVAL;
 			}
 			evsel->attr.freq = 0;
-			pr_err("%s %d: opts->default_interval %d\n",
+			pr_err("%s %d: opts->default_interval %ll\n", __func__, __LINE__,
 				opts->default_interval); 
 			evsel->attr.sample_period = 1;
 			arm_spe_evsel = evsel;
@@ -237,6 +237,8 @@ struct perf_event_attr
 	struct perf_event_attr *attr;
 	u64 sample_period, count_size;
 
+	pr_warning("arm_spe driver doesn't advertise a count_size. Using 12\n");
+
 	attr = zalloc(sizeof(struct perf_event_attr));
 	if (!attr)
 		return NULL;
@@ -250,6 +252,7 @@ struct perf_event_attr
 		count_size = 12;
 	} else
 		// put somewhere to check against later user specification
+		pr_warning("arm_spe driver doesn't advertise a count_size. Using 12\n");
 
 	ret = perf_pmu__scan_file(arm_spe_pmu, "caps/min_interval", "%d",
 				  &sample_period);

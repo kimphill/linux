@@ -24,7 +24,7 @@
 	#size-cells = <2>;
 
 	chosen {
-		bootargs = "console=ttyAMA0 earlyprintk=pl011,0x1c090000";
+		bootargs = "console=ttyAMA0 earlyprintk=pl011,0x1c090000 maxcpus=4";
 	};
 
 	aliases {
