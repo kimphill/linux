@@ -58,13 +58,23 @@ static int arm_spe_info_fill(struct auxtrace_record *itr,
 			container_of(itr, struct arm_spe_recording, itr);
 	struct perf_pmu *arm_spe_pmu = sper->arm_spe_pmu;
 
+	pr_err("%s %d: priv_size %lu should == ARM_SPE_AUXTRACE_PRIV_SIZE %lu\n",
+		__func__, __LINE__, priv_size, ARM_SPE_AUXTRACE_PRIV_SIZE);
+
 	if (priv_size != ARM_SPE_AUXTRACE_PRIV_SIZE)
 		return -EINVAL;
+
+	pr_err("%s %d: session->evlist->nr_mmaps %d (if 0 returning EINVAL)\n",
+		__func__, __LINE__, session->evlist->nr_mmaps);
 
 	if (!session->evlist->nr_mmaps)
 		return -EINVAL;
 
 	auxtrace_info->type = PERF_AUXTRACE_ARM_SPE;
+	pr_err("%s %d: auxtrace_info->type = PERF_AUXTRACE_ARM_SPE (%d)\n",
+		__func__, __LINE__, auxtrace_info->type);
+	pr_err("auxtrace_info->priv[ARM_SPE_PMU_TYPE] = arm_spe_pmu->type (%d)\n", 
+		arm_spe_pmu->type);
 	auxtrace_info->priv[ARM_SPE_PMU_TYPE] = arm_spe_pmu->type;
 
 	return 0;
@@ -231,6 +241,56 @@ struct auxtrace_record *arm_spe_recording_init(int *err,
 	return &sper->itr;
 }
 
+static int arm_spe_parse_terms_with_default(struct list_head *formats,
+					     const char *str,
+					     u64 *config)
+{
+	struct list_head *terms;
+	struct perf_event_attr attr = { .size = 0, };
+	int err;
+
+	terms = malloc(sizeof(struct list_head));
+	if (!terms)
+		return -ENOMEM;
+
+	INIT_LIST_HEAD(terms);
+
+	err = parse_events_terms(terms, str);
+	if (err)
+		goto out_free;
+
+	attr.config = *config;
+	err = perf_pmu__config_terms(formats, &attr, terms, true, NULL);
+	if (err)
+		goto out_free;
+
+	*config = attr.config;
+out_free:
+	parse_events_terms__delete(terms);
+	return err;
+}
+
+static int arm_spe_parse_terms(struct list_head *formats, const char *str,
+				u64 *config)
+{
+	*config = 0;
+	return arm_spe_parse_terms_with_default(formats, str, config);
+}
+
+static u64 arm_spe_default_config(struct perf_pmu *arm_spe_pmu)
+{
+	char buf[256];
+	u64 config;
+
+	scnprintf(buf, sizeof(buf), "");
+
+	pr_warning/*debug2*/("%s default config: %s\n", arm_spe_pmu->name, buf);
+
+	arm_spe_parse_terms(&arm_spe_pmu->format, buf, &config);
+
+	return config;
+}
+
 struct perf_event_attr
 *arm_spe_pmu_default_config(struct perf_pmu *arm_spe_pmu)
 {
@@ -266,9 +326,14 @@ struct perf_event_attr
 	}
 
 	//if (ret <= 1 || ret > 10 * count_size /* check if its 10 based, not 2 */) {
-	//attr->config = arm_spe_default_config(arm_spe_pmu);
+	attr->config = arm_spe_default_config(arm_spe_pmu);
 
+//assign a type? to match evsel->attr.type in auxtrace_record__init?
 	arm_spe_pmu->selectable = true;
+	arm_spe_pmu->is_uncore = false;
+	//arm_spe_pmu->type = PERF_TYPE_HARDWARE;
+	//arm_spe_pmu->type = PERF_AUXTRACE_ARM_SPE;
+//not ARM_SPE_PMU_TYPE...that' sfor the type of the auxtrace data in the perf.data file
 
 	return attr;
 }
