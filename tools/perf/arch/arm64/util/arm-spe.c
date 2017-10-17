@@ -38,8 +38,8 @@ struct arm_spe_recording {
 	struct perf_pmu			*arm_spe_pmu; // more than 1
 	struct perf_evlist		*evlist;
 //	struct perf_pmu_attr			*arm_spe_pmu; // more than 1
-	u64				min_interval;
-	u64				count_size;
+//	int				min_interval;
+//	int				count_size;
 };
 
 static size_t
@@ -92,7 +92,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 				return -EINVAL;
 			}
 			evsel->attr.freq = 0;
-			pr_err("%s %d: opts->default_interval %ll\n", __func__, __LINE__,
+			pr_err("%s %d: opts->default_interval %lu\n", __func__, __LINE__,
 				opts->default_interval); 
 			evsel->attr.sample_period = 1;
 			arm_spe_evsel = evsel;
@@ -104,7 +104,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 		return 0;
 
 //	opts->default_interval = 
-			pr_err("%s %d: opts->default_interval %d\n",
+			pr_err("%s %d: opts->default_interval %lu\n", __func__, __LINE__,
 				opts->default_interval); 
 
 	/* We are in full trace mode but '-m,xyz' wasn't specified */
@@ -235,9 +235,9 @@ struct perf_event_attr
 *arm_spe_pmu_default_config(struct perf_pmu *arm_spe_pmu)
 {
 	struct perf_event_attr *attr;
-	u64 sample_period, count_size;
+	int sample_period, count_size;
 
-	pr_warning("arm_spe driver doesn't advertise a count_size. Using 12\n");
+	pr_warning("%s %d: entered\n", __func__, __LINE__);
 
 	attr = zalloc(sizeof(struct perf_event_attr));
 	if (!attr)
@@ -248,22 +248,24 @@ struct perf_event_attr
 				&count_size) != 1) {
 		/* driver doesn't advertise a count_size
 		 * use ...12? */
-		pr_warning("arm_spe driver doesn't advertise a count_size. Using 12\n");
-		count_size = 12;
+		pr_warning("arm_spe driver doesn't advertise a count_size. Oh well!\n");
+		//count_size = 12;
 	} else
 		// put somewhere to check against later user specification
-		pr_warning("arm_spe driver doesn't advertise a count_size. Using 12\n");
+		pr_warning("got %d count_size from arm_spe driver\n", count_size);
 
-	ret = perf_pmu__scan_file(arm_spe_pmu, "caps/min_interval", "%d",
-				  &sample_period);
-	if (ret <= 1 || ret > 10 * count_size /* check if its 10 based, not 2 */) {
+	if (perf_pmu__scan_file(arm_spe_pmu, "caps/min_interval", "%d",
+				  &sample_period) != 1) {
 		/* driver doesn't advertise a minimum,
 		 * use max allowable by PMSIDR_EL1.INTERVAL */
 		pr_warning("arm_spe driver doesn't advertise a min. interval. Using 4096\n");
 		attr->sample_period = 4096;
-	} else
+	} else {
+		pr_warning("got %d sample_period from arm_spe driver\n", sample_period);
 		attr->sample_period = sample_period; 
+	}
 
+	//if (ret <= 1 || ret > 10 * count_size /* check if its 10 based, not 2 */) {
 	//attr->config = arm_spe_default_config(arm_spe_pmu);
 
 	arm_spe_pmu->selectable = true;

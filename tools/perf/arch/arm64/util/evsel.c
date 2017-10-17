@@ -44,7 +44,7 @@ static int arm_spe_strerror(struct perf_evsel *evsel,
 	const char *evname = perf_evsel__name(evsel);
 	struct perf_event_attr *attr = &evsel->attr;
 
-	pr_err("%s %d: err %d attr->sample_period %llu\n", __func__, __LINE__, err, attr->sample_period);
+	pr_warning("%s %d: entered with err %d\n", __func__, __LINE__, err);
 
 	switch (err) {
 	case EOPNOTSUPP:
@@ -78,6 +78,7 @@ static int arm_spe_strerror(struct perf_evsel *evsel,
 	"spe: physical address and time, and EL1 context ID data collection require admin privileges\n");
 		break;
 	case EINVAL:
+	pr_err("%s %d: err %d attr->sample_period %llu\n", __func__, __LINE__, err, attr->sample_period);
 		if (attr->freq || !attr->sample_period)
 			return scnprintf(msg, size,
 	"required sample period missing.  Use '--count='\n");
