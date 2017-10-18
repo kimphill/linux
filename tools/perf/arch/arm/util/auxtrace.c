@@ -66,8 +66,10 @@ struct auxtrace_record
 		evlist__for_each_entry(evlist, evsel) {
 			const char *evname = perf_evsel__name(evsel);
 
-			pr_err("%s %d: evname %s   evsel->attr.type %d arm_spe_pmu %p ?->type %d\n",
-				 __func__, __LINE__, evname, evsel->attr.type, arm_spe_pmu, arm_spe_pmu ? arm_spe_pmu->type : 0);
+			pr_err("%s %d: evname %s   evsel->attr.type %d arm_spe_pmu %p ?->type %d  ?->name %s\n",
+				 __func__, __LINE__, evname, evsel->attr.type, arm_spe_pmu,
+				 arm_spe_pmu ? arm_spe_pmu->type : 0,
+				 arm_spe_pmu ? arm_spe_pmu->name : "nil");
 			if (cs_etm_pmu &&
 			    evsel->attr.type == cs_etm_pmu->type)
 				found_etm = true;
