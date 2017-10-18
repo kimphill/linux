@@ -39,7 +39,7 @@ struct auxtrace_record
 
 	cs_etm_pmu = perf_pmu__find(CORESIGHT_ETM_PMU_NAME);
 
-	while (nr_cpus--) {
+	do {
 		*err = sprintf(arm_spe_pmu_name, "%s_%d", ARM_SPE_PMU_NAME, nr_cpus);
 		if (*err < 0) {
 			pr_err("sprintf failed\n");
@@ -50,10 +50,14 @@ struct auxtrace_record
 		arm_spe_pmu = perf_pmu__find(arm_spe_pmu_name);
 		if (arm_spe_pmu)
 			break;
-	}
-	if (!arm_spe_pmu)
+	} while (nr_cpus--);
+
+	if (!arm_spe_pmu) {
 		pr_err("%s %d: spe NOT found, searched nr_cpus arm_spe_X instances\n", __func__, __LINE__);
-		arm_spe_pmu = perf_pmu__find(ARM_SPE_PMU_NAME);
+//		arm_spe_pmu = perf_pmu__find(ARM_SPE_PMU_NAME);
+		*err = 0;
+		return NULL;
+	}
 
 	pr_err("%s %d: arm_spe_pmu %p  type 0x%x\n", __func__, __LINE__,
 		arm_spe_pmu, arm_spe_pmu ? arm_spe_pmu->type : 0xdeadbeef);

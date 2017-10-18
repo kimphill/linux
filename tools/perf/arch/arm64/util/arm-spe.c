@@ -334,6 +334,8 @@ struct perf_event_attr
 	//arm_spe_pmu->type = PERF_TYPE_HARDWARE;
 	//arm_spe_pmu->type = PERF_AUXTRACE_ARM_SPE;
 //not ARM_SPE_PMU_TYPE...that' sfor the type of the auxtrace data in the perf.data file
+//	pr_warning("hard assigning arm_spe_pmu->type to 7 does nothing, so doing attr instead\n");
+//	attr->type = 7;
 
 	return attr;
 }

@@ -693,7 +693,7 @@ static struct perf_pmu *pmu_find(const char *name)
 	struct perf_pmu *pmu;
 
 	list_for_each_entry(pmu, &pmus, list) {
-		pr_info("%s %d: pmu->name |%s| name |%s|\n",
+		pr_info("%s %d: pmu->name |%15s| name |%15s|\n",
 			__func__, __LINE__, pmu->name, name);
 		if (!strcmp(pmu->name, name))
 			return pmu;
