@@ -46,6 +46,7 @@ static size_t
 arm_spe_info_priv_size(struct auxtrace_record *itr __maybe_unused,
 		       struct perf_evlist *evlist __maybe_unused)
 {
+	pr_err("%s %d: \n", __func__, __LINE__);
 	return ARM_SPE_AUXTRACE_PRIV_SIZE;
 }
 
@@ -93,6 +94,8 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 	struct perf_evsel *tracking_evsel;
 	int err;
 
+	pr_err("%s %d: \n", __func__, __LINE__);
+
 	sper->evlist = evlist;
 
 	evlist__for_each_entry(evlist, evsel) {
@@ -109,13 +112,15 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 			opts->full_auxtrace = true;
 		}
 	}
+	pr_err("%s %d: \n", __func__, __LINE__);
 
 	if (!opts->full_auxtrace)
 		return 0;
 
+	pr_err("%s %d: \n", __func__, __LINE__);
 //	opts->default_interval = 
-			pr_err("%s %d: opts->default_interval %lu\n", __func__, __LINE__,
-				opts->default_interval); 
+	pr_err("%s %d: opts->default_interval %lu\n", __func__, __LINE__,
+		opts->default_interval); 
 
 	/* We are in full trace mode but '-m,xyz' wasn't specified */
 	if (opts->full_auxtrace && !opts->auxtrace_mmap_pages) {
@@ -176,6 +181,7 @@ static u64 arm_spe_reference(struct auxtrace_record *itr __maybe_unused)
 {
 	struct timespec ts;
 
+	pr_err("%s %d: \n", __func__, __LINE__);
 	clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
 
 	return ts.tv_sec ^ ts.tv_nsec;
@@ -186,6 +192,7 @@ static void arm_spe_recording_free(struct auxtrace_record *itr)
 	struct arm_spe_recording *sper =
 			container_of(itr, struct arm_spe_recording, itr);
 
+	pr_err("%s %d: \n", __func__, __LINE__);
        free(sper);
 }
 
@@ -195,6 +202,7 @@ static int arm_spe_read_finish(struct auxtrace_record *itr, int idx)
 			container_of(itr, struct arm_spe_recording, itr);
 	struct perf_evsel *evsel;
 
+	pr_err("%s %d: \n", __func__, __LINE__);
 	evlist__for_each_entry(sper->evlist, evsel) {
 		if (evsel->attr.type == sper->arm_spe_pmu->type)
 			return perf_evlist__enable_event_idx(sper->evlist,
