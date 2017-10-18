@@ -657,7 +657,9 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 	u64 reg;
 	struct perf_event_attr *attr = &event->attr;
 	struct arm_spe_pmu *spe_pmu = to_spe_pmu(event->pmu);
-
+	const struct device *dev = &spe_pmu->pdev->dev;
+	const char *devname = dev_name(dev);
+ 
 	/* This is, of course, deeply driver-specific */
 	if (attr->type != event->pmu->type)
 		return -ENOENT;
@@ -666,6 +668,8 @@ static int arm_spe_pmu_event_init(struct perf_event *event)
 	    !cpumask_test_cpu(event->cpu, &spe_pmu->supported_cpus))
 {
 		pr_err("spe driver: cpu %d  >=0 && !cpumask(cpu, supported_cpus)\n", event->cpu);
+		pr_err("%s: not supported on CPU %d. Supported CPU list: %*pbl\n",
+		       devname, event->cpu, cpumask_pr_args(&spe_pmu->supported_cpus));
 		return -ENOENT;
 }
 
