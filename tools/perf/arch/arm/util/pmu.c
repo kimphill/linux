@@ -32,7 +32,7 @@ struct perf_event_attr
 		pmu->selectable = true;
 		pmu->set_drv_config = cs_etm_set_drv_config;
 	} else
-		if (strstarts(pmu->name, ARM_SPE_PMU_NAME))
+		if (strstarts(pmu->name, "arm_spe_" /*ARM_SPE_PMU_NAME*/))
 			return arm_spe_pmu_default_config(pmu);
 #endif
 	return NULL;

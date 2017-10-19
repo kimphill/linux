@@ -336,11 +336,11 @@ struct perf_event_attr
 	}
 
 	//if (ret <= 1 || ret > 10 * count_size /* check if its 10 based, not 2 */) {
-	attr->config = 0; //arm_spe_default_config(arm_spe_pmu);
+	//attr->config = 0; //arm_spe_default_config(arm_spe_pmu);
 
 //assign a type? to match evsel->attr.type in auxtrace_record__init?
 	arm_spe_pmu->selectable = true;
-	arm_spe_pmu->is_uncore = false;
+	//arm_spe_pmu->is_uncore = false;
 	//arm_spe_pmu->type = PERF_TYPE_HARDWARE;
 	//arm_spe_pmu->type = PERF_AUXTRACE_ARM_SPE;
 //not ARM_SPE_PMU_TYPE...that' sfor the type of the auxtrace data in the perf.data file
