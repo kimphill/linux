@@ -240,6 +240,14 @@ struct auxtrace_record *arm_spe_recording_init(int *err,
 	sper->itr.info_priv_size = arm_spe_info_priv_size;
 	sper->itr.info_fill = arm_spe_info_fill;
 	sper->itr.free = arm_spe_recording_free;
+
+#if 0
+	sper->itr.snapshot_start = intel_pt_snapshot_start;
+	sper->itr.snapshot_finish = intel_pt_snapshot_finish;
+	sper->itr.find_snapshot = intel_pt_find_snapshot;
+	sper->itr.parse_snapshot_options = intel_pt_parse_snapshot_options;
+#endif
+
 	sper->itr.reference = arm_spe_reference;
 	sper->itr.read_finish = arm_spe_read_finish;
 	sper->itr.alignment = 0;
@@ -310,8 +318,10 @@ struct perf_event_attr
 	pr_warning("%s %d: entered\n", __func__, __LINE__);
 
 	attr = zalloc(sizeof(struct perf_event_attr));
-	if (!attr)
+	if (!attr) {
+		pr_err("arm_spe default config cannot allocate a perf_event_attr\n");
 		return NULL;
+	}
 
 	/* check count_size */
 	if (perf_pmu__scan_file(arm_spe_pmu, "caps/count_size", "%d",

@@ -31,13 +31,13 @@ struct auxtrace_record
 *auxtrace_record__init(struct perf_evlist *evlist, int *err)
 {
 	struct perf_pmu	*cs_etm_pmu; //, *arm_spe_pmu;
-	static struct perf_pmu **arm_spe_pmus;
+	static struct perf_pmu **arm_spe_pmus = NULL;
 	struct perf_evsel *evsel;
 	const char *evname;
 	bool found_etm = false;
 	bool found_spe = false;
-	char arm_spe_pmu_name[sizeof(ARM_SPE_PMU_NAME) + 5 /* dec width of MAX_NR_CPUS + term. */];
-	int i, nr_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+	char arm_spe_pmu_name[100]; //sizeof(ARM_SPE_PMU_NAME) + 5 /* dec width of MAX_NR_CPUS + term. */];
+	int ret, i, nr_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	static int nr_spes = 0;
 
 	pr_err("%s %d: nr_cpus %d\n", __func__, __LINE__, nr_cpus);
@@ -53,18 +53,14 @@ struct auxtrace_record
 		}
 
 		for (i = 0; i < nr_cpus; i++) {
-			*err = sprintf(arm_spe_pmu_name, "%s_%d", ARM_SPE_PMU_NAME, i);
-			if (*err < 0) {
+			ret = sprintf(arm_spe_pmu_name, "%s_%d", ARM_SPE_PMU_NAME, i);
+			if (ret < 0) {
 				pr_err("sprintf failed\n");
 				*err = -ENOMEM;
 				return NULL;
 			}
 
 			arm_spe_pmus[nr_spes] = perf_pmu__find(arm_spe_pmu_name);
-// zalloc(sizeof(struct perf_pmu) * nr_cpus);
-//			arm_spe_pmu = perf_pmu__find(arm_spe_pmu_name);
-
-
 			if (arm_spe_pmus[nr_spes]) {
 				pr_err("%s %d: arm_spe_pmu %d type %d name %s\n",
 					 __func__, __LINE__, nr_spes,
@@ -100,8 +96,8 @@ struct auxtrace_record
 				for (i = 0; i < nr_spes; i++) {
 					pr_err("%s %d: evname %s   evsel->attr.type %d arm_spe_pmu %p ?->type %d  ?->name %s\n",
 						 __func__, __LINE__, evname, evsel->attr.type, arm_spe_pmus[i],
-						 arm_spe_pmus ? arm_spe_pmus[i]->type : 0,
-						 arm_spe_pmus ? arm_spe_pmus[i]->name : "nil");
+						 arm_spe_pmus[i] ? arm_spe_pmus[i]->type : 0,
+						 arm_spe_pmus[i] ? arm_spe_pmus[i]->name : "nil");
 			    		if (evsel->attr.type == arm_spe_pmus[i]->type) {
 						found_spe = true;
 						pr_err("%s %d: found_spe %d\n", __func__, __LINE__, found_spe);   

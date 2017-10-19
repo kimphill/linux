@@ -526,7 +526,7 @@ int auxtrace_record__info_fill(struct auxtrace_record *itr,
 
 void auxtrace_record__free(struct auxtrace_record *itr)
 {
-	if (itr)
+	if (itr && itr->free)
 		itr->free(itr);
 }
 
@@ -557,14 +557,14 @@ int auxtrace_record__options(struct auxtrace_record *itr,
 			     struct perf_evlist *evlist,
 			     struct record_opts *opts)
 {
-	if (itr)
+	if (itr && itr->recording_options)
 		return itr->recording_options(itr, evlist, opts);
 	return 0;
 }
 
 u64 auxtrace_record__reference(struct auxtrace_record *itr)
 {
-	if (itr)
+	if (itr && itr->reference)
 		return itr->reference(itr);
 	return 0;
 }
@@ -575,11 +575,12 @@ int auxtrace_parse_snapshot_options(struct auxtrace_record *itr,
 	if (!str)
 		return 0;
 
-	if (itr)
+	if (itr && itr->parse_snapshot_options)
 		return itr->parse_snapshot_options(itr, opts, str);
 
 	pr_err("No AUX area tracing to snapshot\n");
-	return -EINVAL;
+	pr_err("kim: not returning EINVAL for now\n");
+	return 0;  //-EINVAL;
 }
 
 struct auxtrace_record *__weak
