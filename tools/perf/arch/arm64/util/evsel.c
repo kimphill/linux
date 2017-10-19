@@ -65,17 +65,20 @@ static int arm_spe_strerror(struct perf_evsel *evsel,
 +       "Bad sample period %d.  SPE requires one of: 256, 512, 768, 1024, 1536, 2048, 3072, 4096.\n",
 +                                               evsel->attr.sample_period);
 #endif
-
-
 		if (attr->exclude_idle)
 			return scnprintf(msg, size,
-	"spe: Cannot exclude profiling when idle, try without //I\n");
-		return scnprintf(msg, size, "*FILL ME IN*\n");
+	"%s: Cannot exclude profiling when idle, try without //I\n", evname);
+		return scnprintf(msg, size, "%s: unsupported error code:\n"
+	"EITHER this driver may not support a possibly h/w-implementation\n"
+	"\tdefined event filter bit that has been set in the PMSEVFR register\n"
+	"OR h/w doesn't support filtering by one or more of: latency,\n"
+	"\toperation type, or events\n", evname);
 		break;
 	case EACCES:
 		if (strstr(evname, "pa_enable") || strstr(evname, "pct_enable"))
 			return scnprintf(msg, size,
-	"spe: physical address and time, and EL1 context ID data collection require admin privileges\n");
+	"%s: physical address and time, and EL1 context ID data collection\n"
+	"\trequire admin privileges\n", evname);
 		break;
 	case EINVAL:
 	pr_err("%s %d: err %d attr->sample_period %llu\n", __func__, __LINE__, err, attr->sample_period);

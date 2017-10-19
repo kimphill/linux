@@ -89,8 +89,8 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 			container_of(itr, struct arm_spe_recording, itr);
 	struct perf_pmu *arm_spe_pmu = sper->arm_spe_pmu;
 	struct perf_evsel *evsel, *arm_spe_evsel = NULL;
-	const struct cpu_map *cpus = evlist->cpus;
-	bool privileged = geteuid() == 0 || perf_event_paranoid() < 0;
+	const struct cpu_map *cpus;
+	bool have_timing_info = false, privileged = geteuid() == 0 || perf_event_paranoid() < 0;
 	struct perf_evsel *tracking_evsel;
 	int err;
 
@@ -107,15 +107,23 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 			evsel->attr.freq = 0;
 			pr_err("%s %d: opts->default_interval %lu\n", __func__, __LINE__,
 				opts->default_interval); 
+			pr_err("%s %d: evsel->attr.sample_period %llu\n", __func__, __LINE__,
+				evsel->attr.sample_period);
 			evsel->attr.sample_period = 1;
 			arm_spe_evsel = evsel;
+			// vs. evlist->cpus; unlike intel we can be heterogeneous,
+			// so get cpus from target event when found
+			cpus = evsel->cpus;
 			opts->full_auxtrace = true;
 		}
 	}
 	pr_err("%s %d: \n", __func__, __LINE__);
 
-	if (!opts->full_auxtrace)
+	if (!opts->full_auxtrace) {
+		pr_err("%s %d: not a full_auxtrace?  spe event not found? returning 0\n",
+			 __func__, __LINE__);
 		return 0;
+	}
 
 	pr_err("%s %d: \n", __func__, __LINE__);
 //	opts->default_interval = 
@@ -145,6 +153,15 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 		}
 	}
 
+
+	have_timing_info = true; /* IRL check whether ts_enable was set */
+	if (have_timing_info && !cpu_map__empty(cpus)) {
+		if (perf_can_record_switch_events()) {
+			pr_err("%s %d: hey, perf can record switch events. May want to fill this in\n", __func__, __LINE__);
+		} else
+			pr_err("%s %d: hey, perf CANNOT record switch events. May want to fill this in (more work though)\n", __func__, __LINE__);
+	}
+
 	/*
 	 * To obtain the auxtrace buffer file descriptor, the auxtrace event
 	 * must come first.
@@ -155,8 +172,11 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 	 * In the case of per-cpu mmaps, we need the CPU on the
 	 * AUX event.
 	 */
-	if (!cpu_map__empty(cpus))
+	if (!cpu_map__empty(cpus)) {
 		perf_evsel__set_sample_bit(arm_spe_evsel, CPU);
+		perf_evsel__set_sample_bit(arm_spe_evsel, TIME);
+		perf_evsel__set_sample_bit(arm_spe_evsel, TID);
+	}
 
 	/* Add dummy event to keep tracking */
 	err = parse_events(evlist, "dummy:u", NULL);
@@ -168,6 +188,8 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 
 	tracking_evsel->attr.freq = 0;
 	tracking_evsel->attr.sample_period = 1;
+	perf_evsel__set_sample_bit(arm_spe_evsel, CPU);
+	perf_evsel__set_sample_bit(arm_spe_evsel, TID);
 	perf_evsel__reset_sample_bit(tracking_evsel, BRANCH_STACK);
 
 	/* In per-cpu case, always need the time of mmap events etc */
