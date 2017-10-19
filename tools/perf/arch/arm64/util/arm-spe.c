@@ -249,6 +249,7 @@ struct auxtrace_record *arm_spe_recording_init(int *err,
 	return &sper->itr;
 }
 
+#if 0  /* spe doesn't need default, unless /ts_enable=1/ ??? */
 static int arm_spe_parse_terms_with_default(struct list_head *formats,
 					     const char *str,
 					     u64 *config)
@@ -298,6 +299,7 @@ static u64 arm_spe_default_config(struct perf_pmu *arm_spe_pmu)
 
 	return config;
 }
+#endif
 
 struct perf_event_attr
 *arm_spe_pmu_default_config(struct perf_pmu *arm_spe_pmu)
@@ -334,7 +336,7 @@ struct perf_event_attr
 	}
 
 	//if (ret <= 1 || ret > 10 * count_size /* check if its 10 based, not 2 */) {
-	attr->config = arm_spe_default_config(arm_spe_pmu);
+	attr->config = 0; //arm_spe_default_config(arm_spe_pmu);
 
 //assign a type? to match evsel->attr.type in auxtrace_record__init?
 	arm_spe_pmu->selectable = true;
