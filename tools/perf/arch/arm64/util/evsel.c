@@ -16,7 +16,7 @@ static int ccn_strerror(struct perf_evsel *evsel,
 	switch (err) {
 	case EOPNOTSUPP:
 		if (attr->sample_period)
-			return scnprintf(msg, size, "Sampling not supported, try 'perf stat'");
+			return scnprintf(msg, size, "Sampling not supported, try 'perf stat'\n");
 		if (target->per_thread)
 			return scnprintf(msg, size, "Can't provide per-task data!\n");
 		return scnprintf(msg, size, "*FILL ME IN*\n");
@@ -28,6 +28,8 @@ static int ccn_strerror(struct perf_evsel *evsel,
 			attr->exclude_idle || attr->exclude_host ||
 			attr->exclude_guest)
 			return scnprintf(msg, size, "Can't exclude execution levels!\n");
+		return scnprintf(msg, size,
+	"Invalid MN / XP / node ID, or node type, or node/XP port / vc or event, or mixed PMU group. See dmesg for details\n");
 		break;
 	default:
 		break;
