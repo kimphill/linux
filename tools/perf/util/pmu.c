@@ -697,8 +697,8 @@ static struct perf_pmu *pmu_find(const char *name)
 	//		__func__, __LINE__, pmu->name, name);
 		if (!strcmp(pmu->name, name))
 {
-		pr_info("%s %d: matched on name |%s|\n",
-			__func__, __LINE__, name);
+//		pr_info("%s %d: matched on name |%s|\n",
+//			__func__, __LINE__, name);
 			return pmu;
 }
 	}

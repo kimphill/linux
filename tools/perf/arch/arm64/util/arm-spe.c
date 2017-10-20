@@ -172,28 +172,31 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 	 * In the case of per-cpu mmaps, we need the CPU on the
 	 * AUX event.
 	 */
-	if (!cpu_map__empty(cpus)) {
+//	if (!cpu_map__empty(cpus)) {
 		perf_evsel__set_sample_bit(arm_spe_evsel, CPU);
 		perf_evsel__set_sample_bit(arm_spe_evsel, TIME);
 		perf_evsel__set_sample_bit(arm_spe_evsel, TID);
-	}
+//	}
 
 	/* Add dummy event to keep tracking */
 	err = parse_events(evlist, "dummy:u", NULL);
 	if (err)
+{
+		pr_err("%s %d: parse_events returned error %d. bailing\n", __func__, __LINE__, err);
 		return err;
+}
 
 	tracking_evsel = perf_evlist__last(evlist);
 	perf_evlist__set_tracking_event(evlist, tracking_evsel);
 
 	tracking_evsel->attr.freq = 0;
 	tracking_evsel->attr.sample_period = 1;
-	perf_evsel__set_sample_bit(arm_spe_evsel, CPU);
-	perf_evsel__set_sample_bit(arm_spe_evsel, TID);
+	perf_evsel__set_sample_bit(tracking_evsel, TIME);
+	perf_evsel__set_sample_bit(tracking_evsel, CPU);
 	perf_evsel__reset_sample_bit(tracking_evsel, BRANCH_STACK);
 
 	/* In per-cpu case, always need the time of mmap events etc */
-	if (!cpu_map__empty(cpus))
+//	if (!cpu_map__empty(cpus))
 		perf_evsel__set_sample_bit(tracking_evsel, TIME);
 
 	return 0;
