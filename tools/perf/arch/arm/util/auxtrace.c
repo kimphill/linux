@@ -88,26 +88,26 @@ struct auxtrace_record
 	pr_err("%s %d: nr_spes %d\n", __func__, __LINE__, nr_spes);
 
 	//if (evlist) {
-		evlist__for_each_entry(evlist, evsel) {
-			evname = perf_evsel__name(evsel);
+	evlist__for_each_entry(evlist, evsel) {
+		evname = perf_evsel__name(evsel);
 
-			if (cs_etm_pmu &&
-			    evsel->attr.type == cs_etm_pmu->type)
-				found_etm = true;
+		if (cs_etm_pmu &&
+		    evsel->attr.type == cs_etm_pmu->type)
+			found_etm = true;
 
-			if (nr_spes)
-				for (i = 0; i < nr_spes; i++) {
-					pr_err("%s %d: evname %s   evsel->attr.type %d arm_spe_pmu %p ?->type %d  ?->name %s\n",
-						 __func__, __LINE__, evname, evsel->attr.type, arm_spe_pmus[i],
-						 arm_spe_pmus[i] ? arm_spe_pmus[i]->type : 0,
-						 arm_spe_pmus[i] ? arm_spe_pmus[i]->name : "nil");
-			    		if (evsel->attr.type == arm_spe_pmus[i]->type) {
-						found_spe = true;
-						pr_err("%s %d: found_spe %d\n", __func__, __LINE__, found_spe);   
-						break;
-					}
+		if (nr_spes)
+			for (i = 0; i < nr_spes; i++) {
+				pr_err("%s %d: evname %s   evsel->attr.type %d arm_spe_pmu %p ?->type %d  ?->name %s\n",
+					 __func__, __LINE__, evname, evsel->attr.type, arm_spe_pmus[i],
+					 arm_spe_pmus[i] ? arm_spe_pmus[i]->type : 0,
+					 arm_spe_pmus[i] ? arm_spe_pmus[i]->name : "nil");
+				if (evsel->attr.type == arm_spe_pmus[i]->type) {
+					found_spe = true;
+					pr_err("%s %d: found_spe %d\n", __func__, __LINE__, found_spe);   
+					break;
 				}
-		}
+			}
+	}
 	//}
 
 	if (found_etm && found_spe) {

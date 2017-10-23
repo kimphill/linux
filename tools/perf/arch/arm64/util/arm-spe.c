@@ -89,7 +89,7 @@ static int arm_spe_recording_options(struct auxtrace_record *itr,
 			container_of(itr, struct arm_spe_recording, itr);
 	struct perf_pmu *arm_spe_pmu = sper->arm_spe_pmu;
 	struct perf_evsel *evsel, *arm_spe_evsel = NULL;
-	const struct cpu_map *cpus = evlist->cpus /* prevent may be used uninitialized */
+	const struct cpu_map *cpus = evlist->cpus; /* prevent may be used uninitialized */
 	bool have_timing_info = false, privileged = geteuid() == 0 || perf_event_paranoid() < 0;
 	struct perf_evsel *tracking_evsel;
 	int err;
