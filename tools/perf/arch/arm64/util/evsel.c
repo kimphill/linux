@@ -18,7 +18,7 @@ static int ccn_strerror(struct perf_evsel *evsel,
 	case EOPNOTSUPP:
 		if (attr->sample_period)
 			return scnprintf(msg, size, "%s: Sampling not supported, try 'perf stat'\n", evname);
-		if (target->cpu < 0)
+		if (target__has_task(target)) //target->cpu < 0)
 			return scnprintf(msg, size, "%s: Can't provide per-task data!\n", evname);
 		break;
 	case EINVAL:

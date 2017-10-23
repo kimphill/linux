@@ -43,6 +43,9 @@ struct auxtrace_record
 	pr_err("%s %d: nr_cpus %d\n", __func__, __LINE__, nr_cpus);
 	//fprintf(stderr, "%s %d: \n", __func__, __LINE__);
 
+	if (!evlist)
+		return NULL;
+
 	cs_etm_pmu = perf_pmu__find(CORESIGHT_ETM_PMU_NAME);
 	if (!arm_spe_pmus) {
 		arm_spe_pmus = zalloc(sizeof(struct perf_pmu *) * nr_cpus);
@@ -84,7 +87,7 @@ struct auxtrace_record
 #endif
 	pr_err("%s %d: nr_spes %d\n", __func__, __LINE__, nr_spes);
 
-	if (evlist) {
+	//if (evlist) {
 		evlist__for_each_entry(evlist, evsel) {
 			evname = perf_evsel__name(evsel);
 
@@ -105,7 +108,7 @@ struct auxtrace_record
 					}
 				}
 		}
-	}
+	//}
 
 	if (found_etm && found_spe) {
 		pr_err("Concurrent ARM Coresight ETM and SPE operation not currently supported\n");
@@ -120,7 +123,7 @@ struct auxtrace_record
 		pr_err("%s %d: spe found, arm_spe_pmu %d\n", __func__, __LINE__, i);
 		return arm_spe_recording_init(err, arm_spe_pmus[i]);
 	} else
-		pr_err("%s %d: spe NOT found for evname %s (nr_spes %d, found_spe %d)\n", __func__, __LINE__, evname, nr_spes, found_spe);
+		pr_err("%s %d: spe NOT found (nr_spes %d, found_spe %d)\n", __func__, __LINE__, /*evname*/ nr_spes, found_spe);
 
 	/*
 	 * Clear 'err' even if we haven't found an event - that way perf
