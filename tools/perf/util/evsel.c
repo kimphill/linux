@@ -2686,8 +2686,18 @@ static bool find_process(const char *name)
 	return ret ? false : true;
 }
 
-int perf_evsel__open_strerror(struct perf_evsel *evsel, struct target *target,
-			      int err, char *msg, size_t size)
+int __weak perf_evsel__open_strerror_arch(struct perf_evsel *evsel __maybe_unused,
+					  struct target *target __maybe_unused,
+					  int err __maybe_unused,
+					  char *msg __maybe_unused,
+					  size_t size __maybe_unused)
+{
+	return 0;
+}
+
+static int __perf_evsel__open_strerror(struct perf_evsel *evsel,
+				       struct target *target,
+				       int err, char *msg, size_t size)
 {
 	char sbuf[STRERR_BUFSIZE];
 	int printed = 0;
@@ -2745,12 +2755,6 @@ int perf_evsel__open_strerror(struct perf_evsel *evsel, struct target *target,
 		if (evsel->attr.precise_ip)
 			return scnprintf(msg, size, "%s",
 	"\'precise\' request may not be supported. Try removing 'p' modifier.");
-#if defined(__i386__) || defined(__x86_64__)
-		if (evsel->attr.type == PERF_TYPE_HARDWARE)
-			return scnprintf(msg, size, "%s",
-	"No hardware sampling interrupt available.\n"
-	"No APIC? If so then you can boot the kernel with the \"lapic\" boot parameter to force-enable it.");
-#endif
 		break;
 	case EBUSY:
 		if (find_process("oprofiled"))
@@ -2776,6 +2780,18 @@ int perf_evsel__open_strerror(struct perf_evsel *evsel, struct target *target,
 	"No CONFIG_PERF_EVENTS=y kernel support configured?",
 			 err, str_error_r(err, sbuf, sizeof(sbuf)),
 			 perf_evsel__name(evsel));
+}
+
+int perf_evsel__open_strerror(struct perf_evsel *evsel, struct target *target,
+			      int err, char *msg, size_t size)
+{
+	int printed;
+
+	printed = perf_evsel__open_strerror_arch(evsel, target, err, msg, size);
+	if (printed)
+		return printed;
+
+	return __perf_evsel__open_strerror(evsel, target, err, msg, size);
 }
 
 char *perf_evsel__env_arch(struct perf_evsel *evsel)
