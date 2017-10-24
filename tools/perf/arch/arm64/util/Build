@@ -1,4 +1,5 @@
 libperf-y += header.o
+libperf-y     += evsel.o
 libperf-$(CONFIG_DWARF)     += dwarf-regs.o
 libperf-$(CONFIG_LOCAL_LIBUNWIND) += unwind-libunwind.o
 
