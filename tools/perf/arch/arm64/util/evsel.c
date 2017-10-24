@@ -15,19 +15,22 @@ static int ccn_strerror(struct perf_evsel *evsel,
 	struct perf_event_attr *attr = &evsel->attr;
 
 	switch (err) {
+#if 1 /* generic handles instead */
 	case EOPNOTSUPP:
+#if 0 /* generic handles instead */
 		if (attr->sample_period)
-			return scnprintf(msg, size, "%s: Sampling not supported, try 'perf stat'\n", evname);
+			return scnprintf(msg, size, "%s: MAKEMEGENERIC: Sampling not supported, try 'perf stat'\n", evname);
+#endif
 		if (target__has_task(target))
-			return scnprintf(msg, size, "%s: Can't provide per-task data!\n", evname);
+			return scnprintf(msg, size, "%s: MAKEMEGENERIC: Can't provide per-task data!\n", evname);
 		break;
+#endif
 	case EINVAL:
 		if ((attr->sample_type & PERF_SAMPLE_BRANCH_STACK) ||
-			attr->exclude_user ||
-			attr->exclude_kernel || attr->exclude_hv ||
-			attr->exclude_idle || attr->exclude_host ||
-			attr->exclude_guest)
-			return scnprintf(msg, size, "%s: Can't exclude execution levels!\n", evname);
+		    attr->exclude_user || attr->exclude_kernel ||
+		    attr->exclude_hv || attr->exclude_idle ||
+		    attr->exclude_host || attr->exclude_guest)
+			return scnprintf(msg, size, "%s: TRYANDMAKEMEGENERIC: Can't exclude execution levels!\n", evname);
 
 		return scnprintf(msg, size,
 	"%s: Invalid MN / XP / node ID, or node type, or node/XP port / vc or event, or mixed PMU group. See dmesg for details\n", evname);
@@ -39,9 +42,9 @@ static int ccn_strerror(struct perf_evsel *evsel,
 	return 0;
 }
 
-int perf_evsel__suppl_strerror(struct perf_evsel *evsel,
-			       struct target *target __maybe_unused,
-			       int err, char *msg, size_t size)
+int perf_evsel__open_strerror_arch(struct perf_evsel *evsel,
+				   struct target *target,
+				   int err, char *msg, size_t size)
 {
 
 	const char *evname = perf_evsel__name(evsel);
