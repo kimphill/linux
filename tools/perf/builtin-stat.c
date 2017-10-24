@@ -625,9 +625,11 @@ try_again:
 			if (errno == EINVAL || errno == ENOSYS ||
 			    errno == ENOENT || errno == EOPNOTSUPP ||
 			    errno == ENXIO) {
-				if (verbose > 0)
-					ui__warning("%s event is not supported by the kernel.\n",
-						    perf_evsel__name(counter));
+				if (verbose > 0) {
+					perf_evsel__open_strerror(counter, &target,
+								  errno, msg, sizeof(msg));
+					ui__warning("%s\n", msg);
+				}
 				counter->supported = false;
 
 				if ((counter->leader != counter) ||
