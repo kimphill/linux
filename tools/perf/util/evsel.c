@@ -2750,8 +2750,9 @@ static int __perf_evsel__open_strerror(struct perf_evsel *evsel,
 		break;
 	case EOPNOTSUPP:
 		if (evsel->attr.sample_period != 0)
-			return scnprintf(msg, size, "%s",
-	"PMU Hardware doesn't support sampling/overflow-interrupts.");
+			return scnprintf(msg, size,
+	"%s: PMU Hardware doesn't support sampling/overflow-interrupts. Try 'perf stat'",
+					 perf_evsel__name(evsel));
 		if (evsel->attr.precise_ip)
 			return scnprintf(msg, size, "%s",
 	"\'precise\' request may not be supported. Try removing 'p' modifier.");
