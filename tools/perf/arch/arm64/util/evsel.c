@@ -55,6 +55,64 @@ invalid or unsupported event: 'ccn/cycles/,ccn/xp_valid_flit,xp=1,port=0,vc=1,di
 	return 0;
 }
 
+#ifdef HAVE_AUXTRACE_SUPPORT
+static int arm_spe_strerror(struct perf_evsel *evsel,
+			    struct target *target __maybe_unused,
+			    int err, char *msg, size_t size)
+{
+	const char *evname = perf_evsel__name(evsel);
+	struct perf_event_attr *attr = &evsel->attr;
+
+	pr_warning("%s %d: entered with err %d\n", __func__, __LINE__, err);
+
+	switch (err) {
+	case EOPNOTSUPP:
+#if 0
+	if (!event->hw.sample_period ||
++	    event->hw.sample_period < spe_pmu->min_period) {
++		errorf("%s: no sample period, or less than minimum (%d)\n",
++		       devname, spe_pmu->min_period);
++		return -EOPNOTSUPP;
++	
+#endif
+#if 0 //def AUXTRACE??
++               if (!strncmp(perf_evsel__name(evsel), "arm_spe", sizeof("arm_spe"))) {
++                       if (evsel->attr.sample_period != 0)
++                               return scnprintf(msg, size, "required sample period missing.  Use -c <n>");
++                       else if sample period not one of the ones supported
++                               return scnprintf(msg, size,
++       "Bad sample period %d.  SPE requires one of: 256, 512, 768, 1024, 1536, 2048, 3072, 4096.\n",
++                                               evsel->attr.sample_period);
+#endif
+		if (attr->exclude_idle)
+			return scnprintf(msg, size,
+	"%s: Cannot exclude profiling when idle, try without //I\n", evname);
+		return scnprintf(msg, size, "%s: unsupported error code:\n"
+	"EITHER this driver may not support a possibly h/w-implementation\n"
+	"\tdefined event filter bit that has been set in the PMSEVFR register\n"
+	"OR h/w doesn't support filtering by one or more of: latency,\n"
+	"\toperation type, or events\n", evname);
+		break;
+	case EACCES:
+		if (strstr(evname, "pa_enable") || strstr(evname, "pct_enable"))
+			return scnprintf(msg, size,
+	"%s: physical address and time, and EL1 context ID data collection\n"
+	"\trequire admin privileges\n", evname);
+		break;
+	case EINVAL:
+	pr_err("%s %d: err %d attr->sample_period %llu\n", __func__, __LINE__, err, attr->sample_period);
+		if (attr->freq || !attr->sample_period)
+			return scnprintf(msg, size,
+	"required sample period missing.  Use '--count='\n");
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+#endif
+
 int perf_evsel__suppl_strerror(struct perf_evsel *evsel,
 			       struct target *target __maybe_unused,
 			       int err, char *msg, size_t size)
@@ -64,6 +122,11 @@ int perf_evsel__suppl_strerror(struct perf_evsel *evsel,
 
 	if (strstarts(evname, "ccn"))
 		return ccn_strerror(evsel, target, err, msg, size);
+
+#ifdef HAVE_AUXTRACE_SUPPORT
+	if (strstarts(evname, "arm_spe"))
+		return arm_spe_strerror(evsel, target, err, msg, size);
+#endif
 
 	return 0;
 }
