@@ -21,8 +21,20 @@ static int ccn_strerror(struct perf_evsel *evsel,
 		if (attr->sample_period)
 			return scnprintf(msg, size, "%s: MAKEMEGENERIC: Sampling not supported, try 'perf stat'\n", evname);
 #endif
-		if (target__has_task(target))
-			return scnprintf(msg, size, "%s: MAKEMEGENERIC: Can't provide per-task data!\n", evname);
+#if 1 /* driver version (cpu < 0) doesn't occur IRL anymore (since systemwide -a by default commit) */
+		//if (target__has_task(target))
+	//	if (!target__has_cpu(target))
+			return scnprintf(msg, size, 
+	"%s: UNCONDITIONALEOPNOTSUPP: MAKEMEGENERIC: Can't provide per-task data!\n"
+	"%s: MAKEMEGENERIC: target: pid %p tid %p cpu_list %p uid_str %p system_wide %d uses_mmap %d default_per_cpu %d per_thread %d\n"
+	"%s: MAKEMEGENERIC: target: has_task %d  has_cpu %d  none %d  uses_dummy_map %d\n"
+, evname,
+evname,
+target->pid, target->tid, target->cpu_list, target->uid_str, target->system_wide, target->uses_mmap, target->default_per_cpu, target->per_thread,
+evname,
+target__has_task(target), target__has_cpu(target), target__none(target)
+);
+#endif
 		break;
 #endif
 	case EINVAL:
@@ -30,10 +42,26 @@ static int ccn_strerror(struct perf_evsel *evsel,
 		    attr->exclude_user || attr->exclude_kernel ||
 		    attr->exclude_hv || attr->exclude_idle ||
 		    attr->exclude_host || attr->exclude_guest)
-			return scnprintf(msg, size, "%s: TRYANDMAKEMEGENERIC: Can't exclude execution levels!\n", evname);
+			return scnprintf(msg, size, "%s: TRYANDMAKEMEGENERIC: Can't exclude execution levels!\n"
+	"%s: MAKEMEGENERIC: target: pid %p tid %p cpu_list %p uid_str %p system_wide %d uses_mmap %d default_per_cpu %d per_thread %d\n"
+	"%s: MAKEMEGENERIC: target: has_task %d  has_cpu %d  none %d  uses_dummy_map %d\n"
+, evname,
+evname,
+target->pid, target->tid, target->cpu_list, target->uid_str, target->system_wide, target->uses_mmap, target->default_per_cpu, target->per_thread,
+evname,
+target__has_task(target), target__has_cpu(target), target__none(target)
+);
 
 		return scnprintf(msg, size,
-	"%s: Invalid MN / XP / node ID, or node type, or node/XP port / vc or event, or mixed PMU group. See dmesg for details\n", evname);
+	"%s: Invalid MN / XP / node ID, or node type, or node/XP port / vc or event, or mixed PMU group. See dmesg for details\n"
+	"%s: MAKEMEGENERIC: target: pid %p tid %p cpu_list %p uid_str %p system_wide %d uses_mmap %d default_per_cpu %d per_thread %d\n"
+	"%s: MAKEMEGENERIC: target: has_task %d  has_cpu %d  none %d  uses_dummy_map %d\n"
+, evname,
+evname,
+target->pid, target->tid, target->cpu_list, target->uid_str, target->system_wide, target->uses_mmap, target->default_per_cpu, target->per_thread,
+evname,
+target__has_task(target), target__has_cpu(target), target__none(target)
+);
 		break;
 	default:
 		break;
