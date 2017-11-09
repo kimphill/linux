@@ -80,12 +80,12 @@ thread__find_addr_location
 #23 0x00000000004ebf1c in main (argc=2, argv=0xfffffffff190) at perf.c:536
 
 
+break check_weird_sym_bp
 break check_weird_callchain_bp
 break check_weird_event_bp
 break check_weird_map_bp
-break check_weird_bp
-
-
+break check_weird_unwdw_bp
+break check_weird_unwlocal_bp
 
 Run till exit from #0  thread__find_addr_map (thread=0x23e83b0, cpumode=2 '\002', type=MAP__FUNCTION, addr=18446497783141192388, al=0xffffffffc398) at util/event.c:1514
 thread__find_addr_location (thread=0x23e83b0, cpumode=2 '\002', type=MAP__FUNCTION, addr=18446497783141192388, al=0xffffffffc398) at util/event.c:1584
