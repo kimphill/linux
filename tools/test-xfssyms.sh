@@ -3,9 +3,10 @@
 
 dd if=/dev/zero of=fs.img count=0 bs=1 seek=1G
 mkfs.xfs fs.img
-sudo mount fs.img /mnt
+sudo mkdir /mnt/testsyms
+sudo mount fs.img /mnt/testsyms
 
-cd /mnt
+cd /mnt/testsyms
 
 cat << __EOF | sudo tee usefs.c
 #include <unistd.h>
@@ -23,8 +24,8 @@ return 0;
 __EOF
 sudo gcc -g -o usefs usefs.c
 sudo ./usefs &
-sudo /home/kim/git/linux-perf-acme-core/tools/perf/perf record -a --call-graph dwarf sleep 1
-sudo /home/kim/git/linux-perf-acme-core/tools/perf/perf report --stdio | sudo tee thereport
+sudo /home/$USER/git/linux-perf-acme/tools/perf/perf record -o perf.data -a --call-graph dwarf sleep 1
+sudo /home/$USER/git/linux-perf-acme/tools/perf/perf report -i perf.data --stdio | sudo tee thereport
 grep -i \\[k\\] thereport | grep -E xfs_\|0x
 
 sudo killall usefs
@@ -200,9 +201,9 @@ int machine__get_kernel_start(struct machine *machine)
          * addresses will be assumed to be in user space - see
          * machine__kernel_ip().
          */
-        machine->kernel_start = 1ULL << 63;   # 9223372036854775808, 0x8000 0000 0000 0000
+        machine->kernel_start = 1ULL << 63;   // 9223372036854775808, 0x8000 0000 0000 0000
         if (map) {
-                err = map__load(map);    # returns 0, vmlinux map is loaded
+                err = map__load(map);    // returns 0, vmlinux map is loaded
                 if (!err)
                         machine->kernel_start = map->start;   # 18446497783239675904, 0xffff200008081000
         }
@@ -374,4 +375,58 @@ pcalc 0x230a47c - 0x02118000
  1f2f28-1f3074 l xlog_discard_endio
  1f3088-1f3514 l xfs_cil_prepare_item.isra.0
  1f3520-1f369c g xlog_cil_init_post_r
+
+
+OK, running it on x86 says where it is:xfs_file_write_iter and/or xfs_file_buffered_aio_write :
+
+
+     1.09%     0.00%  perf             [kernel.vmlinux]            [k] entry_SYSCALL_64_fastpath
+            |
+            ---entry_SYSCALL_64_fastpath
+               |          
+                --0.97%--sys_write
+                          vfs_write
+                          |          
+                           --0.94%--__vfs_write
+                                     xfs_file_write_iter
+                                     xfs_file_buffered_aio_write
+                                     |          
+                                      --0.78%--iomap_file_buffered_write
+                                                iomap_apply
+                                                |          
+                                                 --0.77%--iomap_write_actor
+
+
+__vfs_write finds a write fn doesn't exist, so calls its (inlined?) new_sync_write, which
+calls call_write_iter (another inline in a fs.h), which calls the fn ptr write_iter...
+
+so logically it's the unwind that's broken for indirect branches within inlined fns?
+
+the offending addresses don't show up anywhere in kernel System.map:
+
+0000000000000000 A __rela_size
+0000000000000000 A _kernel_flags_le_hi32
+0000000000000000 A _kernel_offset_le_hi32
+0000000000000000 A _kernel_size_le_hi32
+000000000000000a A _kernel_flags_le_lo32
+0000000000000200 A PECOFF_FILE_ALIGNMENT
+0000000000080000 A _kernel_offset_le_lo32
+00000000013aca00 A __pecoff_data_rawsize
+00000000023a7000 A __pecoff_data_size
+0000000002cf0000 A __efistub_stext_offset
+0000000002fb3e98 A __rela_offset
+00000000051f5000 A _kernel_size_le_lo32
+ffff20000230a47c <<<<<<<<<<<<<<<<<<<<<<<<<WOULD BE HERE.  is that < or >.  double check signed vs. unsigned
+ffff200008080000 A __efistub__text
+ffff200008080000 t _head
+ffff200008080000 T _text
+ffff200008080040 t pe_header
+ffff200008080044 t coff_header
+ffff200008080058 t optional_header
+ffff200008080070 t extra_header_fields
+ffff2000080800f8 t section_table
+ffff200008081000 T __exception_text_start
+
+, so need to
+step through module loader perhaps?
 
