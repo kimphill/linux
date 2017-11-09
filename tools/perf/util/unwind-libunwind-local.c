@@ -39,6 +39,23 @@
 #include "asm/bug.h"
 #include "dso.h"
 
+//	check_weird_unwlocal(al.addr);
+static void check_weird_unwlocal_bp(void)
+{
+               fprintf(stderr, "asdfjkl");
+}
+
+static void check_weird_unwlocal(u64 ip)
+{
+       if (ip == 0xffff20000230a47cULL ||
+           ip == 0xffff200002293c58ULL ||
+           ip == 0xffff2000022952c4ULL) {
+               check_weird_unwlocal_bp();
+		//fprintf(stderr, "asdfjkl");
+               //exit(0);
+       }
+}
+
 extern int
 UNW_OBJ(dwarf_search_unwind_table) (unw_addr_space_t as,
 				    unw_word_t ip,
@@ -366,8 +383,10 @@ static struct map *find_map(unw_word_t ip, struct unwind_info *ui)
 {
 	struct addr_location al;
 
+	check_weird_unwlocal(ip);
 	thread__find_addr_map(ui->thread, PERF_RECORD_MISC_USER,
 			      MAP__FUNCTION, ip, &al);
+	check_weird_unwlocal(al.addr);
 	if (!al.map) {
 		/*
 		 * We've seen cases (softice) where DWARF unwinder went
@@ -589,6 +608,7 @@ static int entry(u64 ip, struct thread *thread,
 				   MAP__FUNCTION, ip, &al);
 
 	e.ip = al.addr;
+	check_weird_unwlocal(al.addr);
 	e.map = al.map;
 	e.sym = al.sym;
 
