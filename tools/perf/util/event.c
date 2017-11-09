@@ -71,6 +71,24 @@ static const char *perf_ns__names[] = {
 	[CGROUP_NS_INDEX]	= "cgroup",
 };
 
+
+
+static void check_weird_event_bp(void)
+{
+               fprintf(stderr, "asdfjkl");
+}
+
+static void check_weird_event(u64 ip)
+{
+       if (ip == 0xffff20000230a47cULL ||
+           ip == 0xffff200002293c58ULL ||
+           ip == 0xffff2000022952c4ULL) {
+               check_weird_event_bp();
+		//fprintf(stderr, "asdfjkl");
+               //exit(0);
+       }
+}
+
 const char *perf_event__name(unsigned int id)
 {
 	if (id >= ARRAY_SIZE(perf_event__names))
@@ -1492,6 +1510,7 @@ void thread__find_addr_map(struct thread *thread, u8 cpumode,
 	al->machine = machine;
 	al->thread = thread;
 	al->addr = addr;
+check_weird_event(addr);
 	al->cpumode = cpumode;
 	al->filtered = 0;
 
@@ -1562,6 +1581,7 @@ void thread__find_addr_location(struct thread *thread,
 				struct addr_location *al)
 {
 	thread__find_addr_map(thread, cpumode, type, addr, al);
+check_weird_event(al->addr);
 	if (al->map != NULL)
 		al->sym = map__find_symbol(al->map, al->addr);
 	else
@@ -1672,6 +1692,7 @@ bool sample_addr_correlates_sym(struct perf_event_attr *attr)
 void thread__resolve(struct thread *thread, struct addr_location *al,
 		     struct perf_sample *sample)
 {
+check_weird_event(sample->addr);
 	thread__find_addr_map(thread, sample->cpumode, MAP__FUNCTION, sample->addr, al);
 	if (!al->map)
 		thread__find_addr_map(thread, sample->cpumode, MAP__VARIABLE,

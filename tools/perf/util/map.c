@@ -26,6 +26,22 @@ const char *map_type__name[MAP__NR_TYPES] = {
 	[MAP__VARIABLE] = "Variables",
 };
 
+static void check_weird_map_bp(void)
+{
+               fprintf(stderr, "asdfjkl");
+}
+
+static void check_weird_map(u64 ip)
+{
+       if (ip == 0xffff20000230a47cULL ||
+           ip == 0xffff200002293c58ULL ||
+           ip == 0xffff2000022952c4ULL) {
+               check_weird_map_bp();
+		//fprintf(stderr, "asdfjkl");
+               //exit(0);
+       }
+}
+
 static inline int is_anon_memory(const char *filename, u32 flags)
 {
 	return flags & MAP_HUGETLB ||
@@ -344,6 +360,8 @@ int map__load(struct map *map)
 
 struct symbol *map__find_symbol(struct map *map, u64 addr)
 {
+	check_weird_map(addr);
+	
 	if (map__load(map) < 0)
 		return NULL;
 

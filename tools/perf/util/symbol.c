@@ -67,6 +67,21 @@ static enum dso_binary_type binary_type_symtab[] = {
 	DSO_BINARY_TYPE__NOT_FOUND,
 };
 
+static void check_weird_bp(void)
+{
+		fprintf(stderr, "asdffdsajkl;");
+}
+
+static void check_weird(u64 ip)
+{
+	if (ip == 0xffff20000230a47cULL ||
+	    ip == 0xffff200002293c58ULL ||
+	    ip == 0xffff2000022952c4ULL) {
+		check_weird_bp();
+		//exit(0);
+	}
+}
+
 #define DSO_BINARY_TYPE__SYMTAB_CNT ARRAY_SIZE(binary_type_symtab)
 
 bool symbol_type__is_a(char symbol_type, enum map_type map_type)
@@ -303,6 +318,7 @@ void __symbols__insert(struct rb_root *symbols, struct symbol *sym, bool kernel)
 	const u64 ip = sym->start;
 	struct symbol *s;
 
+	check_weird(ip);
 	if (kernel) {
 		const char *name = sym->name;
 		/*
@@ -334,6 +350,8 @@ void symbols__insert(struct rb_root *symbols, struct symbol *sym)
 static struct symbol *symbols__find(struct rb_root *symbols, u64 ip)
 {
 	struct rb_node *n;
+
+	check_weird(ip);
 
 	if (symbols == NULL)
 		return NULL;
@@ -501,6 +519,7 @@ void dso__insert_symbol(struct dso *dso, enum map_type type, struct symbol *sym)
 struct symbol *dso__find_symbol(struct dso *dso,
 				enum map_type type, u64 addr)
 {
+	check_weird(addr);
 	if (dso->last_find_result[type].addr != addr || dso->last_find_result[type].symbol == NULL) {
 		dso->last_find_result[type].addr   = addr;
 		dso->last_find_result[type].symbol = symbols__find(&dso->symbols[type], addr);

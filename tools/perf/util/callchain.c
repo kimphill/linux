@@ -42,6 +42,22 @@ struct callchain_param callchain_param_default = {
 
 __thread struct callchain_cursor callchain_cursor;
 
+static void check_weird_callchain_bp(void)
+{
+               fprintf(stderr, "asdfjkl");
+}
+
+static void check_weird_callchain(u64 ip)
+{
+       if (ip == 0xffff20000230a47cULL ||
+           ip == 0xffff200002293c58ULL ||
+           ip == 0xffff2000022952c4ULL) {
+               check_weird_callchain_bp();
+		//fprintf(stderr, "asdfjkl");
+               //exit(0);
+       }
+}
+
 int parse_callchain_record_opt(const char *arg, struct callchain_param *param)
 {
 	return parse_callchain_record(arg, param);
@@ -564,6 +580,7 @@ fill_node(struct callchain_node *node, struct callchain_cursor *cursor)
 			return -1;
 		}
 		call->ip = cursor_node->ip;
+check_weird_callchain(call->ip);
 		call->ms.sym = cursor_node->sym;
 		call->ms.map = map__get(cursor_node->map);
 		call->srcline = cursor_node->srcline;
@@ -1044,6 +1061,7 @@ int callchain_cursor_append(struct callchain_cursor *cursor,
 	map__zput(node->map);
 	node->map = map__get(map);
 	node->sym = sym;
+check_weird_callchain(node->ip);
 	node->branch = branch;
 	node->nr_loop_iter = nr_loop_iter;
 	node->iter_cycles = iter_cycles;
@@ -1092,6 +1110,7 @@ int fill_callchain_info(struct addr_location *al, struct callchain_cursor_node *
 	al->sym = node->sym;
 	al->srcline = node->srcline;
 	al->addr = node->ip;
+check_weird_callchain(al->addr);
 
 	if (al->sym == NULL) {
 		if (hide_unresolved)
@@ -1125,12 +1144,15 @@ out:
 	return 1;
 }
 
+
 char *callchain_list__sym_name(struct callchain_list *cl,
 			       char *bf, size_t bfsize, bool show_dso)
 {
 	bool show_addr = callchain_param.key == CCKEY_ADDRESS;
 	bool show_srcline = show_addr || callchain_param.key == CCKEY_SRCLINE;
 	int printed;
+
+	check_weird_callchain(cl->ip);
 
 	if (cl->ms.sym) {
 		const char *inlined = cl->ms.sym->inlined ? " (inlined)" : "";
