@@ -463,6 +463,12 @@
 		};
 	};
 
+	spe-pmu {
+		compatible = "arm,statistical-profiling-extension-v1";
+		interrupts = //<GIC_PPI 05 IRQ_TYPE_LEVEL_HIGH &part1>;
+			     <GIC_PPI 05 (GIC_CPU_MASK_SIMPLE(6) | IRQ_TYPE_LEVEL_HIGH)>;
+	};
+
 	sram: sram@2e000000 {
 		compatible = "arm,juno-sram-ns", "mmio-sram";
 		reg = <0x0 0x2e000000 0x0 0x8000>;
