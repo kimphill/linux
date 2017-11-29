@@ -35,6 +35,11 @@
 
 #include <asm/sysreg.h>
 
+#undef read_sysreg_s
+#define read_sysreg_s(x) 0ULL
+#undef write_sysreg_s
+#define write_sysreg_s(x,y)
+
 #define ARM_SPE_BUF_PAD_BYTE			0
 
 struct arm_spe_pmu_buf {
@@ -542,7 +547,10 @@ arm_spe_pmu_buf_get_fault_act(struct perf_output_handle *handle)
 	 * Ensure new profiling data is visible to the CPU and any external
 	 * aborts have been resolved.
 	 */
-	psb_csync();
+	//psb_csync();
+	pmbsr = 0;
+		err_str = " /* we won't get interrupts, right?  IRQ PPI 5 on juno wired to anything? */Unknown error code";
+goto out_err;
 	dsb(nsh);
 
 	/* Ensure hardware updates to PMBPTR_EL1 are visible */
@@ -930,6 +938,7 @@ static void __arm_spe_pmu_dev_probe(void *info)
 	struct arm_spe_pmu *spe_pmu = info;
 	struct device *dev = &spe_pmu->pdev->dev;
 
+#if 0
 	fld = cpuid_feature_extract_unsigned_field(read_cpuid(ID_AA64DFR0_EL1),
 						   ID_AA64DFR0_PMSVER_SHIFT);
 	if (!fld) {
@@ -955,9 +964,11 @@ static void __arm_spe_pmu_dev_probe(void *info)
 			fld, smp_processor_id());
 		return;
 	}
+#endif
 
 	/* It's now safe to read PMSIDR and figure out what we've got */
-	reg = read_sysreg_s(SYS_PMSIDR_EL1);
+	//reg = read_sysreg_s(SYS_PMSIDR_EL1);
+	reg = ~0;
 	if (reg & BIT(SYS_PMSIDR_EL1_FE_SHIFT))
 		spe_pmu->features |= SPE_PMU_FEAT_FILT_EVT;
 
@@ -978,6 +989,8 @@ static void __arm_spe_pmu_dev_probe(void *info)
 
 	/* This field has a spaced out encoding, so just use a look-up */
 	fld = reg >> SYS_PMSIDR_EL1_INTERVAL_SHIFT & SYS_PMSIDR_EL1_INTERVAL_MASK;
+		spe_pmu->min_period = 256;
+#if 0
 	switch (fld) {
 	case 0:
 		spe_pmu->min_period = 256;
@@ -1007,10 +1020,12 @@ static void __arm_spe_pmu_dev_probe(void *info)
 	case 8:
 		spe_pmu->min_period = 4096;
 	}
+#endif
 
 	/* Maximum record size. If it's out-of-range, then fail the probe */
 	fld = reg >> SYS_PMSIDR_EL1_MAXSIZE_SHIFT & SYS_PMSIDR_EL1_MAXSIZE_MASK;
 	spe_pmu->max_record_sz = 1 << fld;
+#if 0
 	if (spe_pmu->max_record_sz > SZ_2K || spe_pmu->max_record_sz < 16) {
 		dev_err(dev, "unsupported PMSIDR_EL1.MaxSize [%d] on CPU %d\n",
 			fld, smp_processor_id());
@@ -1026,7 +1041,9 @@ static void __arm_spe_pmu_dev_probe(void *info)
 	case 2:
 		spe_pmu->counter_sz = 12;
 	}
-
+#else
+		spe_pmu->counter_sz = 12;
+#endif
 	dev_info(dev,
 		 "probed for CPUs %*pbl [max_record_sz %u, align %u, features 0x%llx]\n",
 		 cpumask_pr_args(&spe_pmu->supported_cpus),
@@ -1036,8 +1053,10 @@ static void __arm_spe_pmu_dev_probe(void *info)
 	return;
 }
 
+#if 0
 static void __arm_spe_pmu_reset_local(void)
 {
+	pr_err("%s %d: \n", __func__, __LINE__);
 	/*
 	 * This is probably overkill, as we have no idea where we're
 	 * draining any buffered data to...
@@ -1052,27 +1071,36 @@ static void __arm_spe_pmu_reset_local(void)
 	write_sysreg_s(0, SYS_PMBSR_EL1);
 	isb();
 }
+#endif
 
 static void __arm_spe_pmu_setup_one(void *info)
 {
+
+	pr_err("%s %d: \n", __func__, __LINE__);
+#if 0
 	struct arm_spe_pmu *spe_pmu = info;
 
 	__arm_spe_pmu_reset_local();
 	enable_percpu_irq(spe_pmu->irq, IRQ_TYPE_NONE);
+#endif
 }
 
 static void __arm_spe_pmu_stop_one(void *info)
 {
+	pr_err("%s %d: \n", __func__, __LINE__);
+#if 0
 	struct arm_spe_pmu *spe_pmu = info;
 
 	disable_percpu_irq(spe_pmu->irq);
 	__arm_spe_pmu_reset_local();
+#endif
 }
 
 static int arm_spe_pmu_cpu_startup(unsigned int cpu, struct hlist_node *node)
 {
 	struct arm_spe_pmu *spe_pmu;
 
+	pr_err("%s %d: \n", __func__, __LINE__);
 	spe_pmu = hlist_entry_safe(node, struct arm_spe_pmu, hotplug_node);
 	if (!cpumask_test_cpu(cpu, &spe_pmu->supported_cpus))
 		return 0;
