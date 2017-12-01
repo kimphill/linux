@@ -17,7 +17,7 @@
 		status = "disabled";
 		frame@2a830000 {
 			frame-number = <1>;
-			interrupts = <0 60 4>;
+			interrupts = <0 60 4 0>;
 			reg = <0x0 0x2a830000 0x0 0x10000>;
 		};
 	};
@@ -25,8 +25,8 @@
 	mailbox: mhu@2b1f0000 {
 		compatible = "arm,mhu", "arm,primecell";
 		reg = <0x0 0x2b1f0000 0x0 0x1000>;
-		interrupts = <GIC_SPI 36 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 35 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 36 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 35 IRQ_TYPE_LEVEL_HIGH 0>;
 		interrupt-names = "mhu_lpri_rx",
 				  "mhu_hpri_rx";
 		#mbox-cells = <1>;
@@ -37,8 +37,8 @@
 	smmu_pcie: iommu@2b500000 {
 		compatible = "arm,mmu-401", "arm,smmu-v1";
 		reg = <0x0 0x2b500000 0x0 0x10000>;
-		interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH 0>;
 		#iommu-cells = <1>;
 		#global-interrupts = <1>;
 		dma-coherent;
@@ -48,8 +48,8 @@
 	smmu_etr: iommu@2b600000 {
 		compatible = "arm,mmu-401", "arm,smmu-v1";
 		reg = <0x0 0x2b600000 0x0 0x10000>;
-		interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH 0>;
 		#iommu-cells = <1>;
 		#global-interrupts = <1>;
 		dma-coherent;
@@ -63,15 +63,24 @@
 		      <0x0 0x2c04f000 0 0x2000>,
 		      <0x0 0x2c06f000 0 0x2000>;
 		#address-cells = <2>;
-		#interrupt-cells = <3>;
+		#interrupt-cells = <4>;
 		#size-cells = <2>;
 		interrupt-controller;
-		interrupts = <GIC_PPI 9 (GIC_CPU_MASK_SIMPLE(6) | IRQ_TYPE_LEVEL_HIGH)>;
+		interrupts = <GIC_PPI 9 (GIC_CPU_MASK_SIMPLE(6) | IRQ_TYPE_LEVEL_HIGH) 0>;
 		ranges = <0 0 0 0x2c1c0000 0 0x40000>;
 		v2m_0: v2m@0 {
 			compatible = "arm,gic-v2m-frame";
 			msi-controller;
 			reg = <0 0 0 0x1000>;
+		};
+		ppi-partitions {
+			part0: interrupt-partition-0 {
+				affinity = <&A53_0 &A53_1 &A53_2 &A53_3>;
+			};
+
+			part1: interrupt-partition-1 {
+				affinity = <&A72_0 &A72_1>;
+			};
 		};
 	};
 
@@ -463,10 +472,20 @@
 		};
 	};
 
-	spe-pmu {
+//	spe-pmu {
+//		compatible = "arm,statistical-profiling-extension-v1";
+//		interrupts = //<GIC_PPI 05 IRQ_TYPE_LEVEL_HIGH &part1>;
+//			     <GIC_PPI 05 (GIC_CPU_MASK_SIMPLE(6) | IRQ_TYPE_LEVEL_HIGH)>;
+//	};
+
+	spe-pmu@0 {
 		compatible = "arm,statistical-profiling-extension-v1";
-		interrupts = //<GIC_PPI 05 IRQ_TYPE_LEVEL_HIGH &part1>;
-			     <GIC_PPI 05 (GIC_CPU_MASK_SIMPLE(6) | IRQ_TYPE_LEVEL_HIGH)>;
+		interrupts = <GIC_PPI 05 IRQ_TYPE_LEVEL_HIGH &part0>;
+	};
+
+	spe-pmu@1 {
+		compatible = "arm,statistical-profiling-extension-v1";
+		interrupts = <GIC_PPI 05 IRQ_TYPE_LEVEL_HIGH &part1>;
 	};
 
 	sram: sram@2e000000 {
@@ -591,8 +610,8 @@
 	smmu_dma: iommu@7fb00000 {
 		compatible = "arm,mmu-401", "arm,smmu-v1";
 		reg = <0x0 0x7fb00000 0x0 0x10000>;
-		interrupts = <GIC_SPI 95 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 95 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 95 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 95 IRQ_TYPE_LEVEL_HIGH 0>;
 		#iommu-cells = <1>;
 		#global-interrupts = <1>;
 		dma-coherent;
@@ -602,8 +621,8 @@
 	smmu_hdlcd1: iommu@7fb10000 {
 		compatible = "arm,mmu-401", "arm,smmu-v1";
 		reg = <0x0 0x7fb10000 0x0 0x10000>;
-		interrupts = <GIC_SPI 99 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 99 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 99 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 99 IRQ_TYPE_LEVEL_HIGH 0>;
 		#iommu-cells = <1>;
 		#global-interrupts = <1>;
 	};
@@ -611,8 +630,8 @@
 	smmu_hdlcd0: iommu@7fb20000 {
 		compatible = "arm,mmu-401", "arm,smmu-v1";
 		reg = <0x0 0x7fb20000 0x0 0x10000>;
-		interrupts = <GIC_SPI 97 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 97 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 97 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 97 IRQ_TYPE_LEVEL_HIGH 0>;
 		#iommu-cells = <1>;
 		#global-interrupts = <1>;
 	};
@@ -620,8 +639,8 @@
 	smmu_usb: iommu@7fb30000 {
 		compatible = "arm,mmu-401", "arm,smmu-v1";
 		reg = <0x0 0x7fb30000 0x0 0x10000>;
-		interrupts = <GIC_SPI 101 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 101 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 101 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 101 IRQ_TYPE_LEVEL_HIGH 0>;
 		#iommu-cells = <1>;
 		#global-interrupts = <1>;
 		dma-coherent;
@@ -633,15 +652,15 @@
 		#dma-cells = <1>;
 		#dma-channels = <8>;
 		#dma-requests = <32>;
-		interrupts = <GIC_SPI 88 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 90 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 91 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 92 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 108 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 110 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 88 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 90 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 91 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 92 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 108 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 110 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH 0>;
 		iommus = <&smmu_dma 0>,
 			 <&smmu_dma 1>,
 			 <&smmu_dma 2>,
@@ -658,7 +677,7 @@
 	hdlcd@7ff50000 {
 		compatible = "arm,hdlcd";
 		reg = <0 0x7ff50000 0 0x1000>;
-		interrupts = <GIC_SPI 93 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 93 IRQ_TYPE_LEVEL_HIGH 0>;
 		iommus = <&smmu_hdlcd1 0>;
 		clocks = <&scpi_clk 3>;
 		clock-names = "pxlclk";
@@ -673,7 +692,7 @@
 	hdlcd@7ff60000 {
 		compatible = "arm,hdlcd";
 		reg = <0 0x7ff60000 0 0x1000>;
-		interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_HIGH 0>;
 		iommus = <&smmu_hdlcd0 0>;
 		clocks = <&scpi_clk 3>;
 		clock-names = "pxlclk";
@@ -688,7 +707,7 @@
 	soc_uart0: uart@7ff80000 {
 		compatible = "arm,pl011", "arm,primecell";
 		reg = <0x0 0x7ff80000 0x0 0x1000>;
-		interrupts = <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH 0>;
 		clocks = <&soc_uartclk>, <&soc_refclk100mhz>;
 		clock-names = "uartclk", "apb_pclk";
 	};
@@ -698,7 +717,7 @@
 		reg = <0x0 0x7ffa0000 0x0 0x1000>;
 		#address-cells = <1>;
 		#size-cells = <0>;
-		interrupts = <GIC_SPI 104 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 104 IRQ_TYPE_LEVEL_HIGH 0>;
 		clock-frequency = <400000>;
 		i2c-sda-hold-time-ns = <500>;
 		clocks = <&soc_smc50mhz>;
@@ -727,7 +746,7 @@
 	ohci@7ffb0000 {
 		compatible = "generic-ohci";
 		reg = <0x0 0x7ffb0000 0x0 0x10000>;
-		interrupts = <GIC_SPI 116 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 116 IRQ_TYPE_LEVEL_HIGH 0>;
 		iommus = <&smmu_usb 0>;
 		clocks = <&soc_usb48mhz>;
 	};
@@ -735,7 +754,7 @@
 	ehci@7ffc0000 {
 		compatible = "generic-ehci";
 		reg = <0x0 0x7ffc0000 0x0 0x10000>;
-		interrupts = <GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH 0>;
 		iommus = <&smmu_usb 0>;
 		clocks = <&soc_usb48mhz>;
 	};
@@ -743,8 +762,8 @@
 	memory-controller@7ffd0000 {
 		compatible = "arm,pl354", "arm,primecell";
 		reg = <0 0x7ffd0000 0 0x1000>;
-		interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 87 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 87 IRQ_TYPE_LEVEL_HIGH 0>;
 		clocks = <&soc_smc50mhz>;
 		clock-names = "apb_pclk";
 	};
@@ -769,19 +788,19 @@
 
 		#interrupt-cells = <1>;
 		interrupt-map-mask = <0 0 15>;
-		interrupt-map = <0 0  0 &gic 0 0 0  68 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0  1 &gic 0 0 0  69 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0  2 &gic 0 0 0  70 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0  3 &gic 0 0 0 160 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0  4 &gic 0 0 0 161 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0  5 &gic 0 0 0 162 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0  6 &gic 0 0 0 163 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0  7 &gic 0 0 0 164 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0  8 &gic 0 0 0 165 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0  9 &gic 0 0 0 166 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0 10 &gic 0 0 0 167 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0 11 &gic 0 0 0 168 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0 12 &gic 0 0 0 169 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-map = <0 0  0 &gic 0 0 0  68 IRQ_TYPE_LEVEL_HIGH 0>,
+				<0 0  1 &gic 0 0 0  69 IRQ_TYPE_LEVEL_HIGH 0>,
+				<0 0  2 &gic 0 0 0  70 IRQ_TYPE_LEVEL_HIGH 0>,
+				<0 0  3 &gic 0 0 0 160 IRQ_TYPE_LEVEL_HIGH 0>,
+				<0 0  4 &gic 0 0 0 161 IRQ_TYPE_LEVEL_HIGH 0>,
+				<0 0  5 &gic 0 0 0 162 IRQ_TYPE_LEVEL_HIGH 0>,
+				<0 0  6 &gic 0 0 0 163 IRQ_TYPE_LEVEL_HIGH 0>,
+				<0 0  7 &gic 0 0 0 164 IRQ_TYPE_LEVEL_HIGH 0>,
+				<0 0  8 &gic 0 0 0 165 IRQ_TYPE_LEVEL_HIGH 0>,
+				<0 0  9 &gic 0 0 0 166 IRQ_TYPE_LEVEL_HIGH 0>,
+				<0 0 10 &gic 0 0 0 167 IRQ_TYPE_LEVEL_HIGH 0>,
+				<0 0 11 &gic 0 0 0 168 IRQ_TYPE_LEVEL_HIGH 0>,
+				<0 0 12 &gic 0 0 0 169 IRQ_TYPE_LEVEL_HIGH 0>;
 
 		/include/ "juno-motherboard.dtsi"
 	};
@@ -793,6 +812,6 @@
 		ranges = <0 0 0x60000000 0x10000000>;
 		#interrupt-cells = <1>;
 		interrupt-map-mask = <0 0>;
-		interrupt-map = <0 0 &gic 0 0 0 168 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-map = <0 0 &gic 0 0 0 168 IRQ_TYPE_LEVEL_HIGH 0>;
 	};
 };
