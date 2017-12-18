@@ -1508,10 +1508,10 @@ static s64 perf_session__process_event(struct perf_session *session,
 		return perf_session__process_user_event(session, event, file_offset);
 
 	if (tool->ordered_events) {
-		u64 timestamp = -1ULL;
+		u64 timestamp;
 
 		ret = perf_evlist__parse_sample_timestamp(evlist, event, &timestamp);
-		if (ret != -1)
+		if (ret)
 			return ret;
 
 		ret = perf_session__queue_event(session, event, timestamp, file_offset);
