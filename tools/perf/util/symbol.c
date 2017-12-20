@@ -1980,11 +1980,20 @@ static void vmlinux_path__exit(void)
 
 static const char * const vmlinux_paths[] = {
 	"vmlinux",
+	"Image",
+	"zImage",
+	"image",
 	"/boot/vmlinux"
+	"/boot/Image"
+	"/boot/zImage"
+	"/boot/image"
 };
 
 static const char * const vmlinux_paths_upd[] = {
 	"/boot/vmlinux-%s",
+	"/boot/Image-%s",
+	"/boot/zImage-%s",
+	"/boot/image-%s",
 	"/usr/lib/debug/boot/vmlinux-%s",
 	"/lib/modules/%s/build/vmlinux",
 	"/usr/lib/debug/lib/modules/%s/vmlinux",
