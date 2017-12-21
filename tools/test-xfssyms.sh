@@ -2,7 +2,7 @@
 #sudo mount -t xfs -o size=1024m myramdisk /tmp/ramdisk
 
 export ORIGDIR=$PWD
-export PERF=/home/ubuntu/git/linux2/tools/perf/perf
+export PERF=/home/$USER/git/linux-perf-acme/tools/perf/perf
 
 dd if=/dev/zero of=fs.img count=0 bs=1 seek=1G
 mkfs.xfs -f fs.img
@@ -41,7 +41,7 @@ sudo ./perf report -vvvvv --stdio >& thereport
 grep -i \\[k\\] thereport | grep -E xfs_\|0x
 
 sudo killall -w usefs
-cp -v usefs usefs.c there[cp]or[dt] $ORIGDIR
+cp -v perf.data usefs usefs.c there[cp]or[dt] $ORIGDIR
 cd -
 sudo umount /mnt
 
