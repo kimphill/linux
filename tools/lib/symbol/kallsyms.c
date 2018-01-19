@@ -29,6 +29,7 @@ int kallsyms__parse(const char *filename, void *arg,
 		int line_len, len;
 		char symbol_type;
 		char *symbol_name;
+		char *endptr;
 
 		line_len = getline(&line, &n, file);
 		if (line_len < 0 || !line)
@@ -36,9 +37,12 @@ int kallsyms__parse(const char *filename, void *arg,
 
 		line[--line_len] = '\0'; /* \n */
 
-		len = hex2u64(line, &start);
+		start = strtoul(line, &endptr, 16);
+		if (line == endptr)
+			continue;
 
-		len++;
+		len = endptr - line + 1;
+
 		if (len + 2 >= line_len)
 			continue;
 
