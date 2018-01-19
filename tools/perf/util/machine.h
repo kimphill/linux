@@ -42,6 +42,7 @@ struct machine {
 	u16		  id_hdr_size;
 	bool		  comm_exec;
 	bool		  kptr_restrict_warned;
+	bool		  vmlinux_maps_failed;
 	char		  *root_dir;
 	struct threads    threads[THREADS__TABLE_SIZE];
 	struct vdso_info  *vdso_info;

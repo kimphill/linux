@@ -1222,13 +1222,15 @@ int machine__create_kernel_maps(struct machine *machine)
 	u64 addr = 0;
 	int ret;
 
-	if (kernel == NULL)
+	if (kernel == NULL || machine->vmlinux_maps_failed)
 		return -1;
 
 	ret = __machine__create_kernel_maps(machine, kernel);
 	dso__put(kernel);
-	if (ret < 0)
+	if (ret < 0) {
+		machine->vmlinux_maps_failed = true;
 		return -1;
+	}
 
 	if (symbol_conf.use_modules && machine__create_modules(machine) < 0) {
 		if (machine__is_host(machine))
