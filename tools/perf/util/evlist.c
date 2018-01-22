@@ -1107,7 +1107,7 @@ int perf_evlist__create_maps(struct perf_evlist *evlist, struct target *target)
 	struct thread_map *threads;
 
 	threads = thread_map__new_str(target->pid, target->tid, target->uid,
-				      target->per_thread);
+				      target->per_thread && target->system_wide);
 
 	if (!threads)
 		return -1;
