@@ -254,6 +254,7 @@ static void cs_etm_decoder__clear_buffer(struct cs_etm_decoder *decoder)
 	for (i = 0; i < MAX_BUFFER; i++) {
 		decoder->packet_buffer[i].start_addr = 0xdeadbeefdeadbeefUL;
 		decoder->packet_buffer[i].end_addr   = 0xdeadbeefdeadbeefUL;
+		decoder->packet_buffer[i].last_instr_taken_branch = false;
 		decoder->packet_buffer[i].exc	     = false;
 		decoder->packet_buffer[i].exc_ret    = false;
 		decoder->packet_buffer[i].cpu	     = INT_MIN;
@@ -281,6 +282,18 @@ cs_etm_decoder__buffer_packet(struct cs_etm_decoder *decoder,
 	decoder->packet_buffer[et].sample_type = sample_type;
 	decoder->packet_buffer[et].start_addr = elem->st_addr;
 	decoder->packet_buffer[et].end_addr = elem->en_addr;
+	switch (elem->last_i_type) {
+	case OCSD_INSTR_BR:
+	case OCSD_INSTR_BR_INDIRECT:
+		decoder->packet_buffer[et].last_instr_taken_branch = elem->last_instr_exec;
+		break;
+	case OCSD_INSTR_ISB:
+	case OCSD_INSTR_DSB_DMB:
+	case OCSD_INSTR_OTHER:
+	default:
+		decoder->packet_buffer[et].last_instr_taken_branch = false;
+		break;
+	}
 	decoder->packet_buffer[et].exc = false;
 	decoder->packet_buffer[et].exc_ret = false;
 	decoder->packet_buffer[et].cpu = *((int *)inode->priv);
