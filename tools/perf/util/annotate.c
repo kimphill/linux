@@ -1381,7 +1381,7 @@ static int dso__disassemble_filename(struct dso *dso, char *filename, size_t fil
 
 	build_id_filename = dso__build_id_filename(dso, NULL, 0, false);
 	if (build_id_filename) {
-		__symbol__join_symfs(filename, filename_size, build_id_filename);
+		scnprintf(filename, filename_size, "%s", build_id_filename);
 		free(build_id_filename);
 	} else {
 		if (dso->has_build_id)
