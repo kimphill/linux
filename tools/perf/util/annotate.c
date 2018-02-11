@@ -1412,7 +1412,14 @@ fallback:
 		 * cache, or is just a kallsyms file, well, lets hope that this
 		 * DSO is the same as when 'perf record' ran.
 		 */
-		__symbol__join_symfs(filename, filename_size, dso->long_name);
+		if (!strstr(dso->short_name, DSO__NAME_KALLSYMS))
+		{
+			__symbol__join_symfs(filename, filename_size, dso->long_name);
+		}
+		else
+		{
+			scnprintf(filename, filename_size, "%s", dso->long_name);
+		}
 	}
 
 	free(build_id_path);
