@@ -88,6 +88,7 @@ config CORESIGHT_STM
 	  instrumentation based tracing. This is primarily used for
 	  logging useful software events or data coming from various entities
 	  in the system, possibly running different OSs
+endif
 
 config CORESIGHT_CPU_DEBUG
 	tristate "CoreSight CPU Debug driver"
@@ -102,5 +103,3 @@ config CORESIGHT_CPU_DEBUG
 	  needs to ensure the clock domain and power domain are enabled
 	  properly, please refer Documentation/trace/coresight-cpu-debug.txt
 	  for detailed description and the example for usage.
-
-endif
