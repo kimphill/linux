@@ -54,13 +54,5 @@ struct etm_filters {
 };
 
 
-#ifdef CONFIG_CORESIGHT
 int etm_perf_symlink(struct coresight_device *csdev, bool link);
-
-#else
-static inline int etm_perf_symlink(struct coresight_device *csdev, bool link)
-{ return -EINVAL; }
-
-#endif /* CONFIG_CORESIGHT */
-
 #endif
