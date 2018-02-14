@@ -512,3 +512,6 @@ static int __init etm_perf_init(void)
 	return ret;
 }
 device_initcall(etm_perf_init);
+MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");
+MODULE_DESCRIPTION("Arm CoreSight tracer perf driver");
+MODULE_LICENSE("GPL v2");

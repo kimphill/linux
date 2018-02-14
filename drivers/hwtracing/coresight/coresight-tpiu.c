@@ -225,3 +225,7 @@ static struct amba_driver tpiu_driver = {
 	.id_table	= tpiu_ids,
 };
 builtin_amba_driver(tpiu_driver);
+
+MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
+MODULE_DESCRIPTION("Arm CoreSight TPIU (Trace Port Interface Unit) driver");
+MODULE_LICENSE("GPL v2");
