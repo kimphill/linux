@@ -2,8 +2,8 @@
 # Coresight configuration
 #
 menuconfig CORESIGHT
-	bool "CoreSight Tracing Support"
-	select ARM_AMBA
+	tristate "CoreSight Tracing Support"
+	depends on ARM_AMBA
 	select PERF_EVENTS
 	help
 	  This framework provides a kernel interface for the CoreSight debug
@@ -14,7 +14,8 @@ menuconfig CORESIGHT
 
 if CORESIGHT
 config CORESIGHT_LINKS_AND_SINKS
-	bool "CoreSight Link and Sink drivers"
+	tristate "CoreSight Link and Sink drivers"
+	depends on CORESIGHT
 	help
 	  This enables support for CoreSight link and sink drivers that are
 	  responsible for transporting and collecting the trace data
@@ -22,7 +23,7 @@ config CORESIGHT_LINKS_AND_SINKS
 	  entity at run time to form a complete trace path.
 
 config CORESIGHT_LINK_AND_SINK_TMC
-	bool "Coresight generic TMC driver"
+	tristate "Coresight generic TMC driver"
 	depends on CORESIGHT_LINKS_AND_SINKS
 	help
 	  This enables support for the Trace Memory Controller driver.
@@ -32,7 +33,7 @@ config CORESIGHT_LINK_AND_SINK_TMC
 	  special enhancement or added features.
 
 config CORESIGHT_SINK_TPIU
-	bool "Coresight generic TPIU driver"
+	tristate "Coresight generic TPIU driver"
 	depends on CORESIGHT_LINKS_AND_SINKS
 	help
 	  This enables support for the Trace Port Interface Unit driver,
@@ -43,7 +44,7 @@ config CORESIGHT_SINK_TPIU
 	  the on-board coresight memory can handle.
 
 config CORESIGHT_SINK_ETBV10
-	bool "Coresight ETBv1.0 driver"
+	tristate "Coresight ETBv1.0 driver"
 	depends on CORESIGHT_LINKS_AND_SINKS
 	help
 	  This enables support for the Embedded Trace Buffer version 1.0 driver
@@ -51,9 +52,8 @@ config CORESIGHT_SINK_ETBV10
 	  special enhancement or added features.
 
 config CORESIGHT_SOURCE_ETM3X
-	bool "CoreSight Embedded Trace Macrocell 3.x driver"
-	depends on !ARM64
-	select CORESIGHT_LINKS_AND_SINKS
+	tristate "CoreSight Embedded Trace Macrocell 3.x driver"
+	depends on !ARM64 && CORESIGHT_LINKS_AND_SINKS
 	help
 	  This driver provides support for processor ETM3.x and PTM1.x modules,
 	  which allows tracing the instructions that a processor is executing
@@ -61,9 +61,8 @@ config CORESIGHT_SOURCE_ETM3X
 	  the ETM version data tracing may also be available.
 
 config CORESIGHT_SOURCE_ETM4X
-	bool "CoreSight Embedded Trace Macrocell 4.x driver"
-	depends on ARM64
-	select CORESIGHT_LINKS_AND_SINKS
+	tristate "CoreSight Embedded Trace Macrocell 4.x driver"
+	depends on ARM64 && CORESIGHT_LINKS_AND_SINKS
 	help
 	  This driver provides support for the ETM4.x tracer module, tracing the
 	  instructions that a processor is executing. This is primarily useful
@@ -71,7 +70,7 @@ config CORESIGHT_SOURCE_ETM4X
 	  data tracing may also be available.
 
 config CORESIGHT_DYNAMIC_REPLICATOR
-	bool "CoreSight Programmable Replicator driver"
+	tristate "CoreSight Programmable Replicator driver"
 	depends on CORESIGHT_LINKS_AND_SINKS
 	help
 	  This enables support for dynamic CoreSight replicator link driver.
@@ -79,10 +78,9 @@ config CORESIGHT_DYNAMIC_REPLICATOR
 	  trace data based on the traceid.
 
 config CORESIGHT_STM
-	bool "CoreSight System Trace Macrocell driver"
+	tristate "CoreSight System Trace Macrocell driver"
 	depends on (ARM && !(CPU_32v3 || CPU_32v4 || CPU_32v4T)) || ARM64
-	select CORESIGHT_LINKS_AND_SINKS
-	select STM
+	depends on STM && CORESIGHT_LINKS_AND_SINKS
 	help
 	  This driver provides support for hardware assisted software
 	  instrumentation based tracing. This is primarily used for
@@ -91,8 +89,7 @@ config CORESIGHT_STM
 
 config CORESIGHT_CPU_DEBUG
 	tristate "CoreSight CPU Debug driver"
-	depends on ARM || ARM64
-	depends on DEBUG_FS
+	depends on CORESIGHT && DEBUG_FS
 	help
 	  This driver provides support for coresight debugging module. This
 	  is primarily used to dump sample-based profiling registers when

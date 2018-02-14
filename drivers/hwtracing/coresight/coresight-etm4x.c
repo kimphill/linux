@@ -905,6 +905,7 @@ void etm4_config_trace_mode(struct etmv4_config *config)
 	config->addr_acc[ETM_DEFAULT_ADDR_COMP] = addr_acc;
 	config->addr_acc[ETM_DEFAULT_ADDR_COMP + 1] = addr_acc;
 }
+EXPORT_SYMBOL_GPL(etm4_config_trace_mode);
 
 static int etm4_online_cpu(unsigned int cpu)
 {
@@ -1052,6 +1053,15 @@ err_arch_supported:
 	return ret;
 }
 
+static int __exit etm4_remove(struct amba_device *adev)
+{
+	struct etmv4_drvdata *drvdata = dev_get_drvdata(&adev->dev);
+
+	coresight_unregister(drvdata->csdev);
+
+	return 0;
+}
+
 static const struct amba_id etm4_ids[] = {
 	{       /* ETM 4.0 - Cortex-A53  */
 		.id	= 0x000bb95d,
@@ -1071,12 +1081,19 @@ static const struct amba_id etm4_ids[] = {
 	{ 0, 0},
 };
 
+MODULE_DEVICE_TABLE(amba, etm4_ids);
+
 static struct amba_driver etm4x_driver = {
 	.drv = {
 		.name   = "coresight-etm4x",
 		.suppress_bind_attrs = true,
 	},
 	.probe		= etm4_probe,
+	.remove		= etm4_remove,
 	.id_table	= etm4_ids,
 };
-builtin_amba_driver(etm4x_driver);
+module_amba_driver(etm4x_driver);
+
+MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
+MODULE_DESCRIPTION("Arm CoreSight Program Flow Trace v4 driver");
+MODULE_LICENSE("GPL v2");
