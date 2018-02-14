@@ -1274,7 +1274,3 @@ const struct attribute_group *coresight_etm_groups[] = {
 	&coresight_etm_mgmt_group,
 	NULL,
 };
-
-MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");
-MODULE_DESCRIPTION("Arm CoreSight Program Flow Trace sysfs driver");
-MODULE_LICENSE("GPL v2");

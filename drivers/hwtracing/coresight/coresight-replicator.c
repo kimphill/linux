@@ -161,7 +161,3 @@ static struct platform_driver replicator_driver = {
 	},
 };
 builtin_platform_driver(replicator_driver);
-
-MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
-MODULE_DESCRIPTION("ARM Coresight Replicator Driver");
-MODULE_LICENSE("GPL v2");
