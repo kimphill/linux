@@ -13,6 +13,7 @@
 #ifndef _LINUX_CORESIGHT_H
 #define _LINUX_CORESIGHT_H
 
+#include <linux/kernel.h>
 #include <linux/device.h>
 #include <linux/perf_event.h>
 #include <linux/sched.h>
