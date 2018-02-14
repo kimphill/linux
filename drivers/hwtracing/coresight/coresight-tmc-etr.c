@@ -301,6 +301,7 @@ out:
 
 	return ret;
 }
+EXPORT_SYMBOL_GPL(tmc_read_prepare_etr);
 
 int tmc_read_unprepare_etr(struct tmc_drvdata *drvdata)
 {
@@ -342,4 +343,6 @@ int tmc_read_unprepare_etr(struct tmc_drvdata *drvdata)
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(tmc_read_unprepare_etr);
+
 MODULE_LICENSE("GPL v2");
