@@ -2155,3 +2155,7 @@ const struct attribute_group *coresight_etmv4_groups[] = {
 	&coresight_etmv4_trcidr_group,
 	NULL,
 };
+
+MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");
+MODULE_DESCRIPTION("Arm CoreSight Program Flow Trace v4 sysfs driver");
+MODULE_LICENSE("GPL v2");
