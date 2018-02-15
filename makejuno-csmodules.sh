@@ -54,17 +54,21 @@ cd juno
 
 #from model makearm64:
 #OK FOR SOME REASON THESE MAKE dev containing debian rootfs not mount (fail to find rootfs):
-../scripts/config -d CONFIG_E1000E
-../scripts/config -d CONFIG_IGB
-../scripts/config -d CONFIG_IGBVF
-../scripts/config -d CONFIG_SKY2
-../scripts/config -d CONFIG_VFIO
-../scripts/config -d CONFIG_PCI
-../scripts/config -d CONFIG_KVM
-../scripts/config -d CONFIG_EXT4_ENCRYPTION
-../scripts/config -d CONFIG_RXKAD
-../scripts/config -d CONFIG_SERIAL_8250_FINTEK
-../scripts/config -d CONFIG_ARCH_MVEBU  # ../drivers/irqchip/irq-mvebu-odmi.c:152:15: error: variable ‘odmi_msi_ops’ has initializer but incomplete type
+#yep, verified once more:
+#[    4.358189] Waiting for root device PARTUUID=99389c0e-3d5a-4d98-b970-c0deb747...
+#[   85.538662] random: crng init done
+#get above if uncomment the following chunk:
+#../scripts/config -d CONFIG_E1000E
+#../scripts/config -d CONFIG_IGB
+#../scripts/config -d CONFIG_IGBVF
+#../scripts/config -d CONFIG_SKY2
+#../scripts/config -d CONFIG_VFIO
+#../scripts/config -d CONFIG_PCI
+#../scripts/config -d CONFIG_KVM
+#../scripts/config -d CONFIG_EXT4_ENCRYPTION
+#../scripts/config -d CONFIG_RXKAD
+#../scripts/config -d CONFIG_SERIAL_8250_FINTEK
+#../scripts/config -d CONFIG_ARCH_MVEBU  # ../drivers/irqchip/irq-mvebu-odmi.c:152:15: error: variable ‘odmi_msi_ops’ has initializer but incomplete type
 
 #coresight
 ../scripts/config -m CONFIG_CORESIGHT
@@ -89,11 +93,11 @@ export UNAMER=`make --no-print-directory O=juno kernelrelease`
 echo kernelrelease, IMO, is $UNAMER
 #time make O=juno C=2 CF="-D__CHECK_ENDIAN__" |& tee make.log
 time make O=juno -j 8 || exit |& tee make.log
+banner "finished making default (image)"
 time make O=juno -j 8  modules || exit |& tee make.log
-echo finished making modules
-exit
-time make O=juno -j 8 || exit |& tee make.log
+banner finished making modules
 time make O=juno -j 8 dtbs || exit |& tee make.log
+banner finished making dtbs
 mkdir -p juno/modules-install/$UNAMER
 #INSTALL_MOD_PATH is relative to juno/
 time make O=juno -j 8 INSTALL_MOD_PATH=modules-install/$UNAMER modules_install
@@ -106,21 +110,21 @@ time make O=juno -j 8 INSTALL_MOD_PATH=modules-install/$UNAMER modules_install
 #scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/*dtb kim@192.168.1.4:/bootjuno/SOFTWARE/
 # my junor2's fw looks for a board.dtb:
 cp juno/arch/arm64/boot/dts/arm/juno-r2.dtb juno/arch/arm64/boot/dts/arm/board.dtb
-scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/*dtb kim@juno:    # 192.168.1.4:
+scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/board.dtb juno/vmlinux kim@juno.austin.arm.com:    # 192.168.1.4:
 #echo copied Image and dtbs to home in case /bootjuno/ failed. Copy them on-board if so with:
 echo kernelrelease, IMO, is $UNAMER
-scp juno/vmlinux juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/*dtb ntel:
-echo put Image and dtbs on ntel: so, on ntel, you can plug in the firmware usb
-echo storage cable, and:
-echo sudo mount /dev/sdb1 /mnt/tmp	\# make sure it got mounted there by checking dmesg first
-echo sudo cp juno\*dtb board\*dtb Image /mnt/tmp/SOFTWARE\; sync\; sudo sync
-echo sudo umount /mnt/tmp
+#scp juno/vmlinux juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/*dtb ntel:
+#echo put Image and dtbs on ntel: so, on ntel, you can plug in the firmware usb
+#echo storage cable, and:
+#echo sudo mount /dev/sdb1 /mnt/tmp	\# make sure it got mounted there by checking dmesg first
+#echo sudo cp juno\*dtb board\*dtb Image /mnt/tmp/SOFTWARE\; sync\; sudo sync
+#echo sudo umount /mnt/tmp
 ssh kim@juno mkdir -p /lib/modules/$UNAMER
 #scp -r juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@192.168.1.4:/lib/modules/$UNAMER
 rsync -av --rsh=ssh --quiet juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@juno:/lib/modules/$UNAMER
 echo ---------------OR----------------
 echo On kim@juno, copy Image and dtb with:
-echo sudo cp ~/Image ~/*.dtb /bootjuno/SOFTWARE/ \; sudo sync\; sudo sync\; sudo cp ~/vmlinux /boot/vmlinux
+echo "sudo cp /home/kim/Image /home/kim/board.dtb /bootjuno/SOFTWARE/ ; sudo sync; sudo sync; sudo cp /home/kim/vmlinux /boot/vmlinux"
 exit
 NM, doing local:
 # board's self-boot mmc storage
