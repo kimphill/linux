@@ -17,6 +17,7 @@
 
 #include <linux/pm_runtime.h>
 #include <linux/sysfs.h>
+#include <linux/coresight.h>
 #include "coresight-etm4x.h"
 #include "coresight-priv.h"
 
