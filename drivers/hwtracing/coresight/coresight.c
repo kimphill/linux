@@ -48,7 +48,7 @@ unsigned long coresight_vpid_to_pid(unsigned long vpid)
 	return vpid;
 }
 #endif
-
+EXPORT_SYMBOL_GPL(coresight_vpid_to_pid);
 
 static DEFINE_MUTEX(coresight_mutex);
 
