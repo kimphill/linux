@@ -1,6 +1,6 @@
-#make -j 8 mrproper   # only the source directory  # yeah ft it still rebuilds everyting anyway
+make -j 8 mrproper   # only the source directory  # yeah ft it still rebuilds everyting anyway
 #this looks like it does a good job when messing with Kconfig though:
-#make O=juno ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- mrproper
+make O=juno ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- mrproper
 
 
 export ARCH=arm64
