@@ -3,7 +3,7 @@
 #
 menuconfig CORESIGHT
 	tristate "CoreSight Tracing Support"
-	select ARM_AMBA
+	depends on ARM_AMBA
 	select PERF_EVENTS
 	help
 	  This framework provides a kernel interface for the CoreSight debug
