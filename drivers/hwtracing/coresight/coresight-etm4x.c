@@ -905,6 +905,7 @@ void etm4_config_trace_mode(struct etmv4_config *config)
 	config->addr_acc[ETM_DEFAULT_ADDR_COMP] = addr_acc;
 	config->addr_acc[ETM_DEFAULT_ADDR_COMP + 1] = addr_acc;
 }
+EXPORT_SYMBOL_GPL(etm4_config_trace_mode);
 
 static int etm4_online_cpu(unsigned int cpu)
 {

@@ -263,7 +263,8 @@ static const struct coresight_ops_sink tmc_etr_sink_ops = {
 const struct coresight_ops tmc_etr_cs_ops = {
 	.sink_ops	= &tmc_etr_sink_ops,
 };
-
+EXPORT_SYMBOL_GPL(tmc_etr_cs_ops);
+ 
 int tmc_read_prepare_etr(struct tmc_drvdata *drvdata)
 {
 	int ret = 0;
