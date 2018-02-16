@@ -83,7 +83,7 @@ config CORESIGHT_STM
 	tristate "CoreSight System Trace Macrocell driver"
 	depends on (ARM && !(CPU_32v3 || CPU_32v4 || CPU_32v4T)) || ARM64
 	depends on CORESIGHT_LINKS_AND_SINKS
-	select STM
+	depends on STM
 	help
 	  This driver provides support for hardware assisted software
 	  instrumentation based tracing. This is primarily used for
