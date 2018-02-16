@@ -172,14 +172,14 @@ struct tmc_drvdata {
 };
 
 /* Generic functions */
-void tmc_wait_for_tmcready(struct tmc_drvdata *drvdata);
-void tmc_flush_and_stop(struct tmc_drvdata *drvdata);
-void tmc_enable_hw(struct tmc_drvdata *drvdata);
-void tmc_disable_hw(struct tmc_drvdata *drvdata);
+extern void tmc_wait_for_tmcready(struct tmc_drvdata *drvdata);
+extern void tmc_flush_and_stop(struct tmc_drvdata *drvdata);
+extern void tmc_enable_hw(struct tmc_drvdata *drvdata);
+extern void tmc_disable_hw(struct tmc_drvdata *drvdata);
 
 /* ETB/ETF functions */
-int tmc_read_prepare_etb(struct tmc_drvdata *drvdata);
-int tmc_read_unprepare_etb(struct tmc_drvdata *drvdata);
+extern int tmc_read_prepare_etb(struct tmc_drvdata *drvdata);
+extern int tmc_read_unprepare_etb(struct tmc_drvdata *drvdata);
 extern const struct coresight_ops tmc_etb_cs_ops;
 extern const struct coresight_ops tmc_etf_cs_ops;
 
