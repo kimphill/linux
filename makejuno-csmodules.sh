@@ -13,6 +13,7 @@ export CROSS_COMPILE=aarch64-linux-gnu-
 mkdir -p juno
 make O=juno defconfig
 cd juno
+sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk space polluters.
 #../scripts/config -e CONFIG_ARCH_HISI
 #../scripts/config -e CONFIG_HISI_DJTAG
 #../scripts/config -e CONFIG_HISI_PERFCTR
