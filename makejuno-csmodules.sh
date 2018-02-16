@@ -14,6 +14,15 @@ mkdir -p juno
 make O=juno defconfig
 cd juno
 sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk space polluters.
+../scripts/config -e CONFIG_ARCH_HISI
+
+../scripts/config -e CONFIG_MODULE_FORCE_LOAD
+../scripts/config -e CONFIG_MODULE_FORCE_LOAD
+../scripts/config -e CONFIG_MODULE_UNLOAD
+../scripts/config -e CONFIG_MODULE_FORCE_UNLOAD
+../scripts/config -e CONFIG_MODVERSIONS
+../scripts/config -e CONFIG_MODULE_SRCVERSION_ALL
+
 #../scripts/config -e CONFIG_ARCH_HISI
 #../scripts/config -e CONFIG_HISI_DJTAG
 #../scripts/config -e CONFIG_HISI_PERFCTR
