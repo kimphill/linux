@@ -101,15 +101,13 @@ make O=juno olddefconfig
 make --no-print-directory O=juno kernelrelease # run once prior to avoid 'GEN ./Makefile scripts/kconfig/conf --silentoldconfig Kconfig 4.8.0-rc2-dirty'
 export UNAMER=`make --no-print-directory O=juno kernelrelease`
 echo kernelrelease, IMO, is $UNAMER
-echo -n > make.log
-#time make O=juno C=2 CF="-D__CHECK_ENDIAN__" |& tee -a make.log
 time make O=juno -j 8 || exit
 #cant have a trailing  |& tee -a make.log above (exit wont exit)
-banner "finished making default (image)"
+banner "make ok"
 time make O=juno -j 8  modules || exit
-banner finished making modules
+banner "mods ok"
 time make O=juno -j 8 dtbs || exit
-banner finished making dtbs
+banner "dtbs ok"
 mkdir -p juno/modules-install/$UNAMER
 #INSTALL_MOD_PATH is relative to juno/
 time make O=juno -j 8 INSTALL_MOD_PATH=modules-install/$UNAMER modules_install || exit
