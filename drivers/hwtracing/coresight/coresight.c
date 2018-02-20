@@ -991,6 +991,12 @@ static int __init coresight_init(void)
 }
 postcore_initcall(coresight_init);
 
+static void __exit coresight_exit(void)
+{
+	bus_unregister(&coresight_bustype);
+}
+module_exit(coresight_exit);
+
 struct coresight_device *coresight_register(struct coresight_desc *desc)
 {
 	int i;
