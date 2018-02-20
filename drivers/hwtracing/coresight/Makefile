@@ -14,8 +14,9 @@ coresight-link-sink-tmc-objs :=  coresight-tmc.o \
 				 coresight-tmc-etr.o
 obj-$(CONFIG_CORESIGHT_SINK_TPIU) += coresight-tpiu.o
 obj-$(CONFIG_CORESIGHT_SINK_ETBV10) += coresight-etb10.o
-obj-$(CONFIG_CORESIGHT_LINKS_AND_SINKS) += coresight-funnel.o \
-					   coresight-replicator.o
+obj-$(CONFIG_CORESIGHT_LINKS_AND_SINKS) += coresight-link-sink.o
+coresight-link-sink-objs := coresight-funnel.o \
+			    coresight-replicator.o
 
 obj-$(CONFIG_CORESIGHT_SOURCE_ETM3X) += coresight-etm3x-core.o
 coresight-etm3x-core-objs := coresight-etm3x.o \
