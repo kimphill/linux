@@ -1,6 +1,6 @@
-make -j 8 clean mrproper   # only the source directory  # yeah ft it still rebuilds everyting anyway
+#make -j 8 clean mrproper   # only the source directory  # yeah ft it still rebuilds everyting anyway
 #this looks like it does a good job when messing with Kconfig though:
-make O=juno ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- clean mrproper
+#make O=juno ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- clean mrproper
 rm -r juno/drivers/hwtracing/coresight
 #rm juno/drivers/hwtracing/coresight/*.mod.*
 #rm juno/drivers/hwtracing/coresight/modules*
@@ -91,18 +91,20 @@ make O=juno olddefconfig
 make --no-print-directory O=juno kernelrelease # run once prior to avoid 'GEN ./Makefile scripts/kconfig/conf --silentoldconfig Kconfig 4.8.0-rc2-dirty'
 export UNAMER=`make --no-print-directory O=juno kernelrelease`
 echo kernelrelease, IMO, is $UNAMER
-#time make O=juno C=2 CF="-D__CHECK_ENDIAN__" |& tee make.log
-time make O=juno -j 8 || exit |& tee make.log
+echo -n > make.log
+#time make O=juno C=2 CF="-D__CHECK_ENDIAN__" |& tee -a make.log
+time make O=juno -j 8 || exit
+#cant have a trailing  |& tee -a make.log above (exit wont exit)
 banner "finished making default (image)"
-time make O=juno -j 8  modules || exit |& tee make.log
+time make O=juno -j 8  modules || exit
 banner finished making modules
-time make O=juno -j 8 dtbs || exit |& tee make.log
+time make O=juno -j 8 dtbs || exit
 banner finished making dtbs
 mkdir -p juno/modules-install/$UNAMER
 #INSTALL_MOD_PATH is relative to juno/
-time make O=juno -j 8 INSTALL_MOD_PATH=modules-install/$UNAMER modules_install
+time make O=juno -j 8 INSTALL_MOD_PATH=modules-install/$UNAMER modules_install || exit
 #cd juno
-#time make C=2 CF="-D__CHECK_ENDIAN__" -C ../tools/perf |& tee make-perf.log
+#time make C=2 CF="-D__CHECK_ENDIAN__" -C ../tools/perf |& tee -a make-perf.log
 #cd ..
 #following if in cube:
 #scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/*dtb kimphi01@192.168.2.2:/media/kimphi01/JUNO/SOFTWARE/
