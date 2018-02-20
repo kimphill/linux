@@ -131,7 +131,8 @@ echo kernelrelease, IMO, is $UNAMER
 #echo sudo umount /mnt/tmp
 ssh kim@juno mkdir -p /lib/modules/$UNAMER
 #scp -r juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@192.168.1.4:/lib/modules/$UNAMER
-rsync -av --rsh=ssh --quiet juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@juno:/lib/modules/$UNAMER
+#rsync -av --rsh=ssh --quiet juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@juno:/lib/modules/$UNAMER
+rsync -av --rsh=ssh juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@juno:/lib/modules/$UNAMER
 echo ---------------OR----------------
 echo On kim@juno, copy Image and dtb with:
 echo "sudo cp /home/kim/Image /home/kim/board.dtb /bootjuno/SOFTWARE/ ; sudo sync; sudo sync; sudo cp /home/kim/vmlinux /boot/vmlinux"
