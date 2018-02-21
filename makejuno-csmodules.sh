@@ -63,7 +63,12 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 ../scripts/config -d CONFIG_ARM_SMMU_V3 # ditto
 
 #this bugger is default m and just gets in my eyes' way:
-../scripts/config -d PNFS_FLEXFILE_LAYOUT
+../scripts/config -u PNFS_FLEXFILE_LAYOUT
+../scripts/config -u PNFS_BLOCK
+../scripts/config -u PNFS_FILE_LAYOUT
+# ok one or both of these  two actually did the trick:
+../scripts/config -u NFS_V4_1 
+../scripts/config -u NFS_V3
 
 #from model makearm64:
 #OK FOR SOME REASON THESE MAKE dev containing debian rootfs not mount (fail to find rootfs):
