@@ -119,14 +119,14 @@ banner "dtbs ok"
 mkdir -p juno/modules-install/$UNAMER
 #INSTALL_MOD_PATH is relative to juno/
 time make O=juno -j 8 INSTALL_MOD_PATH=modules-install/$UNAMER modules_install || exit
-echo kernelrelease, IMO, is $UNAMER
 #scp juno/vmlinux juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/*dtb ntel:
 #echo put Image and dtbs on ntel: so, on ntel, you can plug in the firmware usb
 #echo storage cable, and:
 #echo sudo mount /dev/sdb1 /mnt/tmp	\# make sure it got mounted there by checking dmesg first
 #echo sudo cp juno\*dtb board\*dtb Image /mnt/tmp/SOFTWARE\; sync\; sudo sync
 #echo sudo umount /mnt/tmp
-ssh kim@juno mkdir -p /lib/modules/$UNAMER
+echo going to:  ssh kim@juno mkdir -p /lib/modules/$UNAMER
+ssh kim@juno.austin.arm.com mkdir -p /lib/modules/$UNAMER
 #scp -r juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@192.168.1.4:/lib/modules/$UNAMER
 #rsync -av --rsh=ssh --quiet juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@juno:/lib/modules/$UNAMER
 rsync -av --rsh=ssh juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@juno:/lib/modules/$UNAMER
