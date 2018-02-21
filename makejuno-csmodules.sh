@@ -62,6 +62,9 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 ../scripts/config -d CONFIG_ARM_SMMU    # maybe fix not mounting rootfs (no sata driver) on juno problem 4.12-rc4
 ../scripts/config -d CONFIG_ARM_SMMU_V3 # ditto
 
+#this bugger is default m and just gets in my eyes' way:
+../scripts/config -d PNFS_FLEXFILE_LAYOUT
+
 #from model makearm64:
 #OK FOR SOME REASON THESE MAKE dev containing debian rootfs not mount (fail to find rootfs):
 #yep, verified once more:
@@ -83,10 +86,10 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 #coresight
 ../scripts/config -m CONFIG_CORESIGHT
 #dunno, putting all in:
-../scripts/config -m CONFIG_CORESIGHT_LINK_AND_SINK_TMC
+../scripts/config -d CONFIG_CORESIGHT_LINK_AND_SINK_TMC
 ../scripts/config -m CONFIG_CORESIGHT_SINK_TPIU
 ../scripts/config -m CONFIG_CORESIGHT_SINK_ETBV10
-../scripts/config -m CONFIG_CORESIGHT_LINKS_AND_SINKS
+../scripts/config -d CONFIG_CORESIGHT_LINKS_AND_SINKS
 ../scripts/config -m CONFIG_CORESIGHT_SOURCE_ETM3X
 ../scripts/config -m CONFIG_CORESIGHT_SOURCE_ETM4X
 #../scripts/config -e CONFIG_CORESIGHT_QCOM_REPLICATOR
