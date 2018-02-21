@@ -91,10 +91,10 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 #coresight
 ../scripts/config -m CONFIG_CORESIGHT
 #dunno, putting all in:
-../scripts/config -d CONFIG_CORESIGHT_LINK_AND_SINK_TMC
+../scripts/config -m CONFIG_CORESIGHT_LINK_AND_SINK_TMC
 ../scripts/config -m CONFIG_CORESIGHT_SINK_TPIU
 ../scripts/config -m CONFIG_CORESIGHT_SINK_ETBV10
-../scripts/config -d CONFIG_CORESIGHT_LINKS_AND_SINKS
+../scripts/config -m CONFIG_CORESIGHT_LINKS_AND_SINKS
 ../scripts/config -m CONFIG_CORESIGHT_SOURCE_ETM3X
 ../scripts/config -m CONFIG_CORESIGHT_SOURCE_ETM4X
 #../scripts/config -e CONFIG_CORESIGHT_QCOM_REPLICATOR
@@ -119,17 +119,6 @@ banner "dtbs ok"
 mkdir -p juno/modules-install/$UNAMER
 #INSTALL_MOD_PATH is relative to juno/
 time make O=juno -j 8 INSTALL_MOD_PATH=modules-install/$UNAMER modules_install || exit
-#cd juno
-#time make C=2 CF="-D__CHECK_ENDIAN__" -C ../tools/perf |& tee -a make-perf.log
-#cd ..
-#following if in cube:
-#scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/*dtb kimphi01@192.168.2.2:/media/kimphi01/JUNO/SOFTWARE/
-#exit
-#scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/*dtb kim@192.168.1.4:/bootjuno/SOFTWARE/
-# my junor2's fw looks for a board.dtb:
-cp juno/arch/arm64/boot/dts/arm/juno-r2.dtb juno/arch/arm64/boot/dts/arm/board.dtb
-scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/board.dtb juno/vmlinux kim@juno.austin.arm.com:    # 192.168.1.4:
-#echo copied Image and dtbs to home in case /bootjuno/ failed. Copy them on-board if so with:
 echo kernelrelease, IMO, is $UNAMER
 #scp juno/vmlinux juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/*dtb ntel:
 #echo put Image and dtbs on ntel: so, on ntel, you can plug in the firmware usb
@@ -141,6 +130,17 @@ ssh kim@juno mkdir -p /lib/modules/$UNAMER
 #scp -r juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@192.168.1.4:/lib/modules/$UNAMER
 #rsync -av --rsh=ssh --quiet juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@juno:/lib/modules/$UNAMER
 rsync -av --rsh=ssh juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@juno:/lib/modules/$UNAMER
+#cd juno
+#time make C=2 CF="-D__CHECK_ENDIAN__" -C ../tools/perf |& tee -a make-perf.log
+#cd ..
+#following if in cube:
+#scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/*dtb kimphi01@192.168.2.2:/media/kimphi01/JUNO/SOFTWARE/
+#exit
+#scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/*dtb kim@192.168.1.4:/bootjuno/SOFTWARE/
+# my junor2's fw looks for a board.dtb:
+cp juno/arch/arm64/boot/dts/arm/juno-r2.dtb juno/arch/arm64/boot/dts/arm/board.dtb
+scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/board.dtb juno/vmlinux kim@juno.austin.arm.com:    # 192.168.1.4:
+#echo copied Image and dtbs to home in case /bootjuno/ failed. Copy them on-board if so with:
 echo ---------------OR----------------
 echo On kim@juno, copy Image and dtb with:
 echo "sudo cp /home/kim/Image /home/kim/board.dtb /bootjuno/SOFTWARE/ ; sudo sync; sudo sync; sudo cp /home/kim/vmlinux /boot/vmlinux"
