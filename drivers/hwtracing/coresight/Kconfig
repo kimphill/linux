@@ -89,8 +89,7 @@ config CORESIGHT_STM
 
 config CORESIGHT_CPU_DEBUG
 	tristate "CoreSight CPU Debug driver"
-	depends on ARM || ARM64
-	depends on DEBUG_FS
+	depends on CORESIGHT && DEBUG_FS
 	help
 	  This driver provides support for coresight debugging module. This
 	  is primarily used to dump sample-based profiling registers when
