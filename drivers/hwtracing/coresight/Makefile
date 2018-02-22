@@ -2,9 +2,11 @@
 #
 # Makefile for CoreSight drivers.
 #
-obj-$(CONFIG_CORESIGHT) += coresight.o
-obj-$(CONFIG_OF) += of_coresight.o
-obj-$(CONFIG_PERF_EVENTS) += coresight-etm-perf.o
+obj-$(CONFIG_CORESIGHT) += coresight-core.o
+coresight-core-objs := coresight.o \
+		       of_coresight.o
+
+obj-$(CONFIG_CORESIGHT) += coresight-etm-perf.o
 
 obj-$(CONFIG_CORESIGHT_LINK_AND_SINK_TMC) += coresight-link-sink-tmc.o
 coresight-link-sink-tmc-objs :=  coresight-tmc.o \
