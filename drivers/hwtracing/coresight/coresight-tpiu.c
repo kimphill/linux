@@ -118,7 +118,8 @@ static const struct coresight_ops tpiu_cs_ops = {
 	.sink_ops	= &tpiu_sink_ops,
 };
 
-static int tpiu_probe(struct amba_device *adev, const struct amba_id *id)
+static int __init tpiu_probe(struct amba_device *adev,
+			     const struct amba_id *id)
 {
 	int ret;
 	void __iomem *base;
@@ -171,7 +172,7 @@ static int tpiu_probe(struct amba_device *adev, const struct amba_id *id)
 	return PTR_ERR_OR_ZERO(drvdata->csdev);
 }
 
-static int tpiu_remove(struct amba_device *adev)
+static int __exit tpiu_remove(struct amba_device *adev)
 {
 	struct tpiu_drvdata *drvdata = dev_get_drvdata(&adev->dev);
 
@@ -222,6 +223,8 @@ static const struct amba_id tpiu_ids[] = {
 	},
 	{ 0, 0},
 };
+
+MODULE_DEVICE_TABLE(amba, tpiu_ids);
 
 static struct amba_driver tpiu_driver = {
 	.drv = {

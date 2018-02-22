@@ -512,7 +512,7 @@ static int __init etm_perf_init(void)
 
 	return ret;
 }
-device_initcall(etm_perf_init);
+module_init(etm_perf_init);
 
 static void __exit etm_perf_exit(void)
 {

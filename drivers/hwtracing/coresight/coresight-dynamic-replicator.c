@@ -217,6 +217,8 @@ static const struct amba_id replicator_ids[] = {
 	{ 0, 0 },
 };
 
+MODULE_DEVICE_TABLE(amba, replicator_ids);
+
 static struct amba_driver replicator_driver = {
 	.drv = {
 		.name	= "coresight-dynamic-replicator",
