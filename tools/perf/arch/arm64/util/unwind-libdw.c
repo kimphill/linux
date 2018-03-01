@@ -1,4 +1,4 @@
-#include &lt;elfutils/libdwfl.h&gt;
+#include <elfutils/libdwfl.h>
 #include "../../util/unwind-libdw.h"
 #include "../../util/perf_regs.h"
 
