@@ -127,7 +127,7 @@ time make O=juno -j 8 INSTALL_MOD_PATH=modules-install/$UNAMER modules_install |
 #echo sudo cp juno\*dtb board\*dtb Image /mnt/tmp/SOFTWARE\; sync\; sudo sync
 #echo sudo umount /mnt/tmp
 echo going to:  ssh kim@juno mkdir -p /lib/modules/$UNAMER
-ssh kim@juno.austin.arm.com mkdir -p /lib/modules/$UNAMER
+ssh kim@juno mkdir -p /lib/modules/$UNAMER
 #scp -r juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@192.168.1.4:/lib/modules/$UNAMER
 #rsync -av --rsh=ssh --quiet juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@juno:/lib/modules/$UNAMER
 rsync -av --rsh=ssh juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@juno:/lib/modules/$UNAMER
@@ -140,7 +140,7 @@ rsync -av --rsh=ssh juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,ke
 #scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/*dtb kim@192.168.1.4:/bootjuno/SOFTWARE/
 # my junor2's fw looks for a board.dtb:
 cp juno/arch/arm64/boot/dts/arm/juno-r2.dtb juno/arch/arm64/boot/dts/arm/board.dtb
-scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/board.dtb juno/vmlinux kim@juno.austin.arm.com:    # 192.168.1.4:
+scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/board.dtb juno/vmlinux kim@juno:    # 192.168.1.4:
 #echo copied Image and dtbs to home in case /bootjuno/ failed. Copy them on-board if so with:
 echo ---------------OR----------------
 echo On kim@juno, copy Image and dtb with:
