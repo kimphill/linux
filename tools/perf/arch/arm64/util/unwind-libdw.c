@@ -2,15 +2,25 @@
 #include "../../util/unwind-libdw.h"
 #include "../../util/perf_regs.h"
 
+#include <string.h>
+#include "perf_regs.h"
+#include "thread.h"
+#include "map.h"
+#include "event.h"
+#include "debug.h"
+#include "tests/tests.h"
+#include "arch-tests.h"
+
+
 bool libdw__arch_set_initial_registers(Dwfl_Thread *thread, void *arg)
 {
 	struct unwind_info *ui = arg;
-	struct regs_dump *user_regs = &amp;ui-&gt;sample-&gt;user_regs;
+	struct regs_dump *user_regs = &ui->sample->user_regs;
 	Dwarf_Word dwarf_regs[PERF_REG_ARM64_MAX];
 
 #define REG(r) ({						\
 	Dwarf_Word val = 0;					\
-	perf_reg_value(&amp;val, user_regs, PERF_REG_ARM64_##r);	\
+	perf_reg_value(&val, user_regs, PERF_REG_ARM64_##r);	\
 	val;							\
 })
 
