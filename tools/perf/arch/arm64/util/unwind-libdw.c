@@ -7,7 +7,7 @@ bool libdw__arch_set_initial_registers(Dwfl_Thread *thread, void *arg)
 {
 	struct unwind_info *ui = arg;
 	struct regs_dump *user_regs = &ui->sample->user_regs;
-	Dwarf_Word dwarf_regs[PERF_REG_ARM64_MAX];
+	Dwarf_Word dwarf_regs[PERF_REG_ARM64_MAX], dwarf_pc;
 
 #define REG(r) ({						\
 	Dwarf_Word val = 0;					\
@@ -47,8 +47,24 @@ bool libdw__arch_set_initial_registers(Dwfl_Thread *thread, void *arg)
 	dwarf_regs[29] = REG(X29);
 	dwarf_regs[30] = REG(LR);
 	dwarf_regs[31] = REG(SP);
-	dwarf_regs[32] = REG(PC);
+	//dwarf_regs[32] = REG(PC);
 
-	return dwfl_thread_state_registers(thread, 0, PERF_REG_ARM64_MAX,
-					   dwarf_regs);
+	if (!dwfl_thread_state_registers(thread, 0, PERF_REG_ARM64_MAX,
+					 dwarf_regs))
+		return false;
+
+	dwarf_pc = REG(PC);
+	dwfl_thread_state_register_pc(thread, dwarf_pc);
+#if 0
+	for (i = 0; i < ARRAY_SIZE(special_regs); i++) {
+		Dwarf_Word val = 0;
+		perf_reg_value(&val, user_regs, special_regs[i][1]);
+		if (!dwfl_thread_state_registers(thread,
+						 special_regs[i][0], 1,
+						 &val))
+			return false;
+	}
+#endif
+
+	return true;
 }
