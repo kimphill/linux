@@ -1,16 +1,7 @@
 #include <elfutils/libdwfl.h>
 #include "../../util/unwind-libdw.h"
 #include "../../util/perf_regs.h"
-
-#include <string.h>
-#include "perf_regs.h"
-#include "thread.h"
-#include "map.h"
-#include "event.h"
-#include "debug.h"
-#include "tests/tests.h"
-#include "arch-tests.h"
-
+#include "../../util/event.h"
 
 bool libdw__arch_set_initial_registers(Dwfl_Thread *thread, void *arg)
 {
