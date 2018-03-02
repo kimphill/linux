@@ -1,0 +1,80 @@
+still unsure of diffs between libunwind-unwind and unwind-libdw...
+
+how to test libdw?
+
+sudo ./perf record -g --call-graph=dwarf uname -a && sudo ./perf report -g
+sudo ./perf record -g --call-graph=dwarf uname -a && sudo ./perf --no-pager report -g --stdio | head -50
+
+./perf record --call-graph dwarf ./stress_bt
+
+./perf --no-pager report --call-graph --stdio
+on Juno, without libunwind installed, acme's urgent, get NO CALL GRAPHS:
+    99.73%    99.73%  stress_bt  stress_bt         [.] foo_128
+     0.03%     0.03%  stress_bt  libc-2.24.so      [.] __random
+     0.02%     0.02%  stress_bt  stress_bt         [.] foo_62
+     0.02%     0.02%  stress_bt  stress_bt         [.] foo_68
+     0.01%     0.01%  stress_bt  stress_bt         [.] foo_8
+     0.01%     0.01%  stress_bt  libc-2.24.so      [.] _dl_addr
+     0.01%     0.01%  stress_bt  stress_bt         [.] foo_116
+
+then report?  What to look for?  OK, have stress_bt with libunwind-dev uninstalled fails, even with libdw attempt.  Fix!
+
+commit f704ef44602fbf403e6722c7ed13f62d17e8cb20
+Author: Heiko Carstens <heiko.carstens@de.ibm.com>
+Date:   Tue Jan 19 11:23:38 2016 +0100
+
+    s390/perf: add support for perf_regs and libdw
+    
+    With support for perf_regs and libdw, you can record and report
+    call graphs for user space programs. Simply invoke perf with
+    the --call-graph=dwarf command line option.
+
+this can't be true since arm64 already passes the test, and it's in userspsace.
+
+commit a7f0fda085870312ab694b19a1304ece161a1217
+Author: Paolo Bonzini <pbonzini@redhat.com>
+Date:   Thu Jun 1 12:24:41 2017 +0200
+
+    perf unwind: Support for powerpc
+    
+    Porting PPC to libdw only needs an architecture-specific hook to move
+    the register state from perf to libdw.
+    
+    The ARM and x86 architectures already use libdw, and it is useful to
+    have as much common code for the unwinder as possible.  Mark Wielaard
+    has contributed a frame-based unwinder to libdw, so that unwinding works
+    even for binaries that do not have CFI information.  In addition,
+    libunwind is always preferred to libdw by the build machinery so this
+    cannot introduce regressions on machines that have both libunwind and
+    libdw installed.
+    
+ununinstalled libunwind-dev from Juno, rebuilt, unwind test not present.  Ugh.
+
+commit 9126cbbacecb8917bd0418809ef1d26616b2061e (tag: perf-urgent-for-mingo-4.12-20170616)
+Author: Milian Wolff <milian.wolff@kdab.com>
+Date:   Fri Jun 2 16:37:53 2017 +0200
+
+    perf unwind: Report module before querying isactivation in dwfl unwind
+    
+    The PC returned by dwfl_frame_pc() may map into a not-yet-reported
+    module. We have to report it before we continue unwinding. But when we
+    query for the isactivation flag in dwfl_frame_pc, libdw will actually do
+    one more unwinding step internally which can then break and lead to
+    missed frames or broken stacks.
+    
+    With libunwind we get e.g.:
+...
+https://wiki.linaro.org/LEG/Engineering/TOOLS/perf-callstack-unwinding#Backtrace_stress_application
+
+https://archive.fosdem.org/2015/schedule/event/arm_perf/attachments/slides/601/export/events/attachments/arm_perf/slides/601/Fosdem_2015_perf_status_on_ARM_and_ARM64.pdf
+
+there's a pure unwind speed, too:
+
+http://www.serverphorums.com/read.php?12,886803
+
+Perf data size:
+304MB libunwind libdw improvement
+real 9m31.577s 1m13.052s 782%
+
+https://lkml.org/lkml/2016/8/22/266
+
