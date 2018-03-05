@@ -767,7 +767,7 @@ size_t machine__fprintf_vmlinux_path(struct machine *machine, FILE *fp)
 size_t machine__fprintf(struct machine *machine, FILE *fp)
 {
 	struct rb_node *nd;
-	size_t ret;
+	size_t ret = 0;
 	int i;
 
 	for (i = 0; i < THREADS__TABLE_SIZE; i++) {
@@ -775,12 +775,12 @@ size_t machine__fprintf(struct machine *machine, FILE *fp)
 
 		down_read(&threads->lock);
 
-		ret = fprintf(fp, "Threads: %u\n", threads->nr);
+//		ret = fprintf(fp, "Threads: %u\n", threads->nr);
 
 		for (nd = rb_first(&threads->entries); nd; nd = rb_next(nd)) {
 			struct thread *pos = rb_entry(nd, struct thread, rb_node);
 
-			ret += thread__fprintf(pos, fp);
+//			ret += thread__fprintf(pos, fp);
 		}
 
 		up_read(&threads->lock);
