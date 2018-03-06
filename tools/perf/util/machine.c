@@ -764,8 +764,9 @@ size_t machine__fprintf_vmlinux_path(struct machine *machine, FILE *fp)
 	return printed;
 }
 
-size_t machine__fprintf(struct machine *machine, FILE *fp)
+size_t machine__fprintf(struct machine *machine __maybe_unused, FILE *fp __maybe_unused)
 {
+#if 0
 	struct rb_node *nd;
 	size_t ret = 0;
 	int i;
@@ -775,17 +776,19 @@ size_t machine__fprintf(struct machine *machine, FILE *fp)
 
 		down_read(&threads->lock);
 
-//		ret = fprintf(fp, "Threads: %u\n", threads->nr);
+		ret = fprintf(fp, "Threads: %u\n", threads->nr);
 
 		for (nd = rb_first(&threads->entries); nd; nd = rb_next(nd)) {
 			struct thread *pos = rb_entry(nd, struct thread, rb_node);
 
-//			ret += thread__fprintf(pos, fp);
+			ret += thread__fprintf(pos, fp);
 		}
 
 		up_read(&threads->lock);
 	}
 	return ret;
+#endif
+	return 0;
 }
 
 static struct dso *machine__get_kernel(struct machine *machine)
