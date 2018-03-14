@@ -268,13 +268,6 @@ static const struct amba_id funnel_ids[] = {
 
 MODULE_DEVICE_TABLE(amba, funnel_ids);
 
-static const struct of_device_id funnel_match[] = {
-	{.compatible = "arm,coresight-funnel"},
-	{}
-};
-
-MODULE_DEVICE_TABLE(of, funnel_match);
-
 static struct amba_driver funnel_driver = {
 	.drv = {
 		.name	= "coresight-funnel",
@@ -284,6 +277,7 @@ static struct amba_driver funnel_driver = {
 	},
 	.probe		= funnel_probe,
 	.remove		= funnel_remove,
+	.id_table	= funnel_ids,
 };
 module_amba_driver(funnel_driver);
 
