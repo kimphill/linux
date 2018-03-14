@@ -134,12 +134,11 @@
 
 	/* main funnel on Juno r0, cssys0 funnel on Juno r1/r2 as per TRM*/
 	main_funnel: funnel@20040000 {
-		compatible = "arm,coresight-funnel", "arm,primecell";
-		reg = <0 0x20040000 0 0x1000>;
+		/* non-configurable funnels don't show up on the
+		 * AMBA bus.  As such no need to add "arm,primecell".
+		 */
+		compatible = "arm,coresight-funnel";
 
-		clocks = <&soc_smc50mhz>;
-		clock-names = "apb_pclk";
-		power-domains = <&scpi_devpd 0>;
 		ports {
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -226,12 +225,11 @@
 	};
 
 	funnel@220c0000 { /* cluster0 funnel */
-		compatible = "arm,coresight-funnel", "arm,primecell";
-		reg = <0 0x220c0000 0 0x1000>;
+		/* non-configurable funnels don't show up on the
+		 * AMBA bus.  As such no need to add "arm,primecell".
+		 */
+		compatible = "arm,coresight-funnel";
 
-		clocks = <&soc_smc50mhz>;
-		clock-names = "apb_pclk";
-		power-domains = <&scpi_devpd 0>;
 		ports {
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -308,12 +306,11 @@
 	};
 
 	funnel@230c0000 { /* cluster1 funnel */
-		compatible = "arm,coresight-funnel", "arm,primecell";
-		reg = <0 0x230c0000 0 0x1000>;
+		/* non-configurable funnels don't show up on the
+		 * AMBA bus.  As such no need to add "arm,primecell".
+		 */
+		compatible = "arm,coresight-funnel";
 
-		clocks = <&soc_smc50mhz>;
-		clock-names = "apb_pclk";
-		power-domains = <&scpi_devpd 0>;
 		ports {
 			#address-cells = <1>;
 			#size-cells = <0>;

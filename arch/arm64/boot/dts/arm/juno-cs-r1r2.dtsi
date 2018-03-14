@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 / {
 	funnel@20130000 { /* cssys1 */
-		compatible = "arm,coresight-funnel", "arm,primecell";
-		reg = <0 0x20130000 0 0x1000>;
+		compatible = "arm,coresight-funnel";
 
-		clocks = <&soc_smc50mhz>;
-		clock-names = "apb_pclk";
-		power-domains = <&scpi_devpd 0>;
 		ports {
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -61,12 +57,8 @@
 	};
 
 	funnel@20150000 { /* cssys2 */
-		compatible = "arm,coresight-funnel", "arm,primecell";
-		reg = <0 0x20150000 0 0x1000>;
+		compatible = "arm,coresight-funnel";
 
-		clocks = <&soc_smc50mhz>;
-		clock-names = "apb_pclk";
-		power-domains = <&scpi_devpd 0>;
 		ports {
 			#address-cells = <1>;
 			#size-cells = <0>;
