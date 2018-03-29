@@ -243,7 +243,7 @@ struct coresight_ops {
 	const struct coresight_ops_source *source_ops;
 };
 
-#ifdef CONFIG_CORESIGHT
+#if IS_ENABLED(CONFIG_CORESIGHT)
 extern struct coresight_device *
 coresight_register(struct coresight_desc *desc);
 extern void coresight_unregister(struct coresight_device *csdev);
@@ -274,24 +274,5 @@ static inline struct coresight_platform_data *of_get_coresight_platform_data(
 	struct device *dev, const struct device_node *node) { return NULL; }
 #endif
 
-#ifdef CONFIG_PID_NS
-static inline unsigned long
-coresight_vpid_to_pid(unsigned long vpid)
-{
-	struct task_struct *task = NULL;
-	unsigned long pid = 0;
-
-	rcu_read_lock();
-	task = find_task_by_vpid(vpid);
-	if (task)
-		pid = task_pid_nr(task);
-	rcu_read_unlock();
-
-	return pid;
-}
-#else
-static inline unsigned long
-coresight_vpid_to_pid(unsigned long vpid) { return vpid; }
-#endif
-
+extern unsigned long coresight_vpid_to_pid(unsigned long vpid);
 #endif

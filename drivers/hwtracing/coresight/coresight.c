@@ -24,8 +24,31 @@
 #include <linux/of_platform.h>
 #include <linux/delay.h>
 #include <linux/pm_runtime.h>
+#include <linux/sched.h>
 
 #include "coresight-priv.h"
+
+#ifdef CONFIG_PID_NS
+unsigned long coresight_vpid_to_pid(unsigned long vpid)
+{
+	struct task_struct *task = NULL;
+	unsigned long pid = 0;
+
+	rcu_read_lock();
+	task = find_task_by_vpid(vpid);
+	if (task)
+		pid = task_pid_nr(task);
+	rcu_read_unlock();
+
+	return pid;
+}
+#else
+unsigned long coresight_vpid_to_pid(unsigned long vpid)
+{
+	return vpid;
+}
+#endif
+EXPORT_SYMBOL_GPL(coresight_vpid_to_pid);
 
 static DEFINE_MUTEX(coresight_mutex);
 
@@ -60,6 +83,7 @@ static struct list_head *stm_path;
  */
 const u32 barrier_pkt[5] = {0x7fffffff, 0x7fffffff,
 			    0x7fffffff, 0x7fffffff, 0x0};
+EXPORT_SYMBOL_GPL(barrier_pkt);
 
 static int coresight_id_match(struct device *dev, void *data)
 {
@@ -317,6 +341,7 @@ void coresight_disable_path(struct list_head *path)
 		}
 	}
 }
+EXPORT_SYMBOL_GPL(coresight_disable_path);
 
 int coresight_enable_path(struct list_head *path, u32 mode)
 {
@@ -368,6 +393,7 @@ err:
 	coresight_disable_path(path);
 	goto out;
 }
+EXPORT_SYMBOL_GPL(coresight_enable_path);
 
 struct coresight_device *coresight_get_sink(struct list_head *path)
 {
@@ -383,6 +409,7 @@ struct coresight_device *coresight_get_sink(struct list_head *path)
 
 	return csdev;
 }
+EXPORT_SYMBOL_GPL(coresight_get_sink);
 
 static int coresight_enabled_sink(struct device *dev, void *data)
 {
@@ -407,6 +434,7 @@ static int coresight_enabled_sink(struct device *dev, void *data)
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(coresight_enabled_sink);
 
 /**
  * coresight_get_enabled_sink - returns the first enabled sink found on the bus
@@ -429,6 +457,7 @@ struct coresight_device *coresight_get_enabled_sink(bool deactivate)
 
 	return dev ? to_coresight_device(dev) : NULL;
 }
+EXPORT_SYMBOL_GPL(coresight_get_enabled_sink);
 
 /**
  * _coresight_build_path - recursively build a path from a @csdev to a sink.
@@ -508,6 +537,7 @@ struct list_head *coresight_build_path(struct coresight_device *source,
 
 	return path;
 }
+EXPORT_SYMBOL_GPL(coresight_build_path);
 
 /**
  * coresight_release_path - release a previously built path.
@@ -532,6 +562,7 @@ void coresight_release_path(struct list_head *path)
 	kfree(path);
 	path = NULL;
 }
+EXPORT_SYMBOL_GPL(coresight_release_path);
 
 /** coresight_validate_source - make sure a source has the right credentials
  *  @csdev:	the device structure for a source.
@@ -948,6 +979,7 @@ int coresight_timeout(void __iomem *addr, u32 offset, int position, int value)
 
 	return -EAGAIN;
 }
+EXPORT_SYMBOL_GPL(coresight_timeout);
 
 struct bus_type coresight_bustype = {
 	.name	= "coresight",
@@ -958,6 +990,12 @@ static int __init coresight_init(void)
 	return bus_register(&coresight_bustype);
 }
 postcore_initcall(coresight_init);
+
+static void __exit coresight_exit(void)
+{
+	bus_unregister(&coresight_bustype);
+}
+module_exit(coresight_exit);
 
 struct coresight_device *coresight_register(struct coresight_desc *desc)
 {
@@ -1056,3 +1094,7 @@ void coresight_unregister(struct coresight_device *csdev)
 	device_unregister(&csdev->dev);
 }
 EXPORT_SYMBOL_GPL(coresight_unregister);
+
+MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");
+MODULE_DESCRIPTION("ARM Coresight Driver");
+MODULE_LICENSE("GPL v2");

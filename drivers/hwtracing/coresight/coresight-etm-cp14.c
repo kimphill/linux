@@ -589,3 +589,7 @@ int etm_writel_cp14(u32 reg, u32 val)
 
 	return 0;
 }
+
+MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
+MODULE_DESCRIPTION("Arm CoreSight ETM CP14 driver");
+MODULE_LICENSE("GPL v2");
