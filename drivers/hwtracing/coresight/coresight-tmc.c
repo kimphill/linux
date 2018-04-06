@@ -41,7 +41,6 @@ void tmc_wait_for_tmcready(struct tmc_drvdata *drvdata)
 			"timeout while waiting for TMC to be Ready\n");
 	}
 }
-EXPORT_SYMBOL_GPL(tmc_wait_for_tmcready);
 
 void tmc_flush_and_stop(struct tmc_drvdata *drvdata)
 {
@@ -61,19 +60,16 @@ void tmc_flush_and_stop(struct tmc_drvdata *drvdata)
 
 	tmc_wait_for_tmcready(drvdata);
 }
-EXPORT_SYMBOL_GPL(tmc_flush_and_stop);
 
 void tmc_enable_hw(struct tmc_drvdata *drvdata)
 {
 	writel_relaxed(TMC_CTL_CAPT_EN, drvdata->base + TMC_CTL);
 }
-EXPORT_SYMBOL_GPL(tmc_enable_hw);
 
 void tmc_disable_hw(struct tmc_drvdata *drvdata)
 {
 	writel_relaxed(0x0, drvdata->base + TMC_CTL);
 }
-EXPORT_SYMBOL_GPL(tmc_disable_hw);
 
 static int tmc_read_prepare(struct tmc_drvdata *drvdata)
 {
