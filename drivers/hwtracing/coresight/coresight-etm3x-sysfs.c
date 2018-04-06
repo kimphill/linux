@@ -1276,6 +1276,7 @@ const struct attribute_group *coresight_etm_groups[] = {
 	NULL,
 };
 
+MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
 MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");
 MODULE_DESCRIPTION("Arm CoreSight Program Flow Trace sysfs driver");
 MODULE_LICENSE("GPL v2");

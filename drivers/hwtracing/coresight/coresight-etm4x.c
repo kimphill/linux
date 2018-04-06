@@ -905,7 +905,6 @@ void etm4_config_trace_mode(struct etmv4_config *config)
 	config->addr_acc[ETM_DEFAULT_ADDR_COMP] = addr_acc;
 	config->addr_acc[ETM_DEFAULT_ADDR_COMP + 1] = addr_acc;
 }
-EXPORT_SYMBOL_GPL(etm4_config_trace_mode);
 
 static int etm4_online_cpu(unsigned int cpu)
 {
@@ -1086,6 +1085,7 @@ MODULE_DEVICE_TABLE(amba, etm4_ids);
 static struct amba_driver etm4x_driver = {
 	.drv = {
 		.name   = "coresight-etm4x",
+		.owner  = THIS_MODULE,
 		.suppress_bind_attrs = true,
 	},
 	.probe		= etm4_probe,
@@ -1095,5 +1095,6 @@ static struct amba_driver etm4x_driver = {
 module_amba_driver(etm4x_driver);
 
 MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
+MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");
 MODULE_DESCRIPTION("Arm CoreSight Program Flow Trace v4 driver");
 MODULE_LICENSE("GPL v2");

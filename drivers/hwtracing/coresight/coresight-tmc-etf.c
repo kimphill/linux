@@ -522,13 +522,11 @@ static const struct coresight_ops_link tmc_etf_link_ops = {
 const struct coresight_ops tmc_etb_cs_ops = {
 	.sink_ops	= &tmc_etf_sink_ops,
 };
-EXPORT_SYMBOL_GPL(tmc_etb_cs_ops);
 
 const struct coresight_ops tmc_etf_cs_ops = {
 	.sink_ops	= &tmc_etf_sink_ops,
 	.link_ops	= &tmc_etf_link_ops,
 };
-EXPORT_SYMBOL_GPL(tmc_etf_cs_ops);
 
 int tmc_read_prepare_etb(struct tmc_drvdata *drvdata)
 {
@@ -577,7 +575,6 @@ out:
 
 	return ret;
 }
-EXPORT_SYMBOL_GPL(tmc_read_prepare_etb);
 
 int tmc_read_unprepare_etb(struct tmc_drvdata *drvdata)
 {
@@ -631,6 +628,5 @@ int tmc_read_unprepare_etb(struct tmc_drvdata *drvdata)
 
 	return 0;
 }
-EXPORT_SYMBOL_GPL(tmc_read_unprepare_etb);
 
 MODULE_LICENSE("GPL v2");

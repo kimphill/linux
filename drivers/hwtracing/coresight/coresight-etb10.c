@@ -778,6 +778,7 @@ static struct amba_driver etb_driver = {
 };
 module_amba_driver(etb_driver);
 
+MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
 MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");
 MODULE_DESCRIPTION("Arm CoreSight Embedded Trace Buffer driver");
 MODULE_LICENSE("GPL v2");
