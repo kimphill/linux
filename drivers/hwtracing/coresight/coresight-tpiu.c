@@ -118,8 +118,7 @@ static const struct coresight_ops tpiu_cs_ops = {
 	.sink_ops	= &tpiu_sink_ops,
 };
 
-static int __init tpiu_probe(struct amba_device *adev,
-			     const struct amba_id *id)
+static int tpiu_probe(struct amba_device *adev, const struct amba_id *id)
 {
 	int ret;
 	void __iomem *base;

@@ -790,7 +790,7 @@ static void stm_init_generic_data(struct stm_drvdata *drvdata)
 	drvdata->stm.set_options = stm_generic_set_options;
 }
 
-static int __init stm_probe(struct amba_device *adev, const struct amba_id *id)
+static int stm_probe(struct amba_device *adev, const struct amba_id *id)
 {
 	int ret;
 	void __iomem *base;
