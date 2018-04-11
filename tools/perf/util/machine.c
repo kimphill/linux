@@ -1224,7 +1224,7 @@ static void machine__set_kernel_mmap(struct machine *machine,
 		 * Be a bit paranoid here, some perf.data file came with
 		 * a zero sized synthesized MMAP event for the kernel.
 		 */
-		if (start == 0 && end == 0)
+		if (machine->vmlinux_maps[i]->end == 0)
 			machine->vmlinux_maps[i]->end = ~0ULL;
 	}
 }
