@@ -45,7 +45,12 @@ struct replicator_state {
 static int replicator_enable(struct coresight_device *csdev, int inport,
 			      int outport)
 {
-	struct replicator_state *drvdata = dev_get_drvdata(csdev->dev.parent);
+	struct device *parent_dev = csdev->dev.parent;
+	struct replicator_state *drvdata = dev_get_drvdata(parent_dev);
+	struct module *module = parent_dev->driver->owner;
+
+	if (!try_module_get(module))
+		return -ENODEV;
 
 	CS_UNLOCK(drvdata->base);
 
@@ -71,7 +76,9 @@ static int replicator_enable(struct coresight_device *csdev, int inport,
 static void replicator_disable(struct coresight_device *csdev, int inport,
 				int outport)
 {
-	struct replicator_state *drvdata = dev_get_drvdata(csdev->dev.parent);
+	struct device *parent_dev = csdev->dev.parent;
+	struct replicator_state *drvdata = dev_get_drvdata(parent_dev);
+	struct module *module = parent_dev->driver->owner;
 
 	CS_UNLOCK(drvdata->base);
 
@@ -83,6 +90,7 @@ static void replicator_disable(struct coresight_device *csdev, int inport,
 
 	CS_LOCK(drvdata->base);
 
+	module_put(module);
 	dev_info(drvdata->dev, "REPLICATOR disabled\n");
 }
 
@@ -167,6 +175,15 @@ static int replicator_probe(struct amba_device *adev, const struct amba_id *id)
 	return PTR_ERR_OR_ZERO(drvdata->csdev);
 }
 
+static int __exit replicator_remove(struct amba_device *adev)
+{
+	struct replicator_state *drvdata = dev_get_drvdata(&adev->dev);
+
+	coresight_unregister(drvdata->csdev);
+
+	return 0;
+}
+
 #ifdef CONFIG_PM
 static int replicator_runtime_suspend(struct device *dev)
 {
@@ -208,6 +225,8 @@ static const struct amba_id replicator_ids[] = {
 	{ 0, 0 },
 };
 
+MODULE_DEVICE_TABLE(amba, replicator_ids);
+
 static struct amba_driver replicator_driver = {
 	.drv = {
 		.name	= "coresight-dynamic-replicator",
@@ -215,6 +234,11 @@ static struct amba_driver replicator_driver = {
 		.suppress_bind_attrs = true,
 	},
 	.probe		= replicator_probe,
+	.remove		= replicator_remove,
 	.id_table	= replicator_ids,
 };
-builtin_amba_driver(replicator_driver);
+module_amba_driver(replicator_driver);
+
+MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
+MODULE_DESCRIPTION("ARM Coresight Dynamic Replicator Driver");
+MODULE_LICENSE("GPL v2");
