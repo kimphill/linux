@@ -69,6 +69,10 @@ static int funnel_enable(struct coresight_device *csdev, int inport,
 			 int outport)
 {
 	struct funnel_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
+       struct module *module = csdev->dev.parent->driver->owner;
+
+       if (!try_module_get(module))
+               return -ENODEV;
 
 	funnel_enable_hw(drvdata, inport);
 
@@ -93,9 +97,11 @@ static void funnel_disable(struct coresight_device *csdev, int inport,
 			   int outport)
 {
 	struct funnel_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
+	struct module *module = csdev->dev.parent->driver->owner;
 
 	funnel_disable_hw(drvdata, inport);
 
+	module_put(module);
 	dev_info(drvdata->dev, "FUNNEL inport %d disabled\n", inport);
 }
 
@@ -218,6 +224,15 @@ static int funnel_probe(struct amba_device *adev, const struct amba_id *id)
 	return PTR_ERR_OR_ZERO(drvdata->csdev);
 }
 
+static int __exit funnel_remove(struct amba_device *adev)
+{
+	struct funnel_drvdata *drvdata = dev_get_drvdata(&adev->dev);
+
+	coresight_unregister(drvdata->csdev);
+
+	return 0;
+}
+
 #ifdef CONFIG_PM
 static int funnel_runtime_suspend(struct device *dev)
 {
@@ -257,6 +272,8 @@ static const struct amba_id funnel_ids[] = {
 	{ 0, 0},
 };
 
+MODULE_DEVICE_TABLE(amba, funnel_ids);
+
 static struct amba_driver funnel_driver = {
 	.drv = {
 		.name	= "coresight-funnel",
@@ -265,6 +282,11 @@ static struct amba_driver funnel_driver = {
 		.suppress_bind_attrs = true,
 	},
 	.probe		= funnel_probe,
+	.remove		= funnel_remove,
 	.id_table	= funnel_ids,
 };
-builtin_amba_driver(funnel_driver);
+module_amba_driver(funnel_driver);
+
+MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");
+MODULE_DESCRIPTION("ARM Coresight Funnel Driver");
+MODULE_LICENSE("GPL v2");

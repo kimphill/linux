@@ -342,3 +342,5 @@ int tmc_read_unprepare_etr(struct tmc_drvdata *drvdata)
 
 	return 0;
 }
+
+MODULE_LICENSE("GPL v2");
