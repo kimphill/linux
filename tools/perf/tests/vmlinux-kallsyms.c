@@ -163,6 +163,17 @@ next_pair:
 
 				continue;
 			}
+		} else if (pair) {
+			struct map *kmap = map_groups__find(&kallsyms.kmaps, type, mem_start);
+			struct map *vmap = map_groups__find(&vmlinux.kmaps, type, mem_start);
+
+			pr_debug("ERR : %#" PRIx64 ": diff addr v: %s k: %#" PRIx64 " %s\n",
+				 mem_start, sym->name, UM(pair->start), pair->name);
+
+			if (kmap && vmap) {
+				pr_debug("    : map v: %s k: %s\n",
+					 vmap->dso->short_name, kmap->dso->short_name);
+			}
 		} else
 			pr_debug("ERR : %#" PRIx64 ": %s not on kallsyms\n",
 				 mem_start, sym->name);
