@@ -231,6 +231,6 @@ static struct amba_driver replicator_driver = {
 };
 module_amba_driver(replicator_driver);
 
-MODULE_AUTHOR("Suzuki K Poulose <suzuki.poulose@arm.com>");
+MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
 MODULE_DESCRIPTION("ARM Coresight Dynamic Replicator Driver");
 MODULE_LICENSE("GPL v2");
