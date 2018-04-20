@@ -146,6 +146,7 @@ echo INSTEAD, go to tc2 and:
 echo export UNAMER=${UNAMER}
 echo sudo mkdir -p /lib/modules/\$UNAMER
 echo sudo rsync -av /nfsroot/linux/tc2/modules-install/\$UNAMER/lib/modules/\$UNAMER/\{modules,kernel\}\* /lib/modules/\$UNAMER/
+echo sudo rsync -av /nfsroot/linux/tc2/vmlinux /boot
 exit
 ssh kim@tc2.austin.arm.com mkdir -p /lib/modules/$UNAMER
 #scp -r tc2/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@192.168.1.4:/lib/modules/$UNAMER
