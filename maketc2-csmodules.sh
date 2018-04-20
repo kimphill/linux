@@ -46,7 +46,8 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 ../scripts/config -d CONFIG_WLAN
 ../scripts/config -d CONFIG_WIRELESS
 ../scripts/config -d CONFIG_WIRELESS_EXT
-../scripts/config -d CONFIG_IPV6
+#../scripts/config -d CONFIG_IPV6   #[    6.931415] systemd[1]: Failed to insert module 'ipv6'
+../scripts/config -e CONFIG_IPV6
 ../scripts/config -d CONFIG_FB
 ../scripts/config -d CONFIG_VIDEO_V4L2
 ../scripts/config -d CONFIG_CONFIG_VIDEO_DEV
@@ -98,6 +99,13 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 
 ../scripts/config -m CONFIG_ARM_SPE_PMU
 
+../scripts/config -d CONFIG_SERIO_AMBAKMI   # scary USB--PS/2 interop bug in 4.17-rc1 (R.Murphy linux-eng post (juno))
+#[   10.502450] EXT4-fs (mmcblk0p2): Filesystem with huge files cannot be mounted RDWR without CONFIG_LBDAF:
+../scripts/config -e CONFIG_LBDAF
+#[   14.411421] systemd[1]: Failed to insert module 'autofs4'
+../scripts/config -e CONFIG_AUTOFS4_FS
+
+
 cd ..
 echo CONFIG_CACHE_L2X0_PMU=y >> tc2/.config
 echo CONFIG_PATA_PLATFORM=y >> tc2/.config
@@ -128,7 +136,16 @@ time make O=tc2 -j 8 INSTALL_MOD_PATH=modules-install/$UNAMER modules_install ||
 #echo sudo mount /dev/sdb1 /mnt/tmp	\# make sure it got mounted there by checking dmesg first
 #echo sudo cp tc2\*dtb board\*dtb Image /mnt/tmp/SOFTWARE\; sync\; sudo sync
 #echo sudo umount /mnt/tmp
-echo NOT!!!!!!!!!!! going to:  ssh kim@tc2 mkdir -p /lib/modules/$UNAMER
+echo on desktop:
+#scp tc2/vmlinux tc2/arch/arm64/boot/Image tc2/arch/arm64/boot/dts/arm/*dtb ntel:
+sync; sudo sync
+cp -v tc2/arch/arm/boot/dts/vexpress-v2p-ca15_a7.dtb tc2/arch/arm/boot/Image /media/kimphi01/VEMSD/SOFTWARE
+sync; sudo sync
+echo NOT going to:  ssh kim@tc2 mkdir -p /lib/modules/$UNAMER
+echo INSTEAD, go to tc2 and:
+echo export UNAMER=${UNAMER}
+echo sudo mkdir -p /lib/modules/\$UNAMER
+echo sudo rsync -av /nfsroot/linux/tc2/modules-install/\$UNAMER/lib/modules/\$UNAMER/\{modules,kernel\}\* /lib/modules/\$UNAMER/
 exit
 ssh kim@tc2.austin.arm.com mkdir -p /lib/modules/$UNAMER
 #scp -r tc2/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,kernel}* kim@192.168.1.4:/lib/modules/$UNAMER
