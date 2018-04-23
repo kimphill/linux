@@ -105,8 +105,8 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 ../scripts/config -m CONFIG_ARM_SPE_PMU
 
 ../scripts/config -d CONFIG_SERIO_AMBAKMI   # scary USB--PS/2 interop bug in 4.17-rc1 (R.Murphy linux-eng post)
-../scripts/config -e CONFIG_RANDOMIZE_BASE   # fun with perf!
-../scripts/config -e CONFIG_ARM64_RANDOMIZE_TEXT_OFFSET
+#../scripts/config -e CONFIG_RANDOMIZE_BASE   # fun with perf!
+#../scripts/config -e CONFIG_ARM64_RANDOMIZE_TEXT_OFFSET
 cd ..
 make O=juno olddefconfig
 time make O=juno -j 8 || exit
