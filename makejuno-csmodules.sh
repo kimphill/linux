@@ -107,6 +107,44 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 ../scripts/config -d CONFIG_SERIO_AMBAKMI   # scary USB--PS/2 interop bug in 4.17-rc1 (R.Murphy linux-eng post)
 #../scripts/config -e CONFIG_RANDOMIZE_BASE   # fun with perf!
 #../scripts/config -e CONFIG_ARM64_RANDOMIZE_TEXT_OFFSET
+
+
+#after using gconfig to select mem leak stuff...
+#kimphi01@kimphi01-desktop linux coresightmodpv3prep$ diff -u -r juno/dot.config-nondebug juno/.config| grep ^+ | grep -v "is not set"
+#../scripts/config -e CONFIG_CONSTRUCTORS
+#../scripts/config -e CONFIG_GCC_PLUGINS
+#../scripts/config -e CONFIG_GCC_PLUGIN_SANCOV
+#../scripts/config -e CONFIG_PAGE_EXTENSION
+../scripts/config -e CONFIG_DEBUG_PAGEALLOC
+../scripts/config -e CONFIG_DEBUG_PAGEALLOC_ENABLE_DEFAULT
+../scripts/config -e CONFIG_PAGE_POISONING
+../scripts/config -e CONFIG_PAGE_POISONING_NO_SANITY
+../scripts/config -e CONFIG_DEBUG_PAGE_REF
+#../scripts/config -e CONFIG_DEBUG_OBJECTS
+#../scripts/config -e CONFIG_DEBUG_OBJECTS_FREE
+#../scripts/config -e CONFIG_SLUB_DEBUG_ON
+../scripts/config -e CONFIG_DEBUG_KMEMLEAK
+#../scripts/config -e CONFIG_DEBUG_STACK_USAGE
+#../scripts/config -e CONFIG_DEBUG_VM
+#../scripts/config -e CONFIG_DEBUG_VIRTUAL
+#../scripts/config -e CONFIG_KASAN
+#../scripts/config -e CONFIG_KASAN_OUTLINE
+#../scripts/config -e CONFIG_KCOV
+#../scripts/config -e CONFIG_DEBUG_SHIRQ
+#../scripts/config -e CONFIG_LOCKUP_DETECTOR
+#../scripts/config -e CONFIG_SOFTLOCKUP_DETECTOR
+#../scripts/config -e CONFIG_DETECT_HUNG_TASK
+#../scripts/config -e CONFIG_WQ_WATCHDOG
+#../scripts/config -e CONFIG_DEBUG_RT_MUTEXES
+../scripts/config -e CONFIG_DEBUG_SPINLOCK
+../scripts/config -e CONFIG_DEBUG_MUTEXES
+#../scripts/config -e CONFIG_DEBUG_RWSEMS
+../scripts/config -e CONFIG_DEBUG_LOCK_ALLOC
+../scripts/config -e CONFIG_LOCKDEP
+../scripts/config -e CONFIG_DEBUG_ATOMIC_SLEEP
+../scripts/config -e CONFIG_DMA_API_DEBUG
+#../scripts/config -e CONFIG_STACKDEPOT
+
 cd ..
 make O=juno olddefconfig
 time make O=juno -j 8 || exit
@@ -152,7 +190,8 @@ scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/board.dtb juno/vmlin
 #echo copied Image and dtbs to home in case /bootjuno/ failed. Copy them on-board if so with:
 echo ---------------OR----------------
 echo On kim@juno, copy Image and dtb with:
-echo "sudo cp /home/kim/Image /home/kim/board.dtb /bootjuno/SOFTWARE/ ; sudo sync; sudo sync; sudo cp /home/kim/vmlinux /boot/vmlinux"
+echo "sudo cp /home/kim/Image /home/kim/board.dtb /bootjuno/SOFTWARE/ ; sudo sync; sudo sync; \\"
+echo "sudo cp /home/kim/vmlinux /boot/vmlinux"
 exit
 NM, doing local:
 # board's self-boot mmc storage
