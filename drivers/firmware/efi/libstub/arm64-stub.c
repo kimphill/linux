@@ -98,6 +98,13 @@ efi_status_t handle_kernel_image(efi_system_table_t *sys_table_arg,
 			     (phys_seed >> 32) & mask : TEXT_OFFSET;
 
 		/*
+		 * With CONFIG_RANDOMIZE_TEXT_OFFSET, TEXT_OFFSET may not be a
+		 * multiple of EFI_KIMG_ALIGN, and we must ensure that we apply
+		 * the offset below EFI_KIMG_ALIGN.
+		 */
+		offset |= (TEXT_OFFSET % EFI_KIMG_ALIGN);
+
+		/*
 		 * If KASLR is enabled, and we have some randomness available,
 		 * locate the kernel at a randomized offset in physical memory.
 		 */
