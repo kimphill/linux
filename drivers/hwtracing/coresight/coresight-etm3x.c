@@ -878,6 +878,10 @@ static int __exit etm_remove(struct amba_device *adev)
 	struct etm_drvdata *drvdata = dev_get_drvdata(&adev->dev);
 
 	etm_perf_symlink(drvdata->csdev, false);
+
+	cpuhp_remove_state_nocalls(CPUHP_AP_ARM_CORESIGHT_STARTING);
+	cpuhp_remove_state_nocalls(hp_online);
+
 	coresight_unregister(drvdata->csdev);
 
 	return 0;
