@@ -877,6 +877,7 @@ static int __exit etm_remove(struct amba_device *adev)
 {
 	struct etm_drvdata *drvdata = dev_get_drvdata(&adev->dev);
 
+	etm_perf_symlink(drvdata->csdev, false);
 	coresight_unregister(drvdata->csdev);
 
 	return 0;
