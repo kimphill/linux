@@ -105,8 +105,8 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 ../scripts/config -m CONFIG_ARM_SPE_PMU
 
 ../scripts/config -d CONFIG_SERIO_AMBAKMI   # scary USB--PS/2 interop bug in 4.17-rc1 (R.Murphy linux-eng post)
-#../scripts/config -e CONFIG_RANDOMIZE_BASE   # fun with perf!
-#../scripts/config -e CONFIG_ARM64_RANDOMIZE_TEXT_OFFSET
+../scripts/config -e CONFIG_RANDOMIZE_BASE   # fun with perf!
+../scripts/config -e CONFIG_ARM64_RANDOMIZE_TEXT_OFFSET
 
 
 #after using gconfig to select mem leak stuff...
@@ -170,7 +170,8 @@ time make O=juno -j 8 INSTALL_MOD_PATH=modules-install/$UNAMER modules_install |
 if [ -d "/media/kimphi01/JUNO/SOFTWARE/" ]; then
         cp -v juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/*dtb /media/kimphi01/JUNO/SOFTWARE/; sync; sync
         echo since you have the juno USB_ON mounted, I put the stuff there.  umount /media/kimphi01/JUNO!  bye for now!
-        exit
+        #exit  
+	echo continuing... to do modules... and /boot/vmlinux...assuming the machine is still up...
 fi
 echo going to:  ssh kim@juno mkdir -p /lib/modules/$UNAMER
 ssh kim@juno mkdir -p /lib/modules/$UNAMER
@@ -188,10 +189,12 @@ rsync -av --rsh=ssh juno/modules-install/$UNAMER/lib/modules/$UNAMER/{modules,ke
 cp juno/arch/arm64/boot/dts/arm/juno-r2.dtb juno/arch/arm64/boot/dts/arm/board.dtb
 scp juno/arch/arm64/boot/Image juno/arch/arm64/boot/dts/arm/board.dtb juno/vmlinux kim@juno:    # 192.168.1.4:
 #echo copied Image and dtbs to home in case /bootjuno/ failed. Copy them on-board if so with:
-echo ---------------OR----------------
-echo On kim@juno, copy Image and dtb with:
-echo "sudo cp /home/kim/Image /home/kim/board.dtb /bootjuno/SOFTWARE/ ; sudo sync; sudo sync; \\"
-echo "sudo cp /home/kim/vmlinux /boot/vmlinux"
+if [ ! -d "/media/kimphi01/JUNO/SOFTWARE/" ]; then
+	echo ---------------OR----------------
+	echo On kim@juno, copy Image and dtb with:
+	echo "sudo cp /home/kim/Image /home/kim/board.dtb /bootjuno/SOFTWARE/ ; sudo sync; sudo sync; \\"
+	echo "sudo cp /home/kim/vmlinux /boot/vmlinux"
+fi
 exit
 NM, doing local:
 # board's self-boot mmc storage
