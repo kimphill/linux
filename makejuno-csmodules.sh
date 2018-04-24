@@ -194,6 +194,9 @@ if [ ! -d "/media/kimphi01/JUNO/SOFTWARE/" ]; then
 	echo On kim@juno, copy Image and dtb with:
 	echo "sudo cp /home/kim/Image /home/kim/board.dtb /bootjuno/SOFTWARE/ ; sudo sync; sudo sync; \\"
 	echo "sudo cp /home/kim/vmlinux /boot/vmlinux"
+else
+	echo On kim@juno, copy vmlinux:
+	echo "sudo cp /home/kim/vmlinux /boot/vmlinux"
 fi
 exit
 NM, doing local:
