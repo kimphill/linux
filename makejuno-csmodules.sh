@@ -105,8 +105,9 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 ../scripts/config -m CONFIG_ARM_SPE_PMU
 
 ../scripts/config -d CONFIG_SERIO_AMBAKMI   # scary USB--PS/2 interop bug in 4.17-rc1 (R.Murphy linux-eng post)
-../scripts/config -e CONFIG_RANDOMIZE_BASE   # fun with perf!
-../scripts/config -e CONFIG_ARM64_RANDOMIZE_TEXT_OFFSET
+#was fun with perf until perf record cs_etm affected suspected
+#../scripts/config -e CONFIG_RANDOMIZE_BASE   # fun with perf!
+#../scripts/config -e CONFIG_ARM64_RANDOMIZE_TEXT_OFFSET
 
 
 #after using gconfig to select mem leak stuff...
@@ -123,7 +124,7 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 #../scripts/config -e CONFIG_DEBUG_OBJECTS
 #../scripts/config -e CONFIG_DEBUG_OBJECTS_FREE
 #../scripts/config -e CONFIG_SLUB_DEBUG_ON
-../scripts/config -e CONFIG_DEBUG_KMEMLEAK
+#../scripts/config -e CONFIG_DEBUG_KMEMLEAK  # in shared-config.sh
 #../scripts/config -e CONFIG_DEBUG_STACK_USAGE
 #../scripts/config -e CONFIG_DEBUG_VM
 #../scripts/config -e CONFIG_DEBUG_VIRTUAL
@@ -142,10 +143,13 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 ../scripts/config -e CONFIG_DEBUG_LOCK_ALLOC
 ../scripts/config -e CONFIG_LOCKDEP
 ../scripts/config -e CONFIG_DEBUG_ATOMIC_SLEEP
-../scripts/config -e CONFIG_DMA_API_DEBUG
+#../scripts/config -e CONFIG_DMA_API_DEBUG  # in shared-config.sh
 #../scripts/config -e CONFIG_STACKDEPOT
 
+source ../shared-config.sh
+
 cd ..
+
 make O=juno olddefconfig
 time make O=juno -j 8 || exit
 #cant have a trailing  |& tee -a make.log above (exit wont exit)
