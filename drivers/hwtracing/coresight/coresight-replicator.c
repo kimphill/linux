@@ -131,6 +131,8 @@ static int __exit replicator_remove(struct platform_device *pdev)
 
 	coresight_unregister(drvdata->csdev);
 
+	pm_runtime_disable(&pdev->dev);
+
 	return 0;
 }
 
