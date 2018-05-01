@@ -467,7 +467,10 @@ static int cs_etm_info_fill(struct auxtrace_record *itr,
 		for (i = 0; i < cpu_map__nr(event_cpus); i++) {
 			if (cpu_map__has(event_cpus, i) &&
 			    !cpu_map__has(online_cpus, i))
+			{
+				pr_err("%s %d: returning EINVAL\n", __func__, __LINE__);
 				return -EINVAL;
+			}
 		}
 
 		cpu_map = event_cpus;
@@ -519,6 +522,10 @@ static int cs_etm_snapshot_start(struct auxtrace_record *itr)
 		if (evsel->attr.type == ptr->cs_etm_pmu->type)
 			return perf_evsel__disable(evsel);
 	}
+			{
+				pr_err("%s %d: returning EINVAL\n", __func__, __LINE__);
+				return -EINVAL;
+			}
 	return -EINVAL;
 }
 
@@ -532,6 +539,10 @@ static int cs_etm_snapshot_finish(struct auxtrace_record *itr)
 		if (evsel->attr.type == ptr->cs_etm_pmu->type)
 			return perf_evsel__enable(evsel);
 	}
+			{
+				pr_err("%s %d: returning EINVAL\n", __func__, __LINE__);
+				return -EINVAL;
+			}
 	return -EINVAL;
 }
 
@@ -560,6 +571,10 @@ static int cs_etm_read_finish(struct auxtrace_record *itr, int idx)
 							     evsel, idx);
 	}
 
+			{
+				pr_err("%s %d: returning EINVAL\n", __func__, __LINE__);
+				return -EINVAL;
+			}
 	return -EINVAL;
 }
 
@@ -571,6 +586,7 @@ struct auxtrace_record *cs_etm_record_init(int *err)
 	cs_etm_pmu = perf_pmu__find(CORESIGHT_ETM_PMU_NAME);
 
 	if (!cs_etm_pmu) {
+		pr_err("%s %d: returning EINVAL\n", __func__, __LINE__);
 		*err = -EINVAL;
 		goto out;
 	}
@@ -578,6 +594,7 @@ struct auxtrace_record *cs_etm_record_init(int *err)
 	ptr = zalloc(sizeof(struct cs_etm_recording));
 	if (!ptr) {
 		*err = -ENOMEM;
+		pr_err("%s %d: returning ENOMEM\n", __func__, __LINE__);
 		goto out;
 	}
 
@@ -596,6 +613,7 @@ struct auxtrace_record *cs_etm_record_init(int *err)
 	*err = 0;
 	return &ptr->itr;
 out:
+	pr_err("%s %d: returning NULL\n", __func__, __LINE__);
 	return NULL;
 }
 
@@ -607,13 +625,19 @@ static FILE *cs_device__open_file(const char *name)
 
 	sysfs = sysfs__mountpoint();
 	if (!sysfs)
+	{
+		pr_err("%s %d: returning NULL\n", __func__, __LINE__);
 		return NULL;
+	}
 
 	snprintf(path, PATH_MAX,
 		 "%s" CS_BUS_DEVICE_PATH "%s", sysfs, name);
 
 	if (stat(path, &st) < 0)
+	{
+		pr_err("%s %d: returning NULL.  path %s\n", __func__, __LINE__, path);
 		return NULL;
+	}
 
 	return fopen(path, "w");
 
@@ -645,6 +669,10 @@ int cs_etm_set_drv_config(struct perf_evsel_config_term *term)
 
 	ret = cs_device__print_file(enable_sink, "%d", 1);
 	if (ret < 0)
+	{
+		pr_err("%s %d: returning ret %d\n", __func__, __LINE__, ret);
+		return ret;
+	}
 		return ret;
 
 	return 0;
