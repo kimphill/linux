@@ -441,8 +441,20 @@ static int __exit tmc_remove(struct amba_device *adev)
 {
 	struct tmc_drvdata *drvdata = dev_get_drvdata(&adev->dev);
 
-	/* free ETB/ETF or ETR memory */
-	tmc_read_unprepare(drvdata);
+	/* free ETB/ETF or ETR buffer allocations */
+	switch (drvdata->config_type) {
+	case TMC_CONFIG_TYPE_ETB:
+	case TMC_CONFIG_TYPE_ETF:
+		kfree(drvdata->buf);
+		break;
+	case TMC_CONFIG_TYPE_ETR:
+		if (drvdata->vaddr)
+			dma_free_coherent(drvdata->dev, drvdata->size,
+					  drvdata->vaddr, drvdata->paddr);
+		break;
+	default:
+		break;
+	}
 
 	misc_deregister(&drvdata->miscdev);
 	coresight_unregister(drvdata->csdev);
