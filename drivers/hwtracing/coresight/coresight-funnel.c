@@ -68,11 +68,12 @@ static void funnel_enable_hw(struct funnel_drvdata *drvdata, int port)
 static int funnel_enable(struct coresight_device *csdev, int inport,
 			 int outport)
 {
+	struct device *parent_dev = csdev->dev.parent;
 	struct funnel_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
-       struct module *module = csdev->dev.parent->driver->owner;
+	struct module *module = parent_dev->driver->owner;
 
-       if (!try_module_get(module))
-               return -ENODEV;
+	if (!try_module_get(module))
+		return -ENODEV;
 
 	funnel_enable_hw(drvdata, inport);
 
