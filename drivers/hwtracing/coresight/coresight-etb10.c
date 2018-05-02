@@ -723,6 +723,7 @@ static int __exit etb_remove(struct amba_device *adev)
 {
 	struct etb_drvdata *drvdata = dev_get_drvdata(&adev->dev);
 
+	misc_deregister(&drvdata->miscdev);
 	coresight_unregister(drvdata->csdev);
 
 	return 0;
