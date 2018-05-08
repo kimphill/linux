@@ -7,6 +7,7 @@
 #include <linux/pid_namespace.h>
 #include <linux/pm_runtime.h>
 #include <linux/sysfs.h>
+#include <linux/coresight.h>
 #include "coresight-etm4x.h"
 #include "coresight-priv.h"
 
@@ -2173,3 +2174,8 @@ const struct attribute_group *coresight_etmv4_groups[] = {
 	&coresight_etmv4_trcidr_group,
 	NULL,
 };
+EXPORT_SYMBOL_GPL(coresight_etmv4_groups);
+
+MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");
+MODULE_DESCRIPTION("Arm CoreSight Program Flow Trace v4 sysfs driver");
+MODULE_LICENSE("GPL v2");
