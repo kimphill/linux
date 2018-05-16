@@ -70,7 +70,10 @@ static int etm_addr_filters_alloc(struct perf_event *event)
 
 	filters = kzalloc_node(sizeof(struct etm_filters), GFP_KERNEL, node);
 	if (!filters)
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 		return -ENOMEM;
+}
 
 	if (event->parent)
 		memcpy(filters, event->parent->hw.addr_filters,
@@ -91,14 +94,19 @@ static int etm_event_init(struct perf_event *event)
 {
 	int ret = 0;
 
+pr_err("%s %d: \n", __func__, __LINE__);
 	if (event->attr.type != etm_pmu.type) {
+pr_err("%s %d: \n", __func__, __LINE__);
 		ret = -ENOENT;
 		goto out;
 	}
 
 	ret = etm_addr_filters_alloc(event);
 	if (ret)
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 		goto out;
+}
 
 	event->destroy = etm_event_destroy;
 out:
@@ -140,10 +148,14 @@ static void *alloc_event_data(int cpu)
 	cpumask_t *mask;
 	struct etm_event_data *event_data;
 
+pr_err("%s %d: \n", __func__, __LINE__);
 	/* First get memory for the session's data */
 	event_data = kzalloc(sizeof(struct etm_event_data), GFP_KERNEL);
 	if (!event_data)
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 		return NULL;
+}
 
 	/* Make sure nothing disappears under us */
 	get_online_cpus();
@@ -168,6 +180,7 @@ static void *alloc_event_data(int cpu)
 				   sizeof(struct list_head *), GFP_KERNEL);
 	if (!event_data->path) {
 		kfree(event_data);
+pr_err("%s %d: \n", __func__, __LINE__);
 		return NULL;
 	}
 
@@ -191,7 +204,10 @@ static void *etm_setup_aux(int event_cpu, void **pages,
 
 	event_data = alloc_event_data(event_cpu);
 	if (!event_data)
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 		return NULL;
+}
 	INIT_WORK(&event_data->work, free_event_data);
 
 	/*
@@ -207,7 +223,10 @@ static void *etm_setup_aux(int event_cpu, void **pages,
 	 */
 	sink = coresight_get_enabled_sink(true);
 	if (!sink)
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 		goto err;
+}
 
 	mask = &event_data->mask;
 
@@ -217,7 +236,10 @@ static void *etm_setup_aux(int event_cpu, void **pages,
 
 		csdev = per_cpu(csdev_src, cpu);
 		if (!csdev)
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 			goto err;
+}
 
 		/*
 		 * Building a path doesn't enable it, it simply builds a
@@ -226,7 +248,10 @@ static void *etm_setup_aux(int event_cpu, void **pages,
 		 */
 		event_data->path[cpu] = coresight_build_path(csdev, sink);
 		if (IS_ERR(event_data->path[cpu]))
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 			goto err;
+}
 	}
 
 	if (!sink_ops(sink)->alloc_buffer)
@@ -238,7 +263,10 @@ static void *etm_setup_aux(int event_cpu, void **pages,
 			sink_ops(sink)->alloc_buffer(sink, cpu, pages,
 						     nr_pages, overwrite);
 	if (!event_data->snk_config)
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 		goto err;
+}
 
 out:
 	return event_data;
@@ -257,7 +285,10 @@ static void etm_event_start(struct perf_event *event, int flags)
 	struct coresight_device *sink, *csdev = per_cpu(csdev_src, cpu);
 
 	if (!csdev)
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 		goto fail;
+}
 
 	/*
 	 * Deal with the ring buffer API and get a handle on the
@@ -265,28 +296,43 @@ static void etm_event_start(struct perf_event *event, int flags)
 	 */
 	event_data = perf_aux_output_begin(handle, event);
 	if (!event_data)
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 		goto fail;
+}
 
 	/* We need a sink, no need to continue without one */
 	sink = coresight_get_sink(event_data->path[cpu]);
 	if (WARN_ON_ONCE(!sink || !sink_ops(sink)->set_buffer))
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 		goto fail_end_stop;
+}
 
 	/* Configure the sink */
 	if (sink_ops(sink)->set_buffer(sink, handle,
 				       event_data->snk_config))
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 		goto fail_end_stop;
+}
 
 	/* Nothing will happen without a path */
 	if (coresight_enable_path(event_data->path[cpu], CS_MODE_PERF))
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 		goto fail_end_stop;
+}
 
 	/* Tell the perf core the event is alive */
 	event->hw.state = 0;
 
 	/* Finally enable the tracer */
 	if (source_ops(csdev)->enable(csdev, event, CS_MODE_PERF))
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 		goto fail_end_stop;
+}
 
 out:
 	return;
@@ -380,7 +426,10 @@ static int etm_addr_filters_validate(struct list_head *filters)
 		 * room for filters.
 		 */
 		if (++index > ETM_ADDR_CMP_MAX)
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 			return -EOPNOTSUPP;
+}
 
 		/* filter::size==0 means single address trigger */
 		if (filter->size) {
@@ -390,7 +439,10 @@ static int etm_addr_filters_validate(struct list_head *filters)
 			 */
 			if (filter->action == PERF_ADDR_FILTER_ACTION_START ||
 			    filter->action == PERF_ADDR_FILTER_ACTION_STOP)
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 				return -EOPNOTSUPP;
+}
 
 			range = true;
 		} else
@@ -401,7 +453,10 @@ static int etm_addr_filters_validate(struct list_head *filters)
 		 * to cohabitate, they have to be mutually exclusive.
 		 */
 		if (range && address)
+{
+pr_err("%s %d: \n", __func__, __LINE__);
 			return -EOPNOTSUPP;
+}
 	}
 
 	return 0;
