@@ -280,7 +280,12 @@ static int etm4_enable(struct coresight_device *csdev,
 {
 	int ret;
 	u32 val;
-	struct etmv4_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
+	struct device *parent_dev = csdev->dev.parent;
+	struct etmv4_drvdata *drvdata = dev_get_drvdata(parent_dev);
+	struct module *module = parent_dev->driver->owner;
+
+	if (!try_module_get(module))
+		return -ENODEV;
 
 	val = local_cmpxchg(&drvdata->mode, CS_MODE_DISABLED, mode);
 
@@ -387,7 +392,9 @@ static void etm4_disable(struct coresight_device *csdev,
 			 struct perf_event *event)
 {
 	u32 mode;
-	struct etmv4_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
+	struct device *parent_dev = csdev->dev.parent;
+	struct etmv4_drvdata *drvdata = dev_get_drvdata(parent_dev);
+	struct module *module = parent_dev->driver->owner;
 
 	/*
 	 * For as long as the tracer isn't disabled another entity can't
@@ -409,6 +416,8 @@ static void etm4_disable(struct coresight_device *csdev,
 
 	if (mode)
 		local_set(&drvdata->mode, CS_MODE_DISABLED);
+
+	module_put(module);
 }
 
 static const struct coresight_ops_source etm4_source_ops = {
@@ -1045,6 +1054,20 @@ err_arch_supported:
 	return ret;
 }
 
+static int __exit etm4_remove(struct amba_device *adev)
+{
+	struct etmv4_drvdata *drvdata = dev_get_drvdata(&adev->dev);
+
+	etm_perf_symlink(drvdata->csdev, false);
+
+	cpuhp_remove_state_nocalls(CPUHP_AP_ARM_CORESIGHT_STARTING);
+	cpuhp_remove_state_nocalls(hp_online);
+
+	coresight_unregister(drvdata->csdev);
+
+	return 0;
+}
+
 static const struct amba_id etm4_ids[] = {
 	{       /* ETM 4.0 - Cortex-A53  */
 		.id	= 0x000bb95d,
@@ -1064,15 +1087,19 @@ static const struct amba_id etm4_ids[] = {
 	{ 0, 0},
 };
 
+MODULE_DEVICE_TABLE(amba, etm4_ids);
+
 static struct amba_driver etm4x_driver = {
 	.drv = {
 		.name   = "coresight-etm4x",
+		.owner  = THIS_MODULE,
 		.suppress_bind_attrs = true,
 	},
 	.probe		= etm4_probe,
+	.remove		= etm4_remove,
 	.id_table	= etm4_ids,
 };
-builtin_amba_driver(etm4x_driver);
+module_amba_driver(etm4x_driver);
 
 MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
 MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");

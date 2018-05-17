@@ -302,6 +302,7 @@ void coresight_disable_path(struct list_head *path)
 		}
 	}
 }
+EXPORT_SYMBOL_GPL(coresight_disable_path);
 
 int coresight_enable_path(struct list_head *path, u32 mode)
 {
@@ -353,6 +354,7 @@ err:
 	coresight_disable_path(path);
 	goto out;
 }
+EXPORT_SYMBOL_GPL(coresight_enable_path);
 
 struct coresight_device *coresight_get_sink(struct list_head *path)
 {
@@ -368,6 +370,7 @@ struct coresight_device *coresight_get_sink(struct list_head *path)
 
 	return csdev;
 }
+EXPORT_SYMBOL_GPL(coresight_get_sink);
 
 static int coresight_enabled_sink(struct device *dev, void *data)
 {
@@ -392,6 +395,7 @@ static int coresight_enabled_sink(struct device *dev, void *data)
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(coresight_enabled_sink);
 
 /**
  * coresight_get_enabled_sink - returns the first enabled sink found on the bus
@@ -414,6 +418,7 @@ struct coresight_device *coresight_get_enabled_sink(bool deactivate)
 
 	return dev ? to_coresight_device(dev) : NULL;
 }
+EXPORT_SYMBOL_GPL(coresight_get_enabled_sink);
 
 /**
  * _coresight_build_path - recursively build a path from a @csdev to a sink.
@@ -493,6 +498,7 @@ struct list_head *coresight_build_path(struct coresight_device *source,
 
 	return path;
 }
+EXPORT_SYMBOL_GPL(coresight_build_path);
 
 /**
  * coresight_release_path - release a previously built path.
@@ -517,6 +523,7 @@ void coresight_release_path(struct list_head *path)
 	kfree(path);
 	path = NULL;
 }
+EXPORT_SYMBOL_GPL(coresight_release_path);
 
 /** coresight_validate_source - make sure a source has the right credentials
  *  @csdev:	the device structure for a source.
@@ -933,6 +940,7 @@ int coresight_timeout(void __iomem *addr, u32 offset, int position, int value)
 
 	return -EAGAIN;
 }
+EXPORT_SYMBOL_GPL(coresight_timeout);
 
 struct bus_type coresight_bustype = {
 	.name	= "coresight",
@@ -943,6 +951,12 @@ static int __init coresight_init(void)
 	return bus_register(&coresight_bustype);
 }
 postcore_initcall(coresight_init);
+
+static void __exit coresight_exit(void)
+{
+	bus_unregister(&coresight_bustype);
+}
+module_exit(coresight_exit);
 
 struct coresight_device *coresight_register(struct coresight_desc *desc)
 {

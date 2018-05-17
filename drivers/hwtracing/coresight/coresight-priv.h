@@ -65,7 +65,6 @@ static DEVICE_ATTR_RO(name)
 static const u32 barrier_pkt[5] = {0x7fffffff, 0x7fffffff,
 				   0x7fffffff, 0x7fffffff, 0x0};
 
-
 enum etm_addr_type {
 	ETM_ADDR_TYPE_NONE,
 	ETM_ADDR_TYPE_SINGLE,
