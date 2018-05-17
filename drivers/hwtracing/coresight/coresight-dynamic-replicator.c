@@ -210,3 +210,7 @@ static struct amba_driver replicator_driver = {
 	.id_table	= replicator_ids,
 };
 builtin_amba_driver(replicator_driver);
+
+MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
+MODULE_DESCRIPTION("Arm CoreSight Dynamic Replicator Driver");
+MODULE_LICENSE("GPL v2");

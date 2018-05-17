@@ -261,3 +261,7 @@ static struct amba_driver funnel_driver = {
 	.id_table	= funnel_ids,
 };
 builtin_amba_driver(funnel_driver);
+
+MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");
+MODULE_DESCRIPTION("Arm CoreSight Funnel Driver");
+MODULE_LICENSE("GPL v2");
