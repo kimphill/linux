@@ -33,7 +33,12 @@ struct replicator_drvdata {
 static int replicator_enable(struct coresight_device *csdev, int inport,
 			     int outport)
 {
-	struct replicator_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
+	struct device *parent_dev = csdev->dev.parent;
+	struct replicator_drvdata *drvdata = dev_get_drvdata(parent_dev);
+	struct module *module = parent_dev->driver->owner;
+
+	if (!try_module_get(module))
+		return -ENODEV;
 
 	dev_info(drvdata->dev, "REPLICATOR enabled\n");
 	return 0;
@@ -42,8 +47,11 @@ static int replicator_enable(struct coresight_device *csdev, int inport,
 static void replicator_disable(struct coresight_device *csdev, int inport,
 			       int outport)
 {
-	struct replicator_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
+	struct device *parent_dev = csdev->dev.parent;
+	struct replicator_drvdata *drvdata = dev_get_drvdata(parent_dev);
+	struct module *module = parent_dev->driver->owner;
 
+	module_put(module);
 	dev_info(drvdata->dev, "REPLICATOR disabled\n");
 }
 
@@ -112,6 +120,17 @@ out_disable_pm:
 	return ret;
 }
 
+static int __exit replicator_remove(struct platform_device *pdev)
+{
+	struct replicator_drvdata *drvdata = dev_get_drvdata(&pdev->dev);
+
+	coresight_unregister(drvdata->csdev);
+
+	pm_runtime_disable(&pdev->dev);
+
+	return 0;
+}
+
 #ifdef CONFIG_PM
 static int replicator_runtime_suspend(struct device *dev)
 {
@@ -144,8 +163,11 @@ static const struct of_device_id replicator_match[] = {
 	{}
 };
 
+MODULE_DEVICE_TABLE(of, replicator_match);
+
 static struct platform_driver replicator_driver = {
 	.probe          = replicator_probe,
+	.remove         = replicator_remove,
 	.driver         = {
 		.name   = "coresight-replicator",
 		.of_match_table = replicator_match,
@@ -153,7 +175,7 @@ static struct platform_driver replicator_driver = {
 		.suppress_bind_attrs = true,
 	},
 };
-builtin_platform_driver(replicator_driver);
+module_platform_driver(replicator_driver);
 
 MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
 MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");
