@@ -463,3 +463,7 @@ static struct amba_driver tmc_driver = {
 	.id_table	= tmc_ids,
 };
 builtin_amba_driver(tmc_driver);
+
+MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
+MODULE_DESCRIPTION("Arm CoreSight Trace Memory Controller driver");
+MODULE_LICENSE("GPL v2");
