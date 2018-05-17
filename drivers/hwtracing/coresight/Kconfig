@@ -80,9 +80,8 @@ config CORESIGHT_DYNAMIC_REPLICATOR
 
 config CORESIGHT_STM
 	bool "CoreSight System Trace Macrocell driver"
-	depends on (ARM && !(CPU_32v3 || CPU_32v4 || CPU_32v4T)) || ARM64
+	depends on STM && ((ARM && !(CPU_32v3 || CPU_32v4 || CPU_32v4T)) || ARM64)
 	select CORESIGHT_LINKS_AND_SINKS
-	select STM
 	help
 	  This driver provides support for hardware assisted software
 	  instrumentation based tracing. This is primarily used for
