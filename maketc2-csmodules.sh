@@ -84,6 +84,7 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 #../scripts/config -d CONFIG_ARCH_MVEBU  # ../drivers/irqchip/irq-mvebu-odmi.c:152:15: error: variable ‘odmi_msi_ops’ has initializer but incomplete type
 
 #coresight
+../scripts/config -e CONFIG_STM
 ../scripts/config -m CONFIG_CORESIGHT
 #dunno, putting all in:
 ../scripts/config -m CONFIG_CORESIGHT_LINK_AND_SINK_TMC
