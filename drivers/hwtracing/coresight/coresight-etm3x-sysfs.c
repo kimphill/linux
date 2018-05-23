@@ -7,7 +7,6 @@
 #include <linux/pid_namespace.h>
 #include <linux/pm_runtime.h>
 #include <linux/sysfs.h>
-#include <linux/coresight.h>
 #include "coresight-etm.h"
 #include "coresight-priv.h"
 
