@@ -261,7 +261,9 @@ static void stm_disable_hw(struct stm_drvdata *drvdata)
 static void stm_disable(struct coresight_device *csdev,
 			struct perf_event *event)
 {
-	struct stm_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
+	struct device *parent_dev = csdev->dev.parent;
+	struct stm_drvdata *drvdata = dev_get_drvdata(parent_dev);
+	struct module *module = parent_dev->driver->owner;
 
 	/*
 	 * For as long as the tracer isn't disabled another entity can't
@@ -281,6 +283,8 @@ static void stm_disable(struct coresight_device *csdev,
 		local_set(&drvdata->mode, CS_MODE_DISABLED);
 		dev_info(drvdata->dev, "STM tracing disabled\n");
 	}
+
+	module_put(module);
 }
 
 static int stm_trace_id(struct coresight_device *csdev)
