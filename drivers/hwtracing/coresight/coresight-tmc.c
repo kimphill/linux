@@ -169,7 +169,7 @@ static int tmc_release(struct inode *inode, struct file *file)
 }
 
 static const struct file_operations tmc_fops = {
-	.owner		= THIS_MODULE,
+	.owner		= THIS_MODULE, /* unload whilst sysfs access protection? */
 	.open		= tmc_open,
 	.read		= tmc_read,
 	.release	= tmc_release,
@@ -432,6 +432,9 @@ out:
 static int __exit tmc_remove(struct amba_device *adev)
 {
 	struct tmc_drvdata *drvdata = dev_get_drvdata(&adev->dev);
+
+	if (drvdata->reading)  /* may need another sentinel */
+		return -EBUSY;
 
 	/* free ETB/ETF or ETR memory */
 	tmc_read_unprepare(drvdata);
