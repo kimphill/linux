@@ -440,6 +440,7 @@ static int _coresight_build_path(struct coresight_device *csdev,
 	int i;
 	bool found = false;
 	struct coresight_node *node;
+	struct device_driver *driver;
 
 	/* An activated sink has been found.  Enqueue the element */
 	if (csdev == sink)
@@ -472,6 +473,14 @@ out:
 
 	node->csdev = csdev;
 	list_add(&node->link, path);
+
+	driver = csdev->dev.driver;
+	if (driver && !try_module_get(driver->owner)) {
+		dev_err(&csdev->dev, "cannot get driver module %s\n",
+			csdev->dev.driver->name);
+		return -ENODEV;
+	}
+
 	pm_runtime_get_sync(csdev->dev.parent);
 
 	return 0;
@@ -512,11 +521,17 @@ void coresight_release_path(struct list_head *path)
 {
 	struct coresight_device *csdev;
 	struct coresight_node *nd, *next;
+	struct device_driver *driver;
 
 	list_for_each_entry_safe(nd, next, path, link) {
 		csdev = nd->csdev;
+		driver = csdev->dev.driver;
 
 		pm_runtime_put_sync(csdev->dev.parent);
+
+		if (driver)
+			module_put(driver->owner);
+
 		list_del(&nd->link);
 		kfree(nd);
 	}
