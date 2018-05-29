@@ -465,6 +465,12 @@ out:
 
 	node->csdev = csdev;
 	list_add(&node->link, path);
+
+	if (!try_module_get(csdev->dev.parent->driver->owner)) {
+		dev_err(&csdev->dev, "could not get coresight driver module\n");
+		return -ENODEV;
+	}
+
 	pm_runtime_get_sync(csdev->dev.parent);
 
 	return 0;
@@ -510,6 +516,9 @@ void coresight_release_path(struct list_head *path)
 		csdev = nd->csdev;
 
 		pm_runtime_put_sync(csdev->dev.parent);
+
+		module_put(csdev->dev.parent->driver->owner);
+
 		list_del(&nd->link);
 		kfree(nd);
 	}
