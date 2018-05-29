@@ -194,7 +194,12 @@ static int stm_enable(struct coresight_device *csdev,
 		      struct perf_event *event, u32 mode)
 {
 	u32 val;
-	struct stm_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
+	struct device *parent_dev = csdev->dev.parent;
+	struct stm_drvdata *drvdata = dev_get_drvdata(parent_dev);
+	struct module *module = parent_dev->driver->owner;
+
+	if (!try_module_get(module))
+		return -ENODEV;
 
 	if (mode != CS_MODE_SYSFS)
 		return -EINVAL;
@@ -256,7 +261,9 @@ static void stm_disable_hw(struct stm_drvdata *drvdata)
 static void stm_disable(struct coresight_device *csdev,
 			struct perf_event *event)
 {
-	struct stm_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
+	struct device *parent_dev = csdev->dev.parent;
+	struct stm_drvdata *drvdata = dev_get_drvdata(parent_dev);
+	struct module *module = parent_dev->driver->owner;
 
 	/*
 	 * For as long as the tracer isn't disabled another entity can't
@@ -276,6 +283,8 @@ static void stm_disable(struct coresight_device *csdev,
 		local_set(&drvdata->mode, CS_MODE_DISABLED);
 		dev_info(drvdata->dev, "STM tracing disabled\n");
 	}
+
+	module_put(module);
 }
 
 static int stm_trace_id(struct coresight_device *csdev)
@@ -882,6 +891,17 @@ stm_unregister:
 	return ret;
 }
 
+static int __exit stm_remove(struct amba_device *adev)
+{
+	struct stm_drvdata *drvdata = dev_get_drvdata(&adev->dev);
+
+	coresight_unregister(drvdata->csdev);
+
+	stm_unregister_device(&drvdata->stm);
+
+	return 0;
+}
+
 #ifdef CONFIG_PM
 static int stm_runtime_suspend(struct device *dev)
 {
@@ -922,6 +942,8 @@ static const struct amba_id stm_ids[] = {
 	{ 0, 0},
 };
 
+MODULE_DEVICE_TABLE(amba, stm_ids);
+
 static struct amba_driver stm_driver = {
 	.drv = {
 		.name   = "coresight-stm",
@@ -930,7 +952,12 @@ static struct amba_driver stm_driver = {
 		.suppress_bind_attrs = true,
 	},
 	.probe          = stm_probe,
+	.remove         = stm_remove,
 	.id_table	= stm_ids,
 };
 
-builtin_amba_driver(stm_driver);
+module_amba_driver(stm_driver);
+
+MODULE_AUTHOR("Pratik Patel <pratikp@codeaurora.org>");
+MODULE_DESCRIPTION("Arm CoreSight System Trace Macrocell driver");
+MODULE_LICENSE("GPL v2");

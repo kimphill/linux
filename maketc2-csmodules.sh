@@ -85,7 +85,7 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 
 #coresight
 ../scripts/config -e CONFIG_STM
-../scripts/config -m CONFIG_CORESIGHT
+../scripts/config -e CONFIG_CORESIGHT
 #dunno, putting all in:
 ../scripts/config -m CONFIG_CORESIGHT_LINK_AND_SINK_TMC
 ../scripts/config -m CONFIG_CORESIGHT_SINK_TPIU
