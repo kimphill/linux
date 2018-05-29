@@ -91,7 +91,7 @@ config CORESIGHT_STM
 
 config CORESIGHT_CPU_DEBUG
 	tristate "CoreSight CPU Debug driver"
-	depends on ARM || ARM64
+	depends on (ARM || ARM64) && ARM_AMBA
 	depends on DEBUG_FS
 	help
 	  This driver provides support for coresight debugging module. This
@@ -102,5 +102,8 @@ config CORESIGHT_CPU_DEBUG
 	  needs to ensure the clock domain and power domain are enabled
 	  properly, please refer Documentation/trace/coresight-cpu-debug.txt
 	  for detailed description and the example for usage.
+
+	  To compile this code as a module, choose M here: the
+	  module will be called coresight-cpu-debug.
 
 endif
