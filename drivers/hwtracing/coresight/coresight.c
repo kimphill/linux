@@ -433,6 +433,8 @@ static int _coresight_build_path(struct coresight_device *csdev,
 	int i;
 	bool found = false;
 	struct coresight_node *node;
+	struct coresight_device *child_dev;
+	struct module *module;
 
 	/* An activated sink has been found.  Enqueue the element */
 	if (csdev == sink)
@@ -440,7 +442,7 @@ static int _coresight_build_path(struct coresight_device *csdev,
 
 	/* Not a sink - recursively explore each port found on this element */
 	for (i = 0; i < csdev->nr_outport; i++) {
-		struct coresight_device *child_dev = csdev->conns[i].child_dev;
+		child_dev = csdev->conns[i].child_dev;
 
 		if (child_dev &&
 		    _coresight_build_path(child_dev, sink, path) == 0) {
@@ -451,6 +453,12 @@ static int _coresight_build_path(struct coresight_device *csdev,
 
 	if (!found)
 		return -ENODEV;
+
+	module = child_dev->dev.driver->owner;
+	if (!try_module_get(module)) {
+		pr_err("cannot get module for child device\n");
+		return -ENODEV;
+	}
 
 out:
 	/*
