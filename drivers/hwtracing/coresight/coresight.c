@@ -158,7 +158,10 @@ static int coresight_enable_link(struct coresight_device *csdev,
 	int refport, inport, outport;
 
 	if (!parent || !child)
+{
+		pr_err("%s %d: sink not found\n", __func__, __LINE__);
 		return -EINVAL;
+}
 
 	inport = coresight_find_link_inport(csdev, parent);
 	outport = coresight_find_link_outport(csdev, child);
@@ -175,7 +178,10 @@ static int coresight_enable_link(struct coresight_device *csdev,
 		if (link_ops(csdev)->enable) {
 			ret = link_ops(csdev)->enable(csdev, inport, outport);
 			if (ret)
+{
+		pr_err("%s %d: link_ops returned %d\n", __func__, __LINE__, ret);
 				return ret;
+}
 		}
 	}
 
@@ -445,11 +451,14 @@ static int _coresight_build_path(struct coresight_device *csdev,
 		child_dev = csdev->conns[i].child_dev;
 
 		if (!child_dev)
+{
+			pr_err("%s %d: skipping conns[i %d]\n",__func__,__LINE__,i);
 			continue;
+}
 
 		module = child_dev->dev.driver->owner;
 		if (!try_module_get(module)) {
-			pr_err("cannot get module for child device driver %s\n", child_dev->dev.driver->name);
+			pr_err("%s %d: cannot get module for child device driver %s\n", __func__,__LINE__, child_dev->dev.driver->name);
 			return -ENODEV;
 		}
 
@@ -460,7 +469,10 @@ static int _coresight_build_path(struct coresight_device *csdev,
 	}
 
 	if (!found)
+{
+		pr_err("%s %d: not found\n",__func__,__LINE__);
 		return -ENODEV;
+}
 
 out:
 	/*
@@ -487,7 +499,10 @@ struct list_head *coresight_build_path(struct coresight_device *source,
 	int rc;
 
 	if (!sink)
+{
+		pr_err("%s %d: sink not found\n",__func__,__LINE__);
 		return ERR_PTR(-EINVAL);
+}
 
 	path = kzalloc(sizeof(struct list_head), GFP_KERNEL);
 	if (!path)
@@ -593,6 +608,7 @@ int coresight_enable(struct coresight_device *csdev)
 	 */
 	sink = coresight_get_enabled_sink(false);
 	if (!sink) {
+		pr_err("%s %d: sink not found\n",__func__,__LINE__);
 		ret = -EINVAL;
 		goto out;
 	}
