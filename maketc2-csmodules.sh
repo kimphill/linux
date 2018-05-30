@@ -83,21 +83,6 @@ sed -i 's/=m/=n/g' .config   # other modules are just target /lib/modules disk s
 #../scripts/config -d CONFIG_SERIAL_8250_FINTEK
 #../scripts/config -d CONFIG_ARCH_MVEBU  # ../drivers/irqchip/irq-mvebu-odmi.c:152:15: error: variable ‘odmi_msi_ops’ has initializer but incomplete type
 
-#coresight
-../scripts/config -e CONFIG_STM
-../scripts/config -e CONFIG_CORESIGHT
-#dunno, putting all in:
-../scripts/config -m CONFIG_CORESIGHT_LINK_AND_SINK_TMC
-../scripts/config -m CONFIG_CORESIGHT_SINK_TPIU
-../scripts/config -m CONFIG_CORESIGHT_SINK_ETBV10
-../scripts/config -m CONFIG_CORESIGHT_LINKS_AND_SINKS
-../scripts/config -m CONFIG_CORESIGHT_SOURCE_ETM3X
-../scripts/config -m CONFIG_CORESIGHT_SOURCE_ETM4X
-#../scripts/config -e CONFIG_CORESIGHT_QCOM_REPLICATOR
-../scripts/config -m CONFIG_CORESIGHT_DYNAMIC_REPLICATOR
-../scripts/config -m CONFIG_CORESIGHT_STM
-../scripts/config -m CONFIG_CORESIGHT_CPU_DEBUG
-
 ../scripts/config -m CONFIG_ARM_SPE_PMU
 
 ../scripts/config -d CONFIG_SERIO_AMBAKMI   # scary USB--PS/2 interop bug in 4.17-rc1 (R.Murphy linux-eng post (juno))
