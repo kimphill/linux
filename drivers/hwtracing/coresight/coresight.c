@@ -52,6 +52,7 @@ static struct list_head *stm_path;
  * it needs to look for another sync sequence.
  */
 const u32 barrier_pkt[4] = {0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff};
+EXPORT_SYMBOL_GPL(barrier_pkt);
 
 static int coresight_id_match(struct device *dev, void *data)
 {
@@ -940,6 +941,7 @@ int coresight_timeout(void __iomem *addr, u32 offset, int position, int value)
 
 	return -EAGAIN;
 }
+EXPORT_SYMBOL_GPL(coresight_timeout);
 
 struct bus_type coresight_bustype = {
 	.name	= "coresight",
