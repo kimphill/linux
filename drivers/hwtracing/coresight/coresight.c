@@ -449,7 +449,7 @@ static int _coresight_build_path(struct coresight_device *csdev,
 
 		module = child_dev->dev.driver->owner;
 		if (!try_module_get(module)) {
-			pr_err("cannot get module for child device\n");
+			pr_err("cannot get module for child device driver %s\n", child_dev->dev.driver->name);
 			return -ENODEV;
 		}
 
