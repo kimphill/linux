@@ -444,8 +444,16 @@ static int _coresight_build_path(struct coresight_device *csdev,
 	for (i = 0; i < csdev->nr_outport; i++) {
 		child_dev = csdev->conns[i].child_dev;
 
-		if (child_dev &&
-		    _coresight_build_path(child_dev, sink, path) == 0) {
+		if (!child_dev)
+			continue;
+
+		module = child_dev->dev.driver->owner;
+		if (!try_module_get(module)) {
+			pr_err("cannot get module for child device\n");
+			return -ENODEV;
+		}
+
+		if (_coresight_build_path(child_dev, sink, path) == 0) {
 			found = true;
 			break;
 		}
@@ -453,12 +461,6 @@ static int _coresight_build_path(struct coresight_device *csdev,
 
 	if (!found)
 		return -ENODEV;
-
-	module = child_dev->dev.driver->owner;
-	if (!try_module_get(module)) {
-		pr_err("cannot get module for child device\n");
-		return -ENODEV;
-	}
 
 out:
 	/*
@@ -513,11 +515,16 @@ void coresight_release_path(struct list_head *path)
 {
 	struct coresight_device *csdev;
 	struct coresight_node *nd, *next;
+	struct module *module;
 
 	list_for_each_entry_safe(nd, next, path, link) {
 		csdev = nd->csdev;
 
 		pm_runtime_put_sync(csdev->dev.parent);
+
+		module = csdev->dev.driver->owner;
+		module_put(module);
+
 		list_del(&nd->link);
 		kfree(nd);
 	}
