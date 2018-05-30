@@ -440,7 +440,7 @@ static int _coresight_build_path(struct coresight_device *csdev,
 	bool found = false;
 	struct coresight_node *node;
 	struct coresight_device *child_dev;
-	struct module *module;
+	struct device_driver *driver;
 
 	/* An activated sink has been found.  Enqueue the element */
 	if (csdev == sink)
@@ -455,12 +455,6 @@ static int _coresight_build_path(struct coresight_device *csdev,
 			pr_err("%s %d: skipping conns[i %d]\n",__func__,__LINE__,i);
 			continue;
 }
-
-		module = child_dev->dev.driver->owner;
-		if (!try_module_get(module)) {
-			pr_err("%s %d: cannot get module for child device driver %s\n", __func__,__LINE__, child_dev->dev.driver->name);
-			return -ENODEV;
-		}
 
 		if (_coresight_build_path(child_dev, sink, path) == 0) {
 			found = true;
@@ -487,6 +481,13 @@ out:
 
 	node->csdev = csdev;
 	list_add(&node->link, path);
+
+	driver = csdev->dev.driver;
+	if (driver && !try_module_get(driver->owner)) {
+		pr_err("%s %d: cannot get module for coresight device driver %s\n", __func__,__LINE__, csdev->dev.driver->name);
+		return -ENODEV;
+	}
+
 	pm_runtime_get_sync(csdev->dev.parent);
 
 	return 0;
