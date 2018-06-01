@@ -468,7 +468,7 @@ int etm_perf_symlink(struct coresight_device *csdev, bool link)
 }
 EXPORT_SYMBOL_GPL(etm_perf_symlink);
 
-static int __init etm_perf_init(void)
+int etm_perf_init(void)
 {
 	int ret;
 
@@ -494,4 +494,12 @@ static int __init etm_perf_init(void)
 
 	return ret;
 }
-device_initcall(etm_perf_init);
+
+void etm_perf_exit(void)
+{
+	perf_pmu_unregister(&etm_pmu);
+}
+
+MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");
+MODULE_DESCRIPTION("Arm CoreSight tracer driver");
+MODULE_LICENSE("GPL v2");

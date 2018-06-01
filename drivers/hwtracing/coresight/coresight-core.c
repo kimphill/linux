@@ -19,6 +19,7 @@
 #include <linux/pm_runtime.h>
 
 #include "coresight-priv.h"
+#include "coresight-etm-perf.h"
 
 static DEFINE_MUTEX(coresight_mutex);
 
@@ -947,9 +948,22 @@ struct bus_type coresight_bustype = {
 	.name	= "coresight",
 };
 
+static void __exit coresight_exit(void)
+{
+	etm_perf_exit();
+	bus_unregister(&coresight_bustype);
+}
+module_exit(coresight_exit);
+
 static int __init coresight_init(void)
 {
-	return bus_register(&coresight_bustype);
+ 	int ret;
+ 
+	ret = bus_register(&coresight_bustype);
+	if (ret)
+		return ret;
+
+	return etm_perf_init();
 }
 postcore_initcall(coresight_init);
 

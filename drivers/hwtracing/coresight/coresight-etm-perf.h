@@ -42,6 +42,8 @@ struct etm_filters {
 	bool			ssstatus;
 };
 
+int etm_perf_init(void);
+void etm_perf_exit(void);
 
 #if IS_ENABLED(CONFIG_CORESIGHT)
 int etm_perf_symlink(struct coresight_device *csdev, bool link);
