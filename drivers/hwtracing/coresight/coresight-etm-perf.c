@@ -472,6 +472,10 @@ static int __init etm_perf_init(void)
 {
 	int ret;
 
+	ret = bus_register(&coresight_bustype);
+	if (ret)
+		return ret;
+
 	etm_pmu.capabilities		= PERF_PMU_CAP_EXCLUSIVE;
 
 	etm_pmu.attr_groups		= etm_pmu_attr_groups;
@@ -494,4 +498,15 @@ static int __init etm_perf_init(void)
 
 	return ret;
 }
-device_initcall(etm_perf_init);
+postcore_initcall(etm_perf_init);
+
+static void __exit etm_perf_exit(void)
+{
+	perf_pmu_unregister(&etm_pmu);
+	bus_unregister(&coresight_bustype);
+}
+module_exit(etm_perf_exit);
+
+MODULE_AUTHOR("Mathieu Poirier <mathieu.poirier@linaro.org>");
+MODULE_DESCRIPTION("Arm CoreSight tracer driver");
+MODULE_LICENSE("GPL v2");
