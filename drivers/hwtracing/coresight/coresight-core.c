@@ -470,7 +470,7 @@ out:
 	driver = csdev->dev.driver;
 	if (driver && !try_module_get(driver->owner)) {
 		dev_err(&csdev->dev, "cannot get driver module %s\n",
-			csdev->dev.driver->name);
+			driver->name);
 		return -ENODEV;
 	}
 
