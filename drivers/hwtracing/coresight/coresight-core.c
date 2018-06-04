@@ -467,19 +467,12 @@ out:
 	node->csdev = csdev;
 	list_add(&node->link, path);
 
-	module = csdev->module;
+	module = csdev->dev.parent->driver->owner;
 	if (module && !try_module_get(module)) {
-		dev_err(&csdev->dev, "cannot get coresight driver module %s\n",
+		dev_err(&csdev->dev, "could not get coresight driver module %s\n",
 			module->name);
 		return -ENODEV;
 	}
-	else
-		if (module)
-			dev_err(&csdev->dev, "succeeded getting driver module name %s\n",
-				module->name);
-		else
-			dev_err(&csdev->dev, "no driver for device of_node name: %s\n",
-				csdev->dev.of_node ? csdev->dev.of_node->name: "name is NULL");
 
 	pm_runtime_get_sync(csdev->dev.parent);
 
@@ -521,16 +514,16 @@ void coresight_release_path(struct list_head *path)
 {
 	struct coresight_device *csdev;
 	struct coresight_node *nd, *next;
-	struct device_driver *driver;
+	struct module *module;
 
 	list_for_each_entry_safe(nd, next, path, link) {
 		csdev = nd->csdev;
-		driver = csdev->dev.driver;
+		module = csdev->dev.parent->driver->owner;
 
 		pm_runtime_put_sync(csdev->dev.parent);
 
-		if (driver)
-			module_put(driver->owner);
+		if (module)
+			module_put(module);
 
 		list_del(&nd->link);
 		kfree(nd);
@@ -1020,7 +1013,7 @@ struct coresight_device *coresight_register(struct coresight_desc *desc)
 	csdev->ops = desc->ops;
 	csdev->orphan = false;
 
-	csdev->module = desc->dev->driver->owner;
+	//csdev->module = desc->dev->driver->owner;
 	csdev->dev.type = &coresight_dev_type[desc->type];
 	csdev->dev.groups = desc->groups;
 	csdev->dev.parent = desc->dev;
