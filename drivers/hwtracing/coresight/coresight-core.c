@@ -433,7 +433,6 @@ static int _coresight_build_path(struct coresight_device *csdev,
 	int i;
 	bool found = false;
 	struct coresight_node *node;
-	struct module *module;
 
 	/* An activated sink has been found.  Enqueue the element */
 	if (csdev == sink)
@@ -467,10 +466,8 @@ out:
 	node->csdev = csdev;
 	list_add(&node->link, path);
 
-	module = csdev->dev.parent->driver->owner;
-	if (module && !try_module_get(module)) {
-		dev_err(&csdev->dev, "could not get coresight driver module %s\n",
-			module->name);
+	if (!try_module_get(csdev->dev.parent->driver->owner)) {
+		dev_err(&csdev->dev, "could not get coresight driver module\n");
 		return -ENODEV;
 	}
 
@@ -514,16 +511,13 @@ void coresight_release_path(struct list_head *path)
 {
 	struct coresight_device *csdev;
 	struct coresight_node *nd, *next;
-	struct module *module;
 
 	list_for_each_entry_safe(nd, next, path, link) {
 		csdev = nd->csdev;
-		module = csdev->dev.parent->driver->owner;
 
 		pm_runtime_put_sync(csdev->dev.parent);
 
-		if (module)
-			module_put(module);
+		module_put(csdev->dev.parent->driver->owner);
 
 		list_del(&nd->link);
 		kfree(nd);
@@ -1013,14 +1007,12 @@ struct coresight_device *coresight_register(struct coresight_desc *desc)
 	csdev->ops = desc->ops;
 	csdev->orphan = false;
 
-	//csdev->module = desc->dev->driver->owner;
 	csdev->dev.type = &coresight_dev_type[desc->type];
 	csdev->dev.groups = desc->groups;
 	csdev->dev.parent = desc->dev;
 	csdev->dev.release = coresight_device_release;
 	csdev->dev.bus = &coresight_bustype;
 	dev_set_name(&csdev->dev, "%s", desc->pdata->name);
-//	csdev->dev.owner = owner;
 
 	ret = device_register(&csdev->dev);
 	if (ret) {
