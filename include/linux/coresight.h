@@ -160,6 +160,7 @@ struct coresight_device {
 	struct coresight_dev_subtype subtype;
 	const struct coresight_ops *ops;
 	struct device dev;
+	struct module *module;
 	atomic_t *refcnt;
 	bool orphan;
 	bool enable;	/* true only if configured as part of a path */
