@@ -15,19 +15,20 @@ nm -Dg $libc 2>/dev/null | fgrep -q inet_pton || exit 254
 
 trace_libc_inet_pton_backtrace() {
 	idx=0
-	expected[0]="ping[][0-9 \.:]+probe_libc:inet_pton: \([[:xdigit:]]+\)"
-	expected[1]=".*inet_pton\+0x[[:xdigit:]]+[[:space:]]\($libc|inlined\)$"
+	expected='expected'
+	eval ${expected}0="'ping[][0-9 \.:]+probe_libc:inet_pton: \([[:xdigit:]]+\)'"
+	eval ${expected}1="'.*inet_pton\+0x[[:xdigit:]]+[[:space:]]\($libc|inlined\)$'"
 	case "$(uname -m)" in
 	s390x)
 		eventattr='call-graph=dwarf,max-stack=4'
-		expected[2]="gaih_inet.*\+0x[[:xdigit:]]+[[:space:]]\($libc|inlined\)$"
-		expected[3]="(__GI_)?getaddrinfo\+0x[[:xdigit:]]+[[:space:]]\($libc|inlined\)$"
-		expected[4]="main\+0x[[:xdigit:]]+[[:space:]]\(.*/bin/ping.*\)$"
+		eval ${expected}2="'gaih_inet.*\+0x[[:xdigit:]]+[[:space:]]\($libc|inlined\)$'"
+		eval ${expected}3="'(__GI_)?getaddrinfo\+0x[[:xdigit:]]+[[:space:]]\($libc|inlined\)$'"
+		eval ${expected}4="'main\+0x[[:xdigit:]]+[[:space:]]\(.*/bin/ping.*\)$'"
 		;;
 	*)
 		eventattr='max-stack=3'
-		expected[2]="getaddrinfo\+0x[[:xdigit:]]+[[:space:]]\($libc\)$"
-		expected[3]=".*\+0x[[:xdigit:]]+[[:space:]]\(.*/bin/ping.*\)$"
+		eval ${expected}2="'getaddrinfo\+0x[[:xdigit:]]+[[:space:]]\($libc\)$'"
+		eval ${expected}3="'.*\+0x[[:xdigit:]]+[[:space:]]\(.*/bin/ping.*\)$'"
 		;;
 	esac
 
@@ -36,13 +37,13 @@ trace_libc_inet_pton_backtrace() {
 	perf record -e probe_libc:inet_pton/$eventattr/ -o $file ping -6 -c 1 ::1 > /dev/null 2>&1
 	perf script -i $file | while read line ; do
 		echo $line
-		echo "$line" | egrep -q "${expected[$idx]}"
+		echo "$line" | egrep -q "$(echo $(eval echo \$$expected${idx}))"
 		if [ $? -ne 0 ] ; then
-			printf "FAIL: expected backtrace entry %d \"%s\" got \"%s\"\n" $idx "${expected[$idx]}" "$line"
+			printf "FAIL: expected backtrace entry %d \"%s\" got \"%s\"\n" $idx "$(echo $(eval echo \$$expected${idx}))" "$line"
 			exit 1
 		fi
-		let idx+=1
-		[ -z "${expected[$idx]}" ] && break
+		idx=$((idx+1))
+		[ -z "$(echo $(eval echo \$$expected${idx}))" ] && break
 	done
 
 	# If any statements are executed from this point onwards,
