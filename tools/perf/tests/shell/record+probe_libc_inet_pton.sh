@@ -57,7 +57,7 @@ trace_libc_inet_pton_backtrace() {
 }
 
 # Check for IPv6 interface existence
-ip a sh lo | fgrep -q inet6 || echo 'no IPv6 interface - does the kernel have CONFIG_IPV6 set?'  && exit 2
+ip a sh lo | fgrep -q inet6 || exit 2
 
 skip_if_no_perf_probe && \
 perf probe -q $libc inet_pton && \
