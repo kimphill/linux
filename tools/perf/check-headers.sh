@@ -35,6 +35,7 @@ arch/s390/include/uapi/asm/ptrace.h
 arch/s390/include/uapi/asm/sie.h
 arch/arm/include/uapi/asm/kvm.h
 arch/arm64/include/uapi/asm/kvm.h
+arch/arm64/include/uapi/asm/unistd.h
 arch/alpha/include/uapi/asm/errno.h
 arch/mips/include/asm/errno.h
 arch/mips/include/uapi/asm/errno.h
