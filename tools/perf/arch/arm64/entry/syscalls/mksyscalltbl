@@ -30,6 +30,6 @@ create_table()
 }
 
 $gcc -E -dM -x c  $input	       \
-	|sed -ne 's/^#define __NR_//p' \
+	|sed -ne 's/^#define __NR[[:digit:]]*_//p' \
 	|sort -t' ' -k2 -nu	       \
 	|create_table
