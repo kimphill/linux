@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0
 
 HEADERS='
+arch/arm/tools/syscall.tbl
 include/uapi/drm/drm.h
 include/uapi/drm/i915_drm.h
 include/uapi/linux/fcntl.h
