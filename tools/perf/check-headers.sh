@@ -53,6 +53,7 @@ include/uapi/asm-generic/errno.h
 include/uapi/asm-generic/errno-base.h
 include/uapi/asm-generic/ioctls.h
 include/uapi/asm-generic/mman-common.h
+include/uapi/asm-generic/unistd.h
 '
 
 check_2 () {
