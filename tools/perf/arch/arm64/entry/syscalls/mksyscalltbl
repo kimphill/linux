@@ -18,6 +18,8 @@ fi
 
 create_create_table()
 {
+	local last_sc
+
 	cat << __EOF > create_table.c
 #include <stdio.h>
 #include "$input"
@@ -27,7 +29,9 @@ int main(int argc, char *argv[])
 __EOF
 	while read sc nr; do
 		echo "	printf(\"\\\t[%d] = \\\"$sc\\\",\\\n\", __NR_$sc);" >> create_table.c
+		last_sc=$sc
 	done
+	echo "	printf(\"#define SYSCALLTBL_ARM64_MAX_ID %d\\\n\", __NR_$last_sc);" >> create_table.c
 	echo "}" >> create_table.c
 	$gcc -o ./create_table create_table.c
 
@@ -47,8 +51,6 @@ create_table()
 	echo "static const char *syscalltbl_arm64[] = {"
 	./create_table
 	echo '};'
-	#echo "#define SYSCALLTBL_ARM64_MAX_ID $max_nr"
-	echo "#define SYSCALLTBL_ARM64_MAX_ID 291"
 }
 
 $gcc -E -dM -x c  $input	       \
