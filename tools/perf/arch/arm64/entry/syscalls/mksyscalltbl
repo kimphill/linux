@@ -20,26 +20,19 @@ create_create_table()
 {
 	local last_sc
 
-	cat << __EOF > create_table.c
-#include <stdio.h>
-#include "$input"
+	create_table_c=`mktemp /tmp/create-table-XXX.c`
+	echo "#include <stdio.h>" > $create_table_c
+	echo "#include \"$input\"" >> $create_table_c
 
-int main(int argc, char *argv[])
-{
-__EOF
+	echo "int main(int argc, char *argv[])" >> $create_table_c
+	echo "{" >> $create_table_c
 	while read sc nr; do
-		echo "	printf(\"\\\t[%d] = \\\"$sc\\\",\\\n\", __NR_$sc);" >> create_table.c
+		echo "	printf(\"\\\t[%d] = \\\"$sc\\\",\\\n\", __NR_$sc);" >> $create_table_c
 		last_sc=$sc
 	done
-	echo "	printf(\"#define SYSCALLTBL_ARM64_MAX_ID %d\\\n\", __NR_$last_sc);" >> create_table.c
-	echo "}" >> create_table.c
-	$gcc -o ./create_table create_table.c
-
-#		printf '\t[%s] = "%s",\n' $nr $sc
-#		max_nr=$nr
-#	done
-#	echo '};'
-#	echo "#define SYSCALLTBL_ARM64_MAX_ID $max_nr"
+	echo "	printf(\"#define SYSCALLTBL_ARM64_MAX_ID %d\\\n\", __NR_$last_sc);" >> $create_table_c
+	echo "}" >> $create_table_c
+	$gcc -o ./create_table $create_table_c
 }
 
 create_table()
@@ -51,17 +44,11 @@ create_table()
 	echo "static const char *syscalltbl_arm64[] = {"
 	./create_table
 	echo '};'
+
+	rm -f ./create_table $create_table_c
 }
 
 $gcc -E -dM -x c  $input	       \
 	|sed -ne 's/^#define __NR_//p' \
-	|sort -t' ' -k2 -nu	       \
-	|create_table
-
-
-exit
-
-$gcc -E -dM -x c  $input	       \
-	|sed -ne 's/^#define __NR[0-9]*_//p' \
 	|sort -t' ' -k2 -nu	       \
 	|create_table
