@@ -16,20 +16,50 @@ if ! test -r $input; then
 	exit 1
 fi
 
+create_create_table()
+{
+	cat << __EOF > create_table.c
+#include <stdio.h>
+#include "$input"
+
+int main(int argc, char *argv[])
+{
+__EOF
+	while read sc nr; do
+		echo "	printf(\"\\\t[%d] = \\\"$sc\\\",\\\n\", __NR_$sc);" >> create_table.c
+	done
+	echo "}" >> create_table.c
+	$gcc -o ./create_table create_table.c
+
+#		printf '\t[%s] = "%s",\n' $nr $sc
+#		max_nr=$nr
+#	done
+#	echo '};'
+#	echo "#define SYSCALLTBL_ARM64_MAX_ID $max_nr"
+}
+
 create_table()
 {
 	local max_nr
 
+	create_create_table
+
 	echo "static const char *syscalltbl_arm64[] = {"
-	while read sc nr; do
-		printf '\t[%d] = "%s",\n' $nr $sc
-		max_nr=$nr
-	done
+	./create_table
 	echo '};'
-	echo "#define SYSCALLTBL_ARM64_MAX_ID $max_nr"
+	#echo "#define SYSCALLTBL_ARM64_MAX_ID $max_nr"
+	echo "#define SYSCALLTBL_ARM64_MAX_ID 291"
 }
 
 $gcc -E -dM -x c  $input	       \
-	|sed -ne 's/^#define __NR[[:digit:]]*_//p' \
+	|sed -ne 's/^#define __NR_//p' \
+	|sort -t' ' -k2 -nu	       \
+	|create_table
+
+
+exit
+
+$gcc -E -dM -x c  $input	       \
+	|sed -ne 's/^#define __NR[0-9]*_//p' \
 	|sort -t' ' -k2 -nu	       \
 	|create_table
