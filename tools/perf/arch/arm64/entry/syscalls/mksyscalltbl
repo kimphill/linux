@@ -23,15 +23,19 @@ create_table_from_c()
 	local sc last_sc nr
 
 	create_table_base=`mktemp /tmp/create-table-XXX`
-	echo "#include <stdio.h>" > ${create_table_base}.c
-	echo "#include \"$input\"" >> ${create_table_base}.c
 
-	echo "int main(int argc, char *argv[])" >> ${create_table_base}.c
-	echo "{" >> ${create_table_base}.c
+	cat >${create_table_base}.c << _EoHEADER
+		#include <stdio.h>
+		#include "$input"
+		int main(int argc, char *argv[])
+		{
+_EoHEADER
+
 	while read sc nr; do
 		echo "	printf(\"\\\t[%d] = \\\"$sc\\\",\\\n\", __NR_$sc);" >> ${create_table_base}.c
-		last_sc=$sc
-	done
+		#
+		last_sc=$sc;
+	done;
 	echo "	printf(\"#define SYSCALLTBL_ARM64_MAX_ID %d\\\n\", __NR_$last_sc);" >> ${create_table_base}.c
 	echo "}" >> ${create_table_base}.c
 
@@ -45,7 +49,7 @@ create_table()
 	create_table_from_c
 	echo '};'
 
-	$RM -f ${create_table_base}.[cx]
+	#rm -f ${create_table_base}.[cx]
 }
 
 $gcc -E -dM -x c  $input	       \
