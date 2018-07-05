@@ -34,12 +34,12 @@ int main(int argc, char *argv[])
 _EoHEADER
 
 	while read sc nr; do
-		printf "	printf(\"\\\t[\\%d] = \\\"$sc\\\",\\\n\", __NR_$sc);\n"
+		printf "%s\n" "	printf(\"\\t[\\%d] = \\\"$sc\\\",\\n\", __NR_$sc);"
 		last_sc=$sc;
 	done;
 
-	printf "	printf(\"#define SYSCALLTBL_ARM64_MAX_ID \\%d\\\n\", __NR_$last_sc);\n"
-	printf "}"
+	printf "%s\n" "	printf(\"#define SYSCALLTBL_ARM64_MAX_ID \\%d\\n\", __NR_$last_sc);"
+	printf "}\n"
 
 	} | tee /tmp/create-table.c | $hostcc -o $create_table_exe -x c -
 
@@ -50,7 +50,7 @@ create_table()
 {
 	echo "static const char *syscalltbl_arm64[] = {"
 	create_table_from_c
-	echo "};"
+	echo "}"
 
 	#rm -f $create_table_exe
 }
