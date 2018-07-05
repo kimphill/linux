@@ -35,6 +35,7 @@ _EoHEADER
 
 	while read sc nr; do
 		printf "%s\n" "	printf(\"\\t[%d] = \\\"$sc\\\",\\n\", __NR_$sc);"
+		last_sc=$sc
 	done
 
 	printf "%s\n" "	printf(\"#define SYSCALLTBL_ARM64_MAX_ID %d\\n\", __NR_$last_sc);"
