@@ -20,36 +20,39 @@ fi
 
 create_table_from_c()
 {
-	local sc last_sc nr
+	local sc nr last_sc 
 
-	create_table_base=`mktemp /tmp/create-table-XXX`
+	create_table_exe=`mktemp /tmp/create-table-XXXXXX`
 
-	cat >${create_table_base}.c << _EoHEADER
-		#include <stdio.h>
-		#include "$input"
-		int main(int argc, char *argv[])
-		{
+	{
+
+cat << _EoHEADER
+#include <stdio.h>
+#include "$input"
+int main(int argc, char *argv[])
+{
 _EoHEADER
 
 	while read sc nr; do
-		echo "	printf(\"\\\t[%d] = \\\"$sc\\\",\\\n\", __NR_$sc);" >> ${create_table_base}.c
-		#
+		echo "	printf(\"\\\t[%d] = \\\"$sc\\\",\\\n\", __NR_$sc);"
 		last_sc=$sc;
 	done;
-	echo "	printf(\"#define SYSCALLTBL_ARM64_MAX_ID %d\\\n\", __NR_$last_sc);" >> ${create_table_base}.c
-	echo "}" >> ${create_table_base}.c
 
-	$hostcc -o ${create_table_base}.x ${create_table_base}.c
-	${create_table_base}.x
+	echo "	printf(\"#define SYSCALLTBL_ARM64_MAX_ID %d\\\n\", __NR_$last_sc);"
+	echo "}"
+
+	} | $hostcc -o $create_table_exe -x c -
+
+	$create_table_exe
 }
 
 create_table()
 {
 	echo "static const char *syscalltbl_arm64[] = {"
 	create_table_from_c
-	echo '};'
+	echo "};"
 
-	#rm -f ${create_table_base}.[cx]
+	rm -f $create_table_exe
 }
 
 $gcc -E -dM -x c  $input	       \
