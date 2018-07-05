@@ -44,6 +44,8 @@ _EoHEADER
 	} | $hostcc -o $create_table_exe -x c -
 
 	$create_table_exe
+
+	rm -f $create_table_exe
 }
 
 create_table()
@@ -51,8 +53,6 @@ create_table()
 	echo "static const char *syscalltbl_arm64[] = {"
 	create_table_from_c
 	echo "};"
-
-	rm -f $create_table_exe
 }
 
 $gcc -E -dM -x c  $input	       \
