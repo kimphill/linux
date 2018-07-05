@@ -50,7 +50,7 @@ create_table()
 {
 	echo "static const char *syscalltbl_arm64[] = {"
 	create_table_from_c
-	echo "}"
+	echo "};"
 
 	#rm -f $create_table_exe
 }
