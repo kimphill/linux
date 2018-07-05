@@ -20,9 +20,9 @@ fi
 
 create_table_from_c()
 {
-	local last_sc
+	local sc last_sc nr
 
-	create_table_base=`mktemp -u /tmp/create-table-XXX`
+	create_table_base=`mktemp /tmp/create-table-XXX`
 	echo "#include <stdio.h>" > ${create_table_base}.c
 	echo "#include \"$input\"" >> ${create_table_base}.c
 
