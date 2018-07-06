@@ -26,12 +26,12 @@ create_table_from_c()
 
 	{
 
-cat << _EoHEADER
-#include <stdio.h>
-#include "$input"
-int main(int argc, char *argv[])
-{
-_EoHEADER
+	cat <<-_EoHEADER
+		#include <stdio.h>
+		#include "$input"
+		int main(int argc, char *argv[])
+		{
+	_EoHEADER
 
 	while read sc nr; do
 		printf "%s\n" "	printf(\"\\t[%d] = \\\"$sc\\\",\\n\", __NR_$sc);"
