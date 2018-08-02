@@ -1500,8 +1500,9 @@ typedef int (*tracepoint_handler)(struct trace *trace, struct perf_evsel *evsel,
 				  struct perf_sample *sample);
 
 static struct syscall *trace__syscall_info(struct trace *trace,
-					   struct perf_evsel *evsel, int id)
+					   struct perf_evsel *evsel, struct perf_sample *sample)
 {
+	int id = perf_evsel__sc_tp_uint(evsel, id, sample);
 
 	if (id < 0) {
 
@@ -1543,8 +1544,9 @@ out_cant_read:
 }
 
 static void thread__update_stats(struct thread_trace *ttrace,
-				 int id, struct perf_sample *sample)
+				 struct perf_evsel *evsel, struct perf_sample *sample)
 {
+	int id = perf_evsel__sc_tp_uint(evsel, id, sample);
 	struct int_node *inode;
 	struct stats *stats;
 	u64 duration = 0;
@@ -1613,8 +1615,8 @@ static int trace__sys_enter(struct trace *trace, struct perf_evsel *evsel,
 	void *args;
 	size_t printed = 0;
 	struct thread *thread;
-	int id = perf_evsel__sc_tp_uint(evsel, id, sample), err = -1;
-	struct syscall *sc = trace__syscall_info(trace, evsel, id);
+	int err = -1;
+	struct syscall *sc = trace__syscall_info(trace, evsel, sample);
 	struct thread_trace *ttrace;
 
 	if (sc == NULL)
@@ -1708,8 +1710,8 @@ static int trace__sys_exit(struct trace *trace, struct perf_evsel *evsel,
 	u64 duration = 0;
 	bool duration_calculated = false;
 	struct thread *thread;
-	int id = perf_evsel__sc_tp_uint(evsel, id, sample), err = -1, callchain_ret = 0;
-	struct syscall *sc = trace__syscall_info(trace, evsel, id);
+	int err = -1, callchain_ret = 0;
+	struct syscall *sc = trace__syscall_info(trace, evsel, sample);
 	struct thread_trace *ttrace;
 
 	if (sc == NULL)
@@ -1723,7 +1725,7 @@ static int trace__sys_exit(struct trace *trace, struct perf_evsel *evsel,
 	trace__fprintf_sample(trace, evsel, sample, thread);
 
 	if (trace->summary)
-		thread__update_stats(ttrace, id, sample);
+		thread__update_stats(ttrace, evsel, sample);
 
 	ret = perf_evsel__sc_tp_uint(evsel, ret, sample);
 
