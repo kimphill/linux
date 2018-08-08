@@ -223,8 +223,39 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 
 	arm_spe_print_info(&auxtrace_info->priv[0]);
 
+
+	if (session->itrace_synth_opts && session->itrace_synth_opts->set) {
+		bts->synth_opts = *session->itrace_synth_opts;
+	} else {
+		itrace_synth_opts__set_default(&bts->synth_opts);
+		if (session->itrace_synth_opts)
+			bts->synth_opts.thread_stack =
+				session->itrace_synth_opts->thread_stack;
+	}
+
+	if (bts->synth_opts.calls)
+		bts->branches_filter |= PERF_IP_FLAG_CALL | PERF_IP_FLAG_ASYNC |
+					PERF_IP_FLAG_TRACE_END;
+	if (bts->synth_opts.returns)
+		bts->branches_filter |= PERF_IP_FLAG_RETURN |
+					PERF_IP_FLAG_TRACE_BEGIN;
+
+	err = intel_bts_synth_events(bts, session);
+	if (err)
+		goto err_free_queues;
+
+	err = auxtrace_queues__process_index(&bts->queues, session);
+	if (err)
+		goto err_free_queues;
+
+	if (bts->queues.populated)
+		bts->data_queued = true;
+
 	return 0;
 
+err_free_queues:
+	auxtrace_queues__free(&bts->queues);
+	session->auxtrace = NULL;
 err_free:
 	free(spe);
 	return err;
