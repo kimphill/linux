@@ -612,7 +612,7 @@ static int arm_spe_process_event(struct perf_session *session,
 	if (dump_trace)
 		return 0;
 
-	fprintf(stderr, "%s %d: !dump_trace!\n", __func__, __LINE__);
+//	fprintf(stderr, "%s %d: !dump_trace!\n", __func__, __LINE__);
 
 	if (!tool->ordered_events) {
 		pr_err("ARM SPE requires ordered events\n");
