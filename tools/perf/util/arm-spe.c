@@ -390,6 +390,13 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 	case ARM_SPE_END:
 		return 0;
 	case ARM_SPE_EVENTS:
+		if (payload & 0x2) { /* RETIRED */
+		}
+		if (payload & 0x40) { /* NOT-TAKEN */
+		}
+		if (payload & 0x80) { /* MISPRED */
+		}
+
 		return ret;
 	case ARM_SPE_OP_TYPE:
 		switch (idx) {
@@ -501,7 +508,7 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 		}
 
 		if (!(speq->sample_flags | PERF_IP_FLAG_BRANCH)) {
-			continue;
+			continue; /* only branches supported for now */
 		}
 
 		event.sample.header.type = PERF_RECORD_SAMPLE;
