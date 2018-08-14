@@ -27,6 +27,12 @@
 #include "arm-spe.h"
 #include "arm-spe-pkt-decoder.h"
 
+/* duped.  Should move into pkt-decoder.h file */
+#define BIT(n)		(1ULL << (n))
+
+#define NS_FLAG		BIT(63)
+#define EL_FLAG		(BIT(62) | BIT(61))
+
 struct arm_spe {
 	struct auxtrace			auxtrace;
 	struct auxtrace_queues		queues;
@@ -62,8 +68,10 @@ struct arm_spe_queue {
 
 };
 
-/* BTS specific...what does an SPE Branch record look like? */
 
+#define ARM_SPE_RECORD_END_REACHED 1 /* XXX: arbitrary? */
+
+/* BTS specific...what does an SPE Branch record look like? */
 #define ARM_SPE_ERR_NOINSN  5
 #define ARM_SPE_ERR_LOST    9
 
@@ -219,7 +227,7 @@ static inline int arm_spe_update_queues(struct arm_spe *spe)
 }
 
 static unsigned char *arm_spe_find_overlap(unsigned char *buf_a, size_t len_a,
-					     unsigned char *buf_b, size_t len_b)
+					   unsigned char *buf_b, size_t len_b)
 {
 	size_t offs, len;
 
@@ -238,7 +246,7 @@ static unsigned char *arm_spe_find_overlap(unsigned char *buf_a, size_t len_a,
 }
 
 static int arm_spe_do_fix_overlap(struct auxtrace_queue *queue,
-				    struct auxtrace_buffer *b)
+				  struct auxtrace_buffer *b)
 {
 	struct auxtrace_buffer *a;
 	void *start;
@@ -254,8 +262,8 @@ static int arm_spe_do_fix_overlap(struct auxtrace_queue *queue,
 	return 0;
 }
 
-static int arm_spe_synth_branch_sample(struct arm_spe_queue *speq,
-					 struct branch *branch)
+#if 0
+static int arm_spe_synth_branch_sample(struct arm_spe_queue *speq, void *buf __maybe_unused)
 {
 	int ret;
 	struct arm_spe *spe = speq->spe;
@@ -270,11 +278,11 @@ static int arm_spe_synth_branch_sample(struct arm_spe_queue *speq,
 	event.sample.header.misc = PERF_RECORD_MISC_USER;
 	event.sample.header.size = sizeof(struct perf_event_header);
 
-	sample.cpumode = PERF_RECORD_MISC_USER;
-	sample.ip = le64_to_cpu(branch->from);
+//	sample.cpumode = PERF_RECORD_MISC_USER;
+//	sample.ip = le64_to_cpu(branch->from);
 	sample.pid = speq->pid;
 	sample.tid = speq->tid;
-	sample.addr = le64_to_cpu(branch->to);
+//	sample.addr = le64_to_cpu(branch->to);
 	sample.id = speq->spe->branches_id;
 	sample.stream_id = speq->spe->branches_id;
 	sample.period = 1;
@@ -299,7 +307,9 @@ static int arm_spe_synth_branch_sample(struct arm_spe_queue *speq,
 
 	return ret;
 }
+#endif
 
+#if 0
 static int arm_spe_get_next_insn(struct arm_spe_queue *speq, u64 ip)
 {
 	struct machine *machine = speq->spe->machine;
@@ -342,7 +352,9 @@ out_put:
 	thread__put(thread);
 	return err;
 }
+#endif
 
+#if 0
 static int arm_spe_synth_error(struct arm_spe *spe, int cpu, pid_t pid,
 				 pid_t tid, u64 ip)
 {
@@ -360,127 +372,156 @@ static int arm_spe_synth_error(struct arm_spe *spe, int cpu, pid_t pid,
 
 	return err;
 }
+#endif
 
-static int arm_spe_get_branch_type(struct arm_spe_queue *speq,
-				   struct branch *branch)
+static int arm_spe_process_packet(struct arm_spe_queue *speq,
+				   struct perf_sample *sample,
+				   struct arm_spe_pkt *packet)
 {
-	int err;
+	int el, idx = packet->index;
+	unsigned long long payload = packet->payload;
+	int ret = ARM_SPE_NEED_MORE_BYTES;
 
-	/* switch stmt goes here? or further up so this fn gets the arm_spe_packet type ? */
-	//speq->sample_flags = PERF_IP_FLAG_BRANCH ; /* ... */
-	// this is arm_spe_get_branch_type(speq, branch); :
 	switch (packet->type) {
 	case ARM_SPE_BAD:
+		return ARM_SPE_BAD_PACKET;
 	case ARM_SPE_PAD:
+		return ret;
 	case ARM_SPE_END:
+		return 0;
 	case ARM_SPE_EVENTS:
+		return ret;
 	case ARM_SPE_OP_TYPE:
 		switch (idx) {
-		case 2:	{
-			size_t blen = buf_len;
-
-			//ret = snprintf(buf, buf_len, "B");
-			speq->sample_flags = PERF_IP_FLAG_BRANCH;
-
+		case 2:	speq->sample_flags = PERF_IP_FLAG_BRANCH;
 			if (payload & 0x1) {
-				//ret = snprintf(buf, buf_len, " COND");
 				speq->sample_flags |= PERF_IP_FLAG_CONDITIONAL;
 			}
 			if (payload & 0x2) {
-				//ret = snprintf(buf, buf_len, " IND");
+				speq->sample_flags |= PERF_IP_FLAG_CONDITIONAL;
 				// no PERF_IP_FLAG_INDIRECT.
 			}
-			}
-
-#if 0 /* doesn't apply to SPE */
-	if (!branch->from) {
-		if (branch->to)
-			speq->sample_flags = PERF_IP_FLAG_BRANCH |
-					     PERF_IP_FLAG_TRACE_BEGIN;
-		else
-			speq->sample_flags = 0;
-		//speq->arm_insn.length = 0;
-	} else if (!branch->to) {
-		speq->sample_flags = PERF_IP_FLAG_BRANCH |
-				     PERF_IP_FLAG_TRACE_END;
-		//speq->arm_insn.length = 0;
-	} else {
-		err = arm_spe_get_next_insn(speq, branch->from);
-		if (err) {
-			speq->sample_flags = 0;
-			//speq->arm_insn.length = 0;
-			if (!speq->spe->synth_opts.errors)
-				return 0;
-			err = arm_spe_synth_error(speq->spe, speq->cpu,
-						    speq->pid, speq->tid,
-						    branch->from);
-			return err;
+			break;
+		default:
+			break;
 		}
-		speq->sample_flags = 0; //arm_insn_type(speq->arm_insn.op);
-		/* Check for an async branch into the kernel */
-		if (!machine__kernel_ip(speq->spe->machine, branch->from) &&
-		    machine__kernel_ip(speq->spe->machine, branch->to) &&
-		    speq->sample_flags != (PERF_IP_FLAG_BRANCH |
-					   PERF_IP_FLAG_CALL |
-					   PERF_IP_FLAG_SYSCALLRET))
-			speq->sample_flags = PERF_IP_FLAG_BRANCH |
-					     PERF_IP_FLAG_CALL |
-					     PERF_IP_FLAG_ASYNC |
-					     PERF_IP_FLAG_INTERRUPT;
+		return ret;
+	case ARM_SPE_DATA_SOURCE:
+		return ret;
+	case ARM_SPE_TIMESTAMP:
+		return ret;
+	case ARM_SPE_ADDRESS:
+		switch (idx) {
+		case 0: /* fall through */
+		case 1: //ns = !!(packet->payload & NS_FLAG);
+			el = (packet->payload & EL_FLAG) >> 61;
+			switch (el) {
+			case 0: sample->cpumode = PERF_RECORD_MISC_USER; break;
+			case 1: sample->cpumode = PERF_RECORD_MISC_KERNEL; break;
+			/* following case 2 can also be KERNEL if VHE is set */
+			case 2: sample->cpumode = PERF_RECORD_MISC_HYPERVISOR; break;
+			/* case 3 is SECURE mode, but that won't occur here, right? */
+			case 3: sample->cpumode = PERF_RECORD_MISC_HYPERVISOR; break;
+			default: sample->cpumode = PERF_RECORD_MISC_CPUMODE_UNKNOWN;
+			}
+			payload &= ~(0xffULL << 56);
+			if (idx == 1)
+				sample->addr = payload; /* "to" */
+			else
+				sample->ip = payload; /* "from" */
+			sample->pid = speq->pid;
+			sample->tid = speq->tid;
+
+			return ret;
+//		case 2:	return ret; //snprintf(buf, buf_len, "VA 0x%llx", payload);
+//		case 3:	//ns = !!(packet->payload & NS_FLAG);
+			//payload &= ~(0xffULL << 56);
+//			return ret; //snprintf(buf, buf_len, "PA 0x%llx ns=%d",
+				  //	payload, ns);
+		default: return ret;
+		}
+
+	case ARM_SPE_CONTEXT:
+		/* fall through */
+	case ARM_SPE_COUNTER:
+		/* fall through */
+		return ret;
+	default: 
+		return ARM_SPE_BAD_PACKET; /* not a recognized packet type */
 	}
-#endif
 
 	return 0;
 }
 
 static int arm_spe_process_buffer(struct arm_spe_queue *speq,
-				    struct auxtrace_buffer *buffer,
-				    struct thread *thread)
+				  struct auxtrace_buffer *buffer,
+				  struct thread *thread)
 {
-	size_t sz, bsz = sizeof(struct branch);
-	u32 filter = speq->spe->branches_filter;
-	int err = 0;
+        struct arm_spe *spe = speq->spe;
+	size_t sz;
+	union perf_event event;
+	struct perf_sample sample = { .ip = 0, .insn_len = 4 };
 	struct arm_spe_pkt packet;
-	size_t pos = 0;
-	int ret, pkt_len, i;
-	char desc[ARM_SPE_PKT_DESC_MAX];
+	u32 filter = spe->branches_filter;
+	int ret = 0, pkt_len;
+	void *buf;
+
 
 	if (buffer->use_data) {
 		sz = buffer->use_size;
-		branch = buffer->use_data;
+		buf = buffer->use_data;
 	} else {
 		sz = buffer->size;
-		branch = buffer->data;
+		buf = buffer->data;
 	}
 
 	if (!speq->spe->sample_branches)
 		return 0;
 
-	for (; sz > bsz; sz -= bsz) {
+	while (sz > ARM_SPE_RECORD_BYTES_MAX) {
 		ret = arm_spe_get_packet(buf, sz, &packet);
 		if (ret > 0)
 			pkt_len = ret;
 		else
 			pkt_len = 1;
+		buf += pkt_len;
+		sz -= pkt_len;
 
-		arm_spe_get_branch_type(speq, branch);
+		ret = arm_spe_process_packet(speq, &sample, &packet);
+		if (ret == ARM_SPE_NEED_MORE_BYTES)
+			continue;
 
+		if (ret != 0) {
+			pr_debug4("%s: error processing SPE packet data\n",__func__);
+			continue;
+		}
 
-#if 0 /* not sure if we can do this:  @thread_stack: feed branches to the thread_stack */
+		event.sample.header.type = PERF_RECORD_SAMPLE;
+		event.sample.header.size = sizeof(struct perf_event_header);
+		event.sample.header.misc = sample.cpumode ? : PERF_RECORD_MISC_USER;
+
 		if (speq->spe->synth_opts.thread_stack)
 			thread_stack__event(thread, speq->sample_flags,
-					    le64_to_cpu(branch->from),
-					    le64_to_cpu(branch->to),
-					    4, //speq->arm_insn.length,
-					    buffer->buffer_nr + 1);
-#endif
+					    sample.ip,
+					    sample.addr,
+					    4, buffer->buffer_nr + 1);
 		if (filter && !(filter & speq->sample_flags))
 			continue;
-		err = arm_spe_synth_branch_sample(speq, branch);
+		ret = perf_session__deliver_synth_event(spe->session, &event, &sample);
+		if (ret)
+			pr_err("ARM SPE: failed to deliver event, error %d\n",
+			       ret);
+			fprintf(stderr, "%s %d: error processing packet\n", __func__, __LINE__);
+			continue;
+	}
+
+#if 0 /* not sure if we can do this:  @thread_stack: feed branches to the thread_stack */
+		err = arm_spe_synth_sample(speq, buf);
 		if (err)
 			break;
-	}
-	return err;
+#endif
+
+	return ret;
 }
 
 static int arm_spe_process_queue(struct arm_spe_queue *speq, u64 *timestamp)
@@ -640,6 +681,7 @@ u64 perf_time_to_tsc(void)
 }
 #endif
 
+/* process_event: lets the decoder see all session events */
 static int arm_spe_process_event(struct perf_session *session,
 				 union perf_event *event,
 				 struct perf_sample *sample,
@@ -652,8 +694,6 @@ static int arm_spe_process_event(struct perf_session *session,
 
 	if (dump_trace)
 		return 0;
-
-//	fprintf(stderr, "%s %d: !dump_trace!\n", __func__, __LINE__);
 
 	if (!tool->ordered_events) {
 		pr_err("ARM SPE requires ordered events\n");
@@ -686,6 +726,7 @@ static int arm_spe_process_event(struct perf_session *session,
 	return err;
 }
 
+/* @process_auxtrace_event: process a PERF_RECORD_AUXTRACE event */
 static int arm_spe_process_auxtrace_event(struct perf_session *session,
 					  union perf_event *event,
 					  struct perf_tool *tool __maybe_unused)

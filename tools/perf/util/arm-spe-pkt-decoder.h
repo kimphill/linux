@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define ARM_SPE_RECORD_BYTES_MAX	64
 #define ARM_SPE_PKT_DESC_MAX		256
 
 #define ARM_SPE_NEED_MORE_BYTES		-1
