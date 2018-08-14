@@ -430,8 +430,6 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 				sample->addr = payload; /* "to" */
 			else
 				sample->ip = payload; /* "from" */
-			sample->pid = speq->pid;
-			sample->tid = speq->tid;
 
 			return ret;
 //		case 2:	return ret; //snprintf(buf, buf_len, "VA 0x%llx", payload);
@@ -476,8 +474,10 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 		buf = buffer->data;
 	}
 
-	if (!speq->spe->sample_branches)
+	if (!speq->spe->sample_branches) {
+		pr_debug4("%s: !speq->spe->sample_branches\n", __func__);
 		return 0;
+	}
 
 	while (sz > ARM_SPE_RECORD_BYTES_MAX) {
 		ret = arm_spe_get_packet(buf, sz, &packet);
@@ -489,6 +489,9 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 		sz -= pkt_len;
 
 		ret = arm_spe_process_packet(speq, &sample, &packet);
+		/* only proceed with synthesis until we've
+		 * processed all packets in a record
+		 */
 		if (ret == ARM_SPE_NEED_MORE_BYTES)
 			continue;
 
@@ -500,6 +503,15 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 		event.sample.header.type = PERF_RECORD_SAMPLE;
 		event.sample.header.size = sizeof(struct perf_event_header);
 		event.sample.header.misc = sample.cpumode ? : PERF_RECORD_MISC_USER;
+		sample.pid = speq->pid;
+		sample.tid = speq->tid;
+		sample.id = speq->spe->branches_id;
+		sample.stream_id = speq->spe->branches_id;
+		sample.period = 1;
+		sample.cpu = speq->cpu;
+		sample.flags = speq->sample_flags;
+		sample.insn_len = 4;
+		memcpy(sample.insn, &speq->arm_insn, 4 /*INTEL_PT_INSN_BUF_SZ*/);
 
 		if (speq->spe->synth_opts.thread_stack)
 			thread_stack__event(thread, speq->sample_flags,
@@ -508,6 +520,19 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 					    4, buffer->buffer_nr + 1);
 		if (filter && !(filter & speq->sample_flags))
 			continue;
+
+		if (spe->synth_opts.inject) {
+			event.sample.header.size = spe->branches_event_size;
+			ret = perf_event__synthesize_sample(&event,
+							    spe->branches_sample_type,
+							    0, &sample);
+			if (ret) {
+				fprintf(stderr, "%s %d: error synthesizing sample\n",
+					__func__, __LINE__);
+				return ret;
+			}
+		}
+
 		ret = perf_session__deliver_synth_event(spe->session, &event, &sample);
 		if (ret) {
 			pr_err("ARM SPE: failed to deliver event, error %d\n",
