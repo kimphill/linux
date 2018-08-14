@@ -362,10 +362,37 @@ static int arm_spe_synth_error(struct arm_spe *spe, int cpu, pid_t pid,
 }
 
 static int arm_spe_get_branch_type(struct arm_spe_queue *speq,
-				     struct branch *branch)
+				   struct branch *branch)
 {
 	int err;
 
+	/* switch stmt goes here? or further up so this fn gets the arm_spe_packet type ? */
+	//speq->sample_flags = PERF_IP_FLAG_BRANCH ; /* ... */
+	// this is arm_spe_get_branch_type(speq, branch); :
+	switch (packet->type) {
+	case ARM_SPE_BAD:
+	case ARM_SPE_PAD:
+	case ARM_SPE_END:
+	case ARM_SPE_EVENTS:
+	case ARM_SPE_OP_TYPE:
+		switch (idx) {
+		case 2:	{
+			size_t blen = buf_len;
+
+			//ret = snprintf(buf, buf_len, "B");
+			speq->sample_flags = PERF_IP_FLAG_BRANCH;
+
+			if (payload & 0x1) {
+				//ret = snprintf(buf, buf_len, " COND");
+				speq->sample_flags |= PERF_IP_FLAG_CONDITIONAL;
+			}
+			if (payload & 0x2) {
+				//ret = snprintf(buf, buf_len, " IND");
+				// no PERF_IP_FLAG_INDIRECT.
+			}
+			}
+
+#if 0 /* doesn't apply to SPE */
 	if (!branch->from) {
 		if (branch->to)
 			speq->sample_flags = PERF_IP_FLAG_BRANCH |
@@ -401,6 +428,7 @@ static int arm_spe_get_branch_type(struct arm_spe_queue *speq,
 					     PERF_IP_FLAG_ASYNC |
 					     PERF_IP_FLAG_INTERRUPT;
 	}
+#endif
 
 	return 0;
 }
@@ -409,10 +437,13 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 				    struct auxtrace_buffer *buffer,
 				    struct thread *thread)
 {
-	struct branch *branch;
 	size_t sz, bsz = sizeof(struct branch);
 	u32 filter = speq->spe->branches_filter;
 	int err = 0;
+	struct arm_spe_pkt packet;
+	size_t pos = 0;
+	int ret, pkt_len, i;
+	char desc[ARM_SPE_PKT_DESC_MAX];
 
 	if (buffer->use_data) {
 		sz = buffer->use_size;
@@ -425,16 +456,24 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 	if (!speq->spe->sample_branches)
 		return 0;
 
-	for (; sz > bsz; branch += 1, sz -= bsz) {
-		if (!branch->from && !branch->to)
-			continue;
+	for (; sz > bsz; sz -= bsz) {
+		ret = arm_spe_get_packet(buf, sz, &packet);
+		if (ret > 0)
+			pkt_len = ret;
+		else
+			pkt_len = 1;
+
 		arm_spe_get_branch_type(speq, branch);
+
+
+#if 0 /* not sure if we can do this:  @thread_stack: feed branches to the thread_stack */
 		if (speq->spe->synth_opts.thread_stack)
 			thread_stack__event(thread, speq->sample_flags,
 					    le64_to_cpu(branch->from),
 					    le64_to_cpu(branch->to),
 					    4, //speq->arm_insn.length,
 					    buffer->buffer_nr + 1);
+#endif
 		if (filter && !(filter & speq->sample_flags))
 			continue;
 		err = arm_spe_synth_branch_sample(speq, branch);
@@ -551,7 +590,7 @@ static int arm_spe_process_tid_exit(struct arm_spe *spe, pid_t tid)
 	return 0;
 }
 
-static int arm_spe_process_queues(struct arm_spe *spe, u64 timestamp)
+static int arm_spe_process_queues(struct arm_spe *spe, u64 timestamp __maybe_unused)
 {
 	while (1) {
 		unsigned int queue_nr;
@@ -563,8 +602,10 @@ static int arm_spe_process_queues(struct arm_spe *spe, u64 timestamp)
 		if (!spe->heap.heap_cnt)
 			return 0;
 
+#if 1  /* ordinal 168301447, timestamp 0 */
 		if (spe->heap.heap_array[0].ordinal > timestamp)
 			return 0;
+#endif
 
 		queue_nr = spe->heap.heap_array[0].queue_nr;
 		queue = &spe->queues.queue_array[queue_nr];
@@ -778,7 +819,9 @@ static int arm_spe_synth_events(struct arm_spe *spe,
 	attr.sample_type = evsel->attr.sample_type & PERF_SAMPLE_MASK;
 	attr.sample_type |= PERF_SAMPLE_IP | PERF_SAMPLE_TID |
 			    PERF_SAMPLE_PERIOD;
+	/* check if there are timestamps in the SPE data, then sample_type |= PERF_SAMPLE_TIME? */
 	attr.sample_type &= ~(u64)PERF_SAMPLE_TIME;
+	/* check if there are CPU IDs in the SPE data? */
 	attr.sample_type &= ~(u64)PERF_SAMPLE_CPU;
 	attr.exclude_user = evsel->attr.exclude_user;
 	attr.exclude_kernel = evsel->attr.exclude_kernel;
