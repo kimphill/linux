@@ -409,7 +409,8 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 	case ARM_SPE_DATA_SOURCE:
 		return ret;
 	case ARM_SPE_TIMESTAMP:
-		return ret;
+		sample->time = payload;
+		return 0;  /* doubles as END packet */
 	case ARM_SPE_ADDRESS:
 		switch (idx) {
 		case 0: /* fall through */
@@ -508,11 +509,13 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 		if (filter && !(filter & speq->sample_flags))
 			continue;
 		ret = perf_session__deliver_synth_event(spe->session, &event, &sample);
-		if (ret)
+		if (ret) {
 			pr_err("ARM SPE: failed to deliver event, error %d\n",
 			       ret);
-			fprintf(stderr, "%s %d: error processing packet\n", __func__, __LINE__);
+			fprintf(stderr, "%s %d: error delivering synthesized event\n",
+				__func__, __LINE__);
 			continue;
+		}
 	}
 
 #if 0 /* not sure if we can do this:  @thread_stack: feed branches to the thread_stack */
@@ -521,6 +524,8 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 			break;
 #endif
 
+	ret = 0;
+	pr_debug4("%s: returning %d\n",__func__, ret);
 	return ret;
 }
 
@@ -585,6 +590,7 @@ static int arm_spe_process_queue(struct arm_spe_queue *speq, u64 *timestamp)
 		thread_stack__set_trace_nr(thread, buffer->buffer_nr + 1);
 
 	err = arm_spe_process_buffer(speq, buffer, thread);
+	pr_debug4("%s: arm_spe_process_buffer returned %d\n",__func__, err);
 
 	auxtrace_buffer__drop_data(buffer);
 
@@ -655,6 +661,7 @@ static int arm_spe_process_queues(struct arm_spe *spe, u64 timestamp __maybe_unu
 		auxtrace_heap__pop(&spe->heap);
 
 		ret = arm_spe_process_queue(speq, &ts);
+		pr_debug4("%s: arm_spe_process_queue returned %d\n",__func__, ret);
 		if (ret < 0) {
 			auxtrace_heap__add(&spe->heap, queue_nr, ts);
 			return ret;
@@ -706,16 +713,25 @@ static int arm_spe_process_event(struct perf_session *session,
 		timestamp = 0;
 
 	err = arm_spe_update_queues(spe);
-	if (err)
+	if (err) {
+		pr_debug("%s: propagating arm_spe_update_queues error %d\n",
+			 __func__, err);
 		return err;
+	}
 
 	err = arm_spe_process_queues(spe, timestamp);
-	if (err)
+	if (err) {
+		pr_debug("%s: propagating arm_spe_process_queues error %d\n",
+			 __func__, err);
 		return err;
+	}
 	if (event->header.type == PERF_RECORD_EXIT) {
 		err = arm_spe_process_tid_exit(spe, event->fork.tid);
-		if (err)
+		if (err) {
+			pr_debug("%s: propagating arm_spe_process_tid_exit error %d\n",
+				 __func__, err);
 			return err;
+		}
 	}
 
 	if (event->header.type == PERF_RECORD_AUX &&
