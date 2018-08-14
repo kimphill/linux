@@ -500,6 +500,10 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 			continue;
 		}
 
+		if (!(speq->sample_flags | PERF_IP_FLAG_BRANCH)) {
+			continue;
+		}
+
 		event.sample.header.type = PERF_RECORD_SAMPLE;
 		event.sample.header.size = sizeof(struct perf_event_header);
 		event.sample.header.misc = sample.cpumode ? : PERF_RECORD_MISC_USER;
