@@ -511,14 +511,16 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 		if (ret == ARM_SPE_NEED_MORE_BYTES)
 			continue;
 
-		if (ret != 0) {
-			pr_debug4("%s: error processing SPE packet data\n",__func__);
+		if (ret == ARM_SPE_BAD_PACKET || ret != 0) {
+			pr_debug("%s: error processing SPE packet data\n",__func__);
 			continue;
 		}
 
+#if 0
 		if (!(speq->sample_flags | PERF_IP_FLAG_BRANCH)) {
 			continue; /* only branches supported for now */
 		}
+#endif
 
 		event.sample.header.type = PERF_RECORD_SAMPLE;
 		event.sample.header.size = sizeof(struct perf_event_header);
