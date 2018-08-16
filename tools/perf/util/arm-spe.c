@@ -374,6 +374,13 @@ static int arm_spe_synth_error(struct arm_spe *spe, int cpu, pid_t pid,
 }
 #endif
 
+/*
+ * extract data needed from the packets in a record.
+ * returns ARM_SPE_NEED_MORE_BYTES if more packets are expected
+ * returns 0 if no more packets are needed and/or the end of the record has
+ * been detected (END or TIMESTAMP packet).
+ * returns ARM_SPE_BAD_PACKET if the input is not recognized as a valid packet
+ */
 static int arm_spe_process_packet(struct arm_spe_queue *speq,
 				   struct perf_sample *sample,
 				   struct arm_spe_pkt *packet)
@@ -393,8 +400,6 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 		if (payload & 0x2) { /* RETIRED */
 		}
 		if (payload & 0x40) { /* NOT-TAKEN */
-			speq->sample_flags &= ~PERF_IP_FLAG_BRANCH;
-			return 0;  /* never happened */
 		}
 		if (payload & 0x80) { /* MISPRED */
 		}
@@ -430,7 +435,7 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 			case 1: sample->cpumode = PERF_RECORD_MISC_KERNEL; break;
 			/* following case 2 can also be KERNEL if VHE is set */
 			case 2: sample->cpumode = PERF_RECORD_MISC_HYPERVISOR; break;
-			/* case 3 is SECURE mode, but that won't occur here, right? */
+			/* case 3 is SECURE mode, but that doesn't occur in linux, right? */
 			case 3: sample->cpumode = PERF_RECORD_MISC_HYPERVISOR; break;
 			default: sample->cpumode = PERF_RECORD_MISC_CPUMODE_UNKNOWN;
 			}
@@ -483,10 +488,12 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 		buf = buffer->data;
 	}
 
+#if 0  /* pt does instructions.  this had branches only */
 	if (!speq->spe->sample_branches) {
 		pr_debug4("%s: !speq->spe->sample_branches\n", __func__);
 		return 0;
 	}
+#endif
 
 	while (sz > ARM_SPE_RECORD_BYTES_MAX) {
 		ret = arm_spe_get_packet(buf, sz, &packet);
