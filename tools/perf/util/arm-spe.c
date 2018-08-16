@@ -479,6 +479,7 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 	int ret = 0, pkt_len;
 	void *buf;
 
+	memset(&sample, 0, sizeof(sample));
 
 	if (buffer->use_data) {
 		sz = buffer->use_size;
@@ -512,7 +513,8 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 			continue;
 
 		if (ret == ARM_SPE_BAD_PACKET || ret != 0) {
-			pr_debug("%s: error processing SPE packet data\n",__func__);
+			pr_debug("%s: error processing SPE packet data.  Continuing anyway\n",__func__);
+			memset(&sample, 0, sizeof(sample));
 			continue;
 		}
 
@@ -565,6 +567,7 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 				__func__, __LINE__);
 			continue;
 		}
+		memset(&sample, 0, sizeof(sample));
 	}
 
 #if 0 /* not sure if we can do this:  @thread_stack: feed branches to the thread_stack */
