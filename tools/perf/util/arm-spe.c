@@ -468,7 +468,7 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 
 static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 				  struct auxtrace_buffer *buffer,
-				  struct thread *thread)
+				  struct thread *thread __maybe_unused)
 {
         struct arm_spe *spe = speq->spe;
 	size_t sz;
@@ -535,11 +535,13 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 		sample.insn_len = 4;
 		memcpy(sample.insn, &speq->arm_insn, 4 /*INTEL_PT_INSN_BUF_SZ*/);
 
+#if 0  /* SPE samples without stack memory/history */
 		if (speq->spe->synth_opts.thread_stack)
 			thread_stack__event(thread, speq->sample_flags,
 					    sample.ip,
 					    sample.addr,
 					    4, buffer->buffer_nr + 1);
+#endif
 		if (filter && !(filter & speq->sample_flags))
 			continue;
 
