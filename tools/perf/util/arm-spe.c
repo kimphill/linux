@@ -393,6 +393,8 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 		if (payload & 0x2) { /* RETIRED */
 		}
 		if (payload & 0x40) { /* NOT-TAKEN */
+			speq->sample_flags &= ~PERF_IP_FLAG_BRANCH;
+			return 0;  /* never happened */
 		}
 		if (payload & 0x80) { /* MISPRED */
 		}
