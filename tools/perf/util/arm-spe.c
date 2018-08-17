@@ -47,6 +47,9 @@ struct arm_spe {
 	u32				pmu_type;
 	bool				data_queued;
 	struct itrace_synth_opts	synth_opts;
+	bool				sample_instructions;
+	u64				instructions_sample_type;
+	u64				instructions_id;
 	bool				sample_branches;
 	u32				branches_filter;
 	u64				branches_sample_type;
@@ -925,21 +928,15 @@ static int arm_spe_event_synth(struct perf_tool *tool,
 }
 
 static int arm_spe_synth_event(struct perf_session *session,
-				 struct perf_event_attr *attr, u64 id)
+			       struct perf_event_attr *attr, u64 id)
 {
 	struct arm_spe_synth arm_spe_synth;
-	int err;
 
 	memset(&arm_spe_synth, 0, sizeof(struct arm_spe_synth));
 	arm_spe_synth.session = session;
 
-	err = perf_event__synthesize_attr(&arm_spe_synth.dummy_tool, attr, 1,
-					  &id, arm_spe_event_synth);
-	if (err)
-		pr_err("%s: failed to synthesize '%s' event type\n",
-		       __func__, name);
-
-	return err;
+	return perf_event__synthesize_attr(&arm_spe_synth.dummy_tool, attr, 1,
+					   &id, arm_spe_event_synth);
 }
 
 static int arm_spe_synth_events(struct arm_spe *spe,
@@ -1001,6 +998,7 @@ static int arm_spe_synth_events(struct arm_spe *spe,
 		spe->sample_branches = true;
 		spe->branches_sample_type = attr.sample_type;
 		spe->branches_id = id;
+		id += 1;
 		/*
 		 * We only use sample types from PERF_SAMPLE_MASK so we can use
 		 * __perf_evsel__sample_size() here.
@@ -1018,8 +1016,10 @@ static int arm_spe_synth_events(struct arm_spe *spe,
 		else
 #endif
 			attr.sample_period = spe->synth_opts.period;
-		err = arm_spe_synth_event(session, "instructions", &attr, id);
+		err = arm_spe_synth_event(session, &attr, id);
 		if (err)
+			pr_err("%s: failed to synthesize 'instructions' event type\n",
+			       __func__);
 			return err;
 		spe->sample_instructions = true;
 		spe->instructions_sample_type = attr.sample_type;
@@ -1059,8 +1059,6 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 	if (!spe)
 		return -ENOMEM;
 
-	addr_filters__init(&spe->filts);
-
 	err = auxtrace_queues__init(&spe->queues);
 	if (err)
 		goto err_free;
@@ -1080,7 +1078,7 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 	arm_spe_print_info(&auxtrace_info->priv[0]);
 
 	if (dump_trace)
-		return;
+		return 0;
 
 	if (session->itrace_synth_opts && session->itrace_synth_opts->set) {
 		spe->synth_opts = *session->itrace_synth_opts;
@@ -1140,6 +1138,8 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 
 	return 0;
 
+err_delete_thread:
+	thread__zput(spe->unknown_thread);
 err_free_queues:
 	auxtrace_queues__free(&spe->queues);
 	session->auxtrace = NULL;
