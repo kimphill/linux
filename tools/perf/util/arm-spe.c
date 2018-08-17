@@ -401,8 +401,12 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 		if (payload & 0x2) { /* RETIRED */
 		}
 		if (payload & 0x40) { /* NOT-TAKEN */
+			struct branch_flags flags = { .abort = true; };
 		}
 		if (payload & 0x80) { /* MISPRED */
+			struct branch_flags flags = { .mispred = true; };
+		} else { /* hold on: predicted and mispredicted are not mutually exclusive */
+			struct branch_flags flags = { .predicted = true; };
 		}
 		if (idx > 1) {
 			if (payload & 0x100) { /* LLC-ACCESS */
@@ -419,6 +423,12 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 		return ret;
 	case ARM_SPE_OP_TYPE:
 		switch (idx) {
+		case 0: /* COND-SELECT or INSN-OTHER */
+			speq->sample_flags = payload & 0x1 ? PERF_IP_FLAG_CONDITIONAL : 0;
+			break;
+		case 1: /* ST or LD */
+			speq->sample_flags = 0;
+			break;
 		case 2:	speq->sample_flags = PERF_IP_FLAG_BRANCH;
 			if (payload & 0x1) {
 				speq->sample_flags |= PERF_IP_FLAG_CONDITIONAL;
