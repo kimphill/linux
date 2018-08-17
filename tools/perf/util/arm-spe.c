@@ -389,6 +389,7 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 	int el, idx = packet->index;
 	unsigned long long payload = packet->payload;
 	int ret = ARM_SPE_NEED_MORE_BYTES;
+	struct branch_flags branch_flags __maybe_unused;
 
 	switch (packet->type) {
 	case ARM_SPE_BAD:
@@ -401,25 +402,24 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 		if (payload & 0x2) { /* RETIRED */
 		}
 		if (payload & 0x40) { /* NOT-TAKEN */
-			struct branch_flags flags = { .abort = true; };
+			//branch_flags flags = { .abort = true };
 		}
 		if (payload & 0x80) { /* MISPRED */
-			struct branch_flags flags = { .mispred = true; };
+			//branch_flags flags = { .mispred = true };
 		} else { /* hold on: predicted and mispredicted are not mutually exclusive */
-			struct branch_flags flags = { .predicted = true; };
+			//branch_flags flags = { .predicted = true };
 		}
 		if (idx > 1) {
 			if (payload & 0x100) { /* LLC-ACCESS */
-				sample->data_src |= PERF_MEM_S(LVL, L3 /* FIXME */);
+				sample->data_src |= PERF_MEM_S(LVL, L3);
 			}
 			if (payload & 0x200) { /* LLC-REFILL */
-				sample->data_src |= PERF_MEM_S(LVL, LFB /* FIXME */);
+				sample->data_src |= PERF_MEM_S(LVL, LFB);
 			}
 			if (payload & 0x400) { /* REMOTE-ACCESS */
-				sample->data_src |= PERF_MEM_S(LVL, REM_RAM1 /* FIXME */);
+				sample->data_src |= PERF_MEM_S(LVL, REM_RAM1);
 			}
 		}
-
 		return ret;
 	case ARM_SPE_OP_TYPE:
 		switch (idx) {
