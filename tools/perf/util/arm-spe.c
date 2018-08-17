@@ -465,6 +465,7 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 		case 2:	break; /* XLAT */
 		default: pr_debug("bad SPE_COUNTER type %d\n", idx); break;
 			 // signal error? : ret = 0;
+		}
 		return ret;
 	default: 
 		return ARM_SPE_BAD_PACKET; /* not a recognized packet type */
@@ -520,7 +521,8 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 			continue;
 
 		if (ret == ARM_SPE_BAD_PACKET || ret != 0) {
-			pr_debug("%s: error processing SPE packet data.  Continuing anyway\n",__func__);
+			pr_debug("%s: error %d processing SPE packet data.  Continuing anyway\n",
+				 __func__, ret);
 			memset(&sample, 0, sizeof(sample));
 			continue;
 		}
