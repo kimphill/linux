@@ -41,6 +41,7 @@ struct arm_spe {
 	u32				auxtrace_type;
 	struct perf_session		*session;
 	struct machine			*machine;
+	struct thread			*unknown_thread;
 	bool				sampling_mode;
 	bool				snapshot_mode;
 	u32				pmu_type;
@@ -912,9 +913,9 @@ struct arm_spe_synth {
 };
 
 static int arm_spe_event_synth(struct perf_tool *tool,
-				 union perf_event *event,
-				 struct perf_sample *sample __maybe_unused,
-				 struct machine *machine __maybe_unused)
+			       union perf_event *event,
+			       struct perf_sample *sample __maybe_unused,
+			       struct machine *machine __maybe_unused)
 {
 	struct arm_spe_synth *arm_spe_synth =
 			container_of(tool, struct arm_spe_synth, dummy_tool);
@@ -927,12 +928,18 @@ static int arm_spe_synth_event(struct perf_session *session,
 				 struct perf_event_attr *attr, u64 id)
 {
 	struct arm_spe_synth arm_spe_synth;
+	int err;
 
 	memset(&arm_spe_synth, 0, sizeof(struct arm_spe_synth));
 	arm_spe_synth.session = session;
 
-	return perf_event__synthesize_attr(&arm_spe_synth.dummy_tool, attr, 1,
-					   &id, arm_spe_event_synth);
+	err = perf_event__synthesize_attr(&arm_spe_synth.dummy_tool, attr, 1,
+					  &id, arm_spe_event_synth);
+	if (err)
+		pr_err("%s: failed to synthesize '%s' event type\n",
+		       __func__, name);
+
+	return err;
 }
 
 static int arm_spe_synth_events(struct arm_spe *spe,
@@ -1002,6 +1009,25 @@ static int arm_spe_synth_events(struct arm_spe *spe,
 				__perf_evsel__sample_size(attr.sample_type);
 	}
 
+	if (spe->synth_opts.instructions) {
+		attr.config = PERF_COUNT_HW_INSTRUCTIONS;
+#if 0 /* deal with later */
+		if (spe->synth_opts.period_type == PERF_ITRACE_PERIOD_NANOSECS)
+			attr.sample_period =
+				intel_pt_ns_to_ticks(pt, pt->synth_opts.period);
+		else
+#endif
+			attr.sample_period = spe->synth_opts.period;
+		err = arm_spe_synth_event(session, "instructions", &attr, id);
+		if (err)
+			return err;
+		spe->sample_instructions = true;
+		spe->instructions_sample_type = attr.sample_type;
+		spe->instructions_id = id;
+		id += 1;
+	}
+
+
 	return 0;
 }
 
@@ -1033,6 +1059,8 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 	if (!spe)
 		return -ENOMEM;
 
+	addr_filters__init(&spe->filts);
+
 	err = auxtrace_queues__init(&spe->queues);
 	if (err)
 		goto err_free;
@@ -1051,6 +1079,8 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 
 	arm_spe_print_info(&auxtrace_info->priv[0]);
 
+	if (dump_trace)
+		return;
 
 	if (session->itrace_synth_opts && session->itrace_synth_opts->set) {
 		spe->synth_opts = *session->itrace_synth_opts;
@@ -1061,12 +1091,41 @@ int arm_spe_process_auxtrace_info(union perf_event *event,
 				session->itrace_synth_opts->thread_stack;
 	}
 
-	if (spe->synth_opts.calls)
-		spe->branches_filter |= PERF_IP_FLAG_CALL | PERF_IP_FLAG_ASYNC |
-					PERF_IP_FLAG_TRACE_END;
-	if (spe->synth_opts.returns)
-		spe->branches_filter |= PERF_IP_FLAG_RETURN |
-					PERF_IP_FLAG_TRACE_BEGIN;
+	/* AUX area tracing synthesis options. see itrace_synth_opts auxtrace.h */
+	/* SPE h/w doesn't tell us the nature of the branch, we'd have to get
+	 * that info from the branch instruction manually
+	 */
+	if (spe->synth_opts.calls || spe->synth_opts.returns)
+		pr_debug("SPE filtering calls and/or returns not supported.\n");
+
+	if (spe->synth_opts.callchain || spe->synth_opts.thread_stack ||
+	    spe->synth_opts.last_branch || spe->synth_opts.transactions ||
+	    spe->synth_opts.pwr_events || spe->synth_opts.ptwrites)
+		pr_debug("can't support one or more synthesis option.\n");
+
+	/* intel-pt and cs-etm have unknown_thread */
+	spe->unknown_thread = thread__new(999999999, 999999999);
+	if (!spe->unknown_thread) {
+		err = -ENOMEM;
+		goto err_free_queues;
+	}
+
+	/*
+	 * Since this thread will not be kept in any rbtree not in a
+	 * list, initialize its list node so that at thread__put() the
+	 * current thread lifetime assuption is kept and we don't segfault
+	 * at list_del_init().
+	 */
+	INIT_LIST_HEAD(&spe->unknown_thread->node);
+
+	err = thread__set_comm(spe->unknown_thread, "unknown", 0);
+	if (err)
+		goto err_delete_thread;
+	if (thread__init_map_groups(spe->unknown_thread, spe->machine)) {
+		err = -ENOMEM;
+		goto err_delete_thread;
+	}
+
 
 	err = arm_spe_synth_events(spe, session);
 	if (err)
