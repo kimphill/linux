@@ -998,7 +998,6 @@ static int arm_spe_synth_events(struct arm_spe *spe,
 		spe->sample_branches = true;
 		spe->branches_sample_type = attr.sample_type;
 		spe->branches_id = id;
-		id += 1;
 		/*
 		 * We only use sample types from PERF_SAMPLE_MASK so we can use
 		 * __perf_evsel__sample_size() here.
