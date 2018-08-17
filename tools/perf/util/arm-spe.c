@@ -434,7 +434,9 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 			case 0: sample->cpumode = PERF_RECORD_MISC_USER; break;
 			case 1: sample->cpumode = PERF_RECORD_MISC_KERNEL; break;
 			/* following case 2 can also be KERNEL if VHE is set */
-			case 2: sample->cpumode = PERF_RECORD_MISC_HYPERVISOR; break;
+			//HYPERVISOR with non-VHE check?  or should this all 
+			//be done with kernel addresses?; break;
+			case 2: sample->cpumode = PERF_RECORD_MISC_KERNEL; break;
 			/* case 3 is SECURE mode, but that doesn't occur in linux, right? */
 			case 3: sample->cpumode = PERF_RECORD_MISC_HYPERVISOR; break;
 			default: sample->cpumode = PERF_RECORD_MISC_CPUMODE_UNKNOWN;
@@ -457,7 +459,12 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 	case ARM_SPE_CONTEXT:
 		/* fall through */
 	case ARM_SPE_COUNTER:
-		/* fall through */
+		switch (idx) { /* LATency type */
+		case 0:	sample->period = (unsigned short)payload; break; /* TOT */
+		case 1:	break; /* ISSUE */
+		case 2:	break; /* XLAT */
+		default: pr_debug("bad SPE_COUNTER type %d\n", idx); break;
+			 // signal error? : ret = 0;
 		return ret;
 	default: 
 		return ARM_SPE_BAD_PACKET; /* not a recognized packet type */
@@ -496,7 +503,7 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 	}
 #endif
 
-	while (sz > ARM_SPE_RECORD_BYTES_MAX) {
+	while (sz > sizeof(packet)) { //ARM_SPE_RECORD_BYTES_MAX) {
 		ret = arm_spe_get_packet(buf, sz, &packet);
 		if (ret > 0)
 			pkt_len = ret;
@@ -568,6 +575,7 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 			continue;
 		}
 		memset(&sample, 0, sizeof(sample));
+		memset(&event, 0, sizeof(event));
 	}
 
 #if 0 /* not sure if we can do this:  @thread_stack: feed branches to the thread_stack */
