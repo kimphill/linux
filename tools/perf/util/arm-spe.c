@@ -22,6 +22,7 @@
 #include "util.h"
 #include "thread.h"
 #include "thread-stack.h"
+#include "../perf.h"
 #include "debug.h"
 #include "auxtrace.h"
 #include "arm-spe.h"
@@ -403,6 +404,17 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 		}
 		if (payload & 0x80) { /* MISPRED */
 		}
+		if (idx > 1) {
+			if (payload & 0x100) { /* LLC-ACCESS */
+				sample->data_src |= PERF_MEM_S(LVL, L3 /* FIXME */);
+			}
+			if (payload & 0x200) { /* LLC-REFILL */
+				sample->data_src |= PERF_MEM_S(LVL, LFB /* FIXME */);
+			}
+			if (payload & 0x400) { /* REMOTE-ACCESS */
+				sample->data_src |= PERF_MEM_S(LVL, REM_RAM1 /* FIXME */);
+			}
+		}
 
 		return ret;
 	case ARM_SPE_OP_TYPE:
@@ -447,14 +459,17 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 			else
 				sample->ip = payload; /* "from" */
 
-			return ret;
-//		case 2:	return ret; //snprintf(buf, buf_len, "VA 0x%llx", payload);
-//		case 3:	//ns = !!(packet->payload & NS_FLAG);
-			//payload &= ~(0xffULL << 56);
-//			return ret; //snprintf(buf, buf_len, "PA 0x%llx ns=%d",
-				  //	payload, ns);
-		default: return ret;
+			break;
+		case 2:	/* VA */
+			sample->addr = payload;
+			break;
+		case 3: /* PA */
+			payload &= ~(0xffULL << 56);
+			sample->phys_addr = payload;
+			break;
+		default: return ARM_SPE_BAD_PACKET;
 		}
+		return ret;
 
 	case ARM_SPE_CONTEXT:
 		/* fall through */
