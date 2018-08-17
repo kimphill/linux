@@ -664,7 +664,7 @@ static int cs_etm__synth_instruction_sample(struct cs_etm_queue *etmq,
 	sample.period = period;
 	sample.cpu = etmq->packet->cpu;
 	sample.flags = 0;
-	sample.insn_len = 1;
+	sample.insn_len = 4;
 	sample.cpumode = event->header.misc;
 
 	if (etm->synth_opts.last_branch) {
