@@ -870,10 +870,28 @@ static int arm_spe_process_auxtrace_event(struct perf_session *session,
 	return 0;
 }
 
-static int arm_spe_flush(struct perf_session *session __maybe_unused,
-			 struct perf_tool *tool __maybe_unused)
+static int arm_spe_flush(struct perf_session *session, 
+			 struct perf_tool *tool)
 {
-	return 0;
+	struct arm_spe *spe = container_of(session->auxtrace, struct arm_spe,
+					   auxtrace);
+	int ret;
+
+	if (dump_trace)
+		return 0;
+
+	if (!tool->ordered_events)
+		return -EINVAL;
+
+	ret = arm_spe_update_queues(spe);
+	if (ret < 0)
+		return ret;
+
+	if (spe->timeless_decoding)
+		return arm_spe_process_timeless_queues(spe, -1,
+						       MAX_TIMESTAMP - 1);
+
+	return arm_spe_process_queues(spe, MAX_TIMESTAMP);
 }
 
 static void arm_spe_free_queue(void *priv)
@@ -882,6 +900,14 @@ static void arm_spe_free_queue(void *priv)
 
 	if (!speq)
 		return;
+#if 0
+	thread__zput(ptq->thread);
+	intel_pt_decoder_free(ptq->decoder);
+	zfree(&ptq->event_buf);
+	zfree(&ptq->last_branch);
+	zfree(&ptq->last_branch_rb);
+	zfree(&ptq->chain);
+#endif
 	free(speq);
 }
 
@@ -907,6 +933,7 @@ static void arm_spe_free(struct perf_session *session)
 	auxtrace_heap__free(&spe->heap);
 	arm_spe_free_events(session);
 	session->auxtrace = NULL;
+	thread__put(pt->unknown_thread);
 	free(spe);
 }
 
