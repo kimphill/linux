@@ -34,6 +34,8 @@
 #define NS_FLAG		BIT(63)
 #define EL_FLAG		(BIT(62) | BIT(61))
 
+#define MAX_TIMESTAMP (~0ULL)
+
 struct arm_spe {
 	struct auxtrace			auxtrace;
 	struct auxtrace_queues		queues;
@@ -42,6 +44,7 @@ struct arm_spe {
 	struct perf_session		*session;
 	struct machine			*machine;
 	struct thread			*unknown_thread;
+	bool				timeless_decoding;
 	bool				sampling_mode;
 	bool				snapshot_mode;
 	u32				pmu_type;
@@ -503,6 +506,29 @@ static int arm_spe_process_packet(struct arm_spe_queue *speq,
 	return 0;
 }
 
+#if 0
+static int intel_pt_synth_instruction_sample(struct intel_pt_queue *ptq)
+{
+	struct intel_pt *pt = ptq->pt;
+	union perf_event *event = ptq->event_buf;
+	struct perf_sample sample = { .ip = 0, };
+
+	if (intel_pt_skip_event(pt))
+		return 0;
+
+	intel_pt_prep_sample(pt, ptq, event, &sample);
+
+	sample.id = ptq->pt->instructions_id;
+	sample.stream_id = ptq->pt->instructions_id;
+	sample.period = ptq->state->tot_insn_cnt - ptq->last_insn_cnt;
+
+	ptq->last_insn_cnt = ptq->state->tot_insn_cnt;
+
+	return intel_pt_deliver_synth_event(pt, ptq, event, &sample,
+					    pt->instructions_sample_type);
+}
+#endif
+
 static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 				  struct auxtrace_buffer *buffer,
 				  struct thread *thread __maybe_unused)
@@ -569,7 +595,7 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 		sample.tid = speq->tid;
 		sample.id = speq->spe->branches_id;
 		sample.stream_id = speq->spe->branches_id;
-		sample.period = 1;
+		sample.period = 1;/* FIXME: this needs to be the recording interval */
 		sample.cpu = speq->cpu;
 		sample.flags = speq->sample_flags;
 		sample.insn_len = 4;
@@ -603,8 +629,36 @@ static int arm_spe_process_buffer(struct arm_spe_queue *speq,
 			       ret);
 			fprintf(stderr, "%s %d: error delivering synthesized event\n",
 				__func__, __LINE__);
-			continue;
+			//continue;
 		}
+
+		//intel_pt_synth_instruction_sample(struct intel_pt_queue *ptq)
+		//if (intel_pt_skip_event(pt))
+		//	return 0;
+
+		//think abd: intel_pt_prep_sample(pt, ptq, event, &sample);
+
+		sample.id = spe->instructions_id;
+		sample.stream_id = spe->instructions_id;
+		sample.period = 1; /* FIXME: this needs to be the recording interval */
+
+		//ptq->last_insn_cnt = ptq->state->tot_insn_cnt;
+
+		perf_session__deliver_synth_event(spe->session, &event, &sample);
+
+		if (spe->synth_opts.inject) {
+			//event.sample.header.size = spe->instructions_event_size;
+			//event.header.size = perf_event__sample_event_size(sample, type, 0);
+			ret = perf_event__synthesize_sample(&event,
+							    spe->instructions_sample_type,
+							    0, &sample);
+			if (ret) {
+				fprintf(stderr, "%s %d: error synthesizing sample\n",
+					__func__, __LINE__);
+				return ret;
+			}
+		}
+
 		memset(&sample, 0, sizeof(sample));
 		memset(&event, 0, sizeof(event));
 	}
@@ -870,6 +924,28 @@ static int arm_spe_process_auxtrace_event(struct perf_session *session,
 	return 0;
 }
 
+#if 0
+static int intel_pt_process_timeless_queues(struct intel_pt *pt, pid_t tid,
+					    u64 time_)
+{
+	struct auxtrace_queues *queues = &pt->queues;
+	unsigned int i;
+	u64 ts = 0;
+
+	for (i = 0; i < queues->nr_queues; i++) {
+		struct auxtrace_queue *queue = &pt->queues.queue_array[i];
+		struct intel_pt_queue *ptq = queue->priv;
+
+		if (ptq && (tid == -1 || ptq->tid == tid)) {
+			ptq->time = time_;
+			intel_pt_set_pid_tid_cpu(pt, queue);
+			intel_pt_run_decoder(ptq, &ts);
+		}
+	}
+	return 0;
+}
+#endif
+
 static int arm_spe_flush(struct perf_session *session, 
 			 struct perf_tool *tool)
 {
@@ -880,16 +956,22 @@ static int arm_spe_flush(struct perf_session *session,
 	if (dump_trace)
 		return 0;
 
-	if (!tool->ordered_events)
+	if (!tool->ordered_events) {
+		pr_err("!orderered_events!\n");
 		return -EINVAL;
+	}
 
 	ret = arm_spe_update_queues(spe);
-	if (ret < 0)
+	if (ret < 0) {
+		pr_err("update_queues returned %d\n", ret);
 		return ret;
+	}
 
+#if 0
 	if (spe->timeless_decoding)
 		return arm_spe_process_timeless_queues(spe, -1,
 						       MAX_TIMESTAMP - 1);
+#endif
 
 	return arm_spe_process_queues(spe, MAX_TIMESTAMP);
 }
@@ -933,7 +1015,7 @@ static void arm_spe_free(struct perf_session *session)
 	auxtrace_heap__free(&spe->heap);
 	arm_spe_free_events(session);
 	session->auxtrace = NULL;
-	thread__put(pt->unknown_thread);
+	thread__put(spe->unknown_thread);
 	free(spe);
 }
 
